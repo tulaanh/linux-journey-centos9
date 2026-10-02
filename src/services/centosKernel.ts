@@ -1,0 +1,2289 @@
+import { VirtualFileSystem } from './vfs';
+import type {
+  LinuxUser,
+  LinuxGroup,
+  SystemProcess,
+  SystemdService,
+  YumPackage,
+  CommandResult,
+} from '../types/linux';
+
+export class CentOSKernel {
+  public vfs: VirtualFileSystem;
+  public cwd: string = '/root';
+  public currentUser: string = 'root';
+  public hostname: string = 'centos9.localdomain';
+  public env: Record<string, string> = {};
+  public history: string[] = [];
+  public lastExitCode: number = 0;
+
+  public users: Map<string, LinuxUser> = new Map();
+  public groups: Map<string, LinuxGroup> = new Map();
+  public processes: SystemProcess[] = [];
+  public services: Map<string, SystemdService> = new Map();
+  public crontabs: Map<string, string[]> = new Map();
+  public packages: Map<string, YumPackage> = new Map();
+  public aliases: Map<string, string> = new Map();
+
+  // Callback to open interactive editor in UI if user types `vi` or `nano`
+  public onOpenEditor?: (filePath: string, content: string) => void;
+
+  constructor() {
+    this.vfs = new VirtualFileSystem();
+    this.initDefaultState();
+  }
+
+  public initDefaultState(): void {
+    this.vfs.resetToDefaultCentOS();
+    this.cwd = '/root';
+    this.currentUser = 'root';
+    this.hostname = 'centos9.localdomain';
+    this.lastExitCode = 0;
+
+    this.env = {
+      USER: 'root',
+      HOME: '/root',
+      SHELL: '/bin/bash',
+      TERM: 'xterm-256color',
+      PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin',
+      HOSTNAME: this.hostname,
+      LANG: 'en_US.UTF-8',
+      HISTSIZE: '1000',
+    };
+
+    // Default aliases
+    this.aliases.clear();
+    this.aliases.set('ll', 'ls -l --color=auto');
+    this.aliases.set('la', 'ls -la --color=auto');
+    this.aliases.set('l.', 'ls -d .* --color=auto');
+    this.aliases.set('grep', 'grep --color=auto');
+    this.aliases.set('egrep', 'egrep --color=auto');
+    this.aliases.set('fgrep', 'fgrep --color=auto');
+
+
+    // Default Users
+    this.users.clear();
+    const defaultUsers: LinuxUser[] = [
+      { uid: 0, username: 'root', gid: 0, home: '/root', shell: '/bin/bash' },
+      { uid: 1, username: 'bin', gid: 1, home: '/bin', shell: '/sbin/nologin' },
+      { uid: 2, username: 'daemon', gid: 2, home: '/sbin', shell: '/sbin/nologin' },
+      { uid: 74, username: 'sshd', gid: 74, home: '/var/empty/sshd', shell: '/sbin/nologin' },
+      { uid: 1000, username: 'centos', gid: 1000, home: '/home/centos', shell: '/bin/bash' },
+    ];
+    defaultUsers.forEach(u => this.users.set(u.username, u));
+
+    // Default Groups
+    this.groups.clear();
+    const defaultGroups: LinuxGroup[] = [
+      { gid: 0, name: 'root', members: ['root'] },
+      { gid: 10, name: 'wheel', members: ['centos'] },
+      { gid: 74, name: 'sshd', members: [] },
+      { gid: 1000, name: 'centos', members: ['centos'] },
+    ];
+    defaultGroups.forEach(g => this.groups.set(g.name, g));
+
+    // Default Services
+    this.services.clear();
+    const defaultServices: SystemdService[] = [
+      { name: 'sshd.service', description: 'OpenSSH server daemon', activeState: 'active', unitFileState: 'enabled', execStart: '/usr/sbin/sshd -D', mainPid: 912 },
+      { name: 'crond.service', description: 'Command Scheduler', activeState: 'active', unitFileState: 'enabled', execStart: '/usr/sbin/crond -n', mainPid: 540 },
+      { name: 'firewalld.service', description: 'firewalld - dynamic firewall daemon', activeState: 'active', unitFileState: 'enabled', execStart: '/usr/sbin/firewalld --nofork --nopid', mainPid: 615 },
+      { name: 'NetworkManager.service', description: 'Network Manager', activeState: 'active', unitFileState: 'enabled', execStart: '/usr/sbin/NetworkManager --no-daemon' },
+      { name: 'auditd.service', description: 'Security Auditing Service', activeState: 'active', unitFileState: 'enabled', execStart: '/sbin/auditd', mainPid: 520 },
+      { name: 'nginx.service', description: 'The nginx HTTP and reverse proxy server', activeState: 'inactive', unitFileState: 'disabled', execStart: '/usr/sbin/nginx' },
+      { name: 'httpd.service', description: 'The Apache HTTP Server', activeState: 'inactive', unitFileState: 'disabled', execStart: '/usr/sbin/httpd -DFOREGROUND' },
+      { name: 'mariadb.service', description: 'MariaDB 10.5 database server', activeState: 'inactive', unitFileState: 'disabled', execStart: '/usr/libexec/mariadbd' },
+    ];
+    defaultServices.forEach(s => this.services.set(s.name, s));
+
+    // Default Processes
+    this.processes = [
+      { pid: 1, ppid: 0, user: 'root', cpu: 0.0, mem: 0.4, vsz: 172324, rss: 5216, tty: '?', stat: 'Ss', start: '08:12', time: '0:01', command: '/usr/lib/systemd/systemd --switched-root --system --deserialize 31' },
+      { pid: 520, ppid: 1, user: 'root', cpu: 0.0, mem: 0.1, vsz: 55432, rss: 1840, tty: '?', stat: 'S<s', start: '08:12', time: '0:00', command: '/sbin/auditd' },
+      { pid: 540, ppid: 1, user: 'root', cpu: 0.0, mem: 0.1, vsz: 126284, rss: 1672, tty: '?', stat: 'Ss', start: '08:12', time: '0:00', command: '/usr/sbin/crond -n' },
+      { pid: 615, ppid: 1, user: 'root', cpu: 0.1, mem: 2.1, vsz: 345120, rss: 32410, tty: '?', stat: 'Ssl', start: '08:12', time: '0:02', command: '/usr/bin/python3 -s /usr/sbin/firewalld --nofork --nopid' },
+      { pid: 912, ppid: 1, user: 'root', cpu: 0.0, mem: 0.3, vsz: 112796, rss: 4312, tty: '?', stat: 'Ss', start: '08:12', time: '0:00', command: '/usr/sbin/sshd -D' },
+      { pid: 1205, ppid: 912, user: 'root', cpu: 0.0, mem: 0.4, vsz: 153240, rss: 5612, tty: '?', stat: 'Ss', start: '08:14', time: '0:00', command: 'sshd: root@pts/0' },
+      { pid: 1208, ppid: 1205, user: 'root', cpu: 0.0, mem: 0.2, vsz: 115540, rss: 3204, tty: 'pts/0', stat: 'Ss', start: '08:14', time: '0:00', command: '-bash' },
+    ];
+
+    // Default Crontab
+    this.crontabs.clear();
+    this.crontabs.set('root', [
+      '# Run system activity accounting tool every 10 minutes',
+      '*/10 * * * * /usr/lib64/sa/sa1 1 1',
+    ]);
+
+    // Available Packages in CentOS 9 repository (DNF / RPM)
+    this.packages.clear();
+    const pkgList: YumPackage[] = [
+      {
+        name: 'nginx',
+        version: '1.22.1',
+        release: '3.el9',
+        arch: 'x86_64',
+        summary: 'A high performance web server and reverse proxy',
+        description: 'Nginx is a web server and a reverse proxy server for HTTP, SMTP, POP3 and IMAP protocols.',
+        installed: false,
+        size: '2.1 M',
+        files: ['/usr/sbin/nginx', '/etc/nginx/nginx.conf', '/etc/nginx/conf.d', '/var/log/nginx', '/usr/share/nginx/html/index.html'],
+      },
+      {
+        name: 'httpd',
+        version: '2.4.57',
+        release: '5.el9',
+        arch: 'x86_64',
+        summary: 'Apache HTTP Server',
+        description: 'The Apache HTTP Server is a powerful, efficient, and extensible web server.',
+        installed: false,
+        size: '3.1 M',
+        files: ['/usr/sbin/httpd', '/etc/httpd/conf/httpd.conf', '/var/www/html'],
+      },
+      {
+        name: 'htop',
+        version: '3.2.2',
+        release: '1.el9',
+        arch: 'x86_64',
+        summary: 'An interactive process viewer',
+        description: 'htop is an interactive real-time process monitoring tool for Linux systems.',
+        installed: false,
+        size: '280 k',
+        files: ['/usr/bin/htop', '/usr/share/man/man1/htop.1.gz'],
+      },
+      {
+        name: 'tree',
+        version: '1.8.2',
+        release: '2.el9',
+        arch: 'x86_64',
+        summary: 'File and directory tree display tool',
+        description: 'Tree is a recursive directory listing command that produces a depth indented listing of files.',
+        installed: false,
+        size: '56 k',
+        files: ['/usr/bin/tree'],
+      },
+      {
+        name: 'git',
+        version: '2.39.3',
+        release: '1.el9',
+        arch: 'x86_64',
+        summary: 'Fast Version Control System',
+        description: 'Git is a fast, scalable, distributed revision control system with an unusually rich command set.',
+        installed: false,
+        size: '5.2 M',
+        files: ['/usr/bin/git', '/usr/libexec/git-core'],
+      },
+      {
+        name: 'net-tools',
+        version: '2.0',
+        release: '0.52.20160912git.el9',
+        arch: 'x86_64',
+        summary: 'Basic networking tools',
+        description: 'The net-tools package includes basic tools for configuring and maintaining networking.',
+        installed: true,
+        size: '1.1 M',
+        files: ['/bin/netstat', '/sbin/ifconfig', '/sbin/route', '/sbin/arp'],
+      },
+      {
+        name: 'vim-enhanced',
+        version: '8.2.2637',
+        release: '20.el9',
+        arch: 'x86_64',
+        summary: 'A version of the VIM editor which includes recent enhancements',
+        description: 'VIM (Visual editor IMproved) is an updated and improved version of the vi editor.',
+        installed: true,
+        size: '2.8 M',
+        files: ['/usr/bin/vim'],
+      },
+      {
+        name: 'curl',
+        version: '7.76.1',
+        release: '26.el9',
+        arch: 'x86_64',
+        summary: 'A utility for getting files from remote servers',
+        description: 'curl is a command line tool for transferring data with URL syntax.',
+        installed: true,
+        size: '310 k',
+        files: ['/usr/bin/curl'],
+      },
+    ];
+    pkgList.forEach(p => this.packages.set(p.name, p));
+  }
+
+  // Generate Bash Prompt
+  public getPrompt(): string {
+    const user = this.currentUser;
+    const shortHost = this.hostname.split('.')[0] || 'localhost';
+    const userObj = this.users.get(user);
+    const home = userObj?.home || '/root';
+
+    let displayCwd = this.cwd;
+    if (displayCwd === home) {
+      displayCwd = '~';
+    } else if (displayCwd.startsWith(home + '/')) {
+      displayCwd = '~' + displayCwd.slice(home.length);
+    }
+
+    // CentOS bash format: [root@localhost ~]# or [centos@localhost ~]$
+    const symbol = user === 'root' ? '#' : '$';
+    return `[${user}@${shortHost} ${displayCwd}]${symbol} `;
+  }
+
+  // Main entrypoint: Execute a command string from shell
+  public async execute(rawInput: string): Promise<CommandResult> {
+    const line = rawInput.trim();
+    if (!line) {
+      return { stdout: '', stderr: '', exitCode: 0, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    this.history.push(line);
+
+    // Support logical chaining &&, ||, ;
+    return this.executeChain(line);
+  }
+
+  private async executeChain(line: string): Promise<CommandResult> {
+    // Check for ; first
+    if (line.includes(';') && !line.includes('\\;')) {
+      const parts = line.split(';');
+      let combinedOut = '';
+      let combinedErr = '';
+      let lastExit = 0;
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const res = await this.executeChain(part.trim());
+        if (res.stdout) combinedOut += res.stdout + '\n';
+        if (res.stderr) combinedErr += res.stderr + '\n';
+        lastExit = res.exitCode;
+      }
+      return { stdout: combinedOut.trimEnd(), stderr: combinedErr.trimEnd(), exitCode: lastExit, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    // Check for &&
+    if (line.includes('&&')) {
+      const parts = line.split('&&');
+      let combinedOut = '';
+      let combinedErr = '';
+      for (const part of parts) {
+        const res = await this.executePipelineOrRedirect(part.trim());
+        if (res.stdout) combinedOut += (combinedOut ? '\n' : '') + res.stdout;
+        if (res.stderr) combinedErr += (combinedErr ? '\n' : '') + res.stderr;
+        if (res.exitCode !== 0) {
+          return { stdout: combinedOut, stderr: combinedErr, exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+        }
+      }
+      return { stdout: combinedOut, stderr: combinedErr, exitCode: 0, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    // Check for ||
+    if (line.includes('||')) {
+      const parts = line.split('||');
+      let lastRes: CommandResult = { stdout: '', stderr: '', exitCode: 0 };
+      for (const part of parts) {
+        lastRes = await this.executePipelineOrRedirect(part.trim());
+        if (lastRes.exitCode === 0) {
+          return lastRes;
+        }
+      }
+      return lastRes;
+    }
+
+    return this.executePipelineOrRedirect(line);
+  }
+
+  private async executePipelineOrRedirect(line: string): Promise<CommandResult> {
+    // Redirection check: >> or >
+    const appendMatch = line.match(/^(.*?)\s*>>\s*(\S+)\s*$/);
+    if (appendMatch) {
+      const [, cmdPart, targetFile] = appendMatch;
+      const res = await this.executePipeline(cmdPart.trim());
+      const resolvedPath = this.vfs.resolvePath(this.cwd, targetFile);
+      this.vfs.writeFile(resolvedPath, (res.stdout ? res.stdout + '\n' : ''), { append: true });
+      return { stdout: '', stderr: res.stderr, exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    const overwriteMatch = line.match(/^(.*?)\s*>\s*(\S+)\s*$/);
+    if (overwriteMatch) {
+      const [, cmdPart, targetFile] = overwriteMatch;
+      const res = await this.executePipeline(cmdPart.trim());
+      const resolvedPath = this.vfs.resolvePath(this.cwd, targetFile);
+      this.vfs.writeFile(resolvedPath, (res.stdout ? res.stdout + '\n' : ''), { append: false });
+      return { stdout: '', stderr: res.stderr, exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    return this.executePipeline(line);
+  }
+
+  private async executePipeline(line: string): Promise<CommandResult> {
+    const pipeCommands = line.split('|').map(s => s.trim()).filter(Boolean);
+    if (pipeCommands.length === 0) return { stdout: '', stderr: '', exitCode: 0 };
+
+    let currentStdin = '';
+    let lastResult: CommandResult = { stdout: '', stderr: '', exitCode: 0 };
+
+    for (let i = 0; i < pipeCommands.length; i++) {
+      const cmdStr = pipeCommands[i];
+      const parsedArgs = this.parseArguments(cmdStr);
+      lastResult = await this.dispatchCommand(parsedArgs, currentStdin);
+      if (lastResult.exitCode !== 0 && i < pipeCommands.length - 1) {
+        return lastResult;
+      }
+      currentStdin = lastResult.stdout;
+    }
+
+    this.lastExitCode = lastResult.exitCode;
+    return lastResult;
+  }
+
+  // Tokenize arguments handling quotes and environment variable expansion
+  private parseArguments(commandLine: string): string[] {
+    const tokens: string[] = [];
+    let current = '';
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+
+    for (let i = 0; i < commandLine.length; i++) {
+      const char = commandLine[i];
+
+      if (char === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+        continue;
+      }
+
+      if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+        continue;
+      }
+
+      if (char === ' ' && !inSingleQuote && !inDoubleQuote) {
+        if (current.length > 0) {
+          tokens.push(this.expandVariables(current));
+          current = '';
+        }
+        continue;
+      }
+
+      current += char;
+    }
+
+    if (current.length > 0) {
+      tokens.push(this.expandVariables(current));
+    }
+
+    return tokens;
+  }
+
+  private expandVariables(token: string): string {
+    return token.replace(/\$([A-Za-z0-9_?]+)/g, (_, varName) => {
+      if (varName === '?') return this.lastExitCode.toString();
+      if (varName === 'PWD') return this.cwd;
+      if (varName === 'USER') return this.currentUser;
+      if (varName === 'HOSTNAME') return this.hostname;
+      return this.env[varName] ?? '';
+    });
+  }
+
+  // Command dispatcher
+  private async dispatchCommand(args: string[], stdin: string): Promise<CommandResult> {
+    if (args.length === 0) return { stdout: '', stderr: '', exitCode: 0 };
+
+    // Variable assignment: e.g. MY_VAR=hello
+    if (args.length === 1 && args[0].includes('=') && !args[0].startsWith('=')) {
+      const [k, ...vParts] = args[0].split('=');
+      const val = vParts.join('=');
+      this.env[k] = val;
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+
+    let cmd = args[0];
+    let cmdArgs = args.slice(1);
+
+    // Expand aliases (unless invoked with leading backslash or quotes)
+    if (this.aliases.has(cmd)) {
+      const aliasVal = this.aliases.get(cmd)!;
+      const parts = this.parseArguments(aliasVal);
+      cmd = parts[0];
+      cmdArgs = [...parts.slice(1), ...cmdArgs];
+    }
+
+    switch (cmd) {
+      case 'pwd': return this.cmdPwd();
+      case 'cd': return this.cmdCd(cmdArgs);
+      case 'ls': return this.cmdLs(cmdArgs);
+      case 'mkdir': return this.cmdMkdir(cmdArgs);
+      case 'touch': return this.cmdTouch(cmdArgs);
+      case 'rm': return this.cmdRm(cmdArgs);
+      case 'cp': return this.cmdCp(cmdArgs);
+      case 'mv': return this.cmdMv(cmdArgs);
+      case 'cat': return this.cmdCat(cmdArgs, stdin);
+      case 'less':
+      case 'more': return this.cmdLess(cmdArgs, stdin);
+      case 'file': return this.cmdFile(cmdArgs);
+      case 'whatis': return this.cmdWhatis(cmdArgs);
+      case 'alias': return this.cmdAlias(cmdArgs);
+      case 'unalias': return this.cmdUnalias(cmdArgs);
+      case 'man': return this.cmdMan(cmdArgs);
+      case 'head': return this.cmdHead(cmdArgs, stdin);
+      case 'tail': return this.cmdTail(cmdArgs, stdin);
+      case 'wc': return this.cmdWc(cmdArgs, stdin);
+      case 'grep': return this.cmdGrep(cmdArgs, stdin);
+      case 'find': return this.cmdFind(cmdArgs);
+      case 'echo': return this.cmdEcho(cmdArgs);
+      case 'chmod': return this.cmdChmod(cmdArgs);
+      case 'chown': return this.cmdChown(cmdArgs);
+      case 'chgrp': return this.cmdChgrp(cmdArgs);
+      case 'useradd': return this.cmdUseradd(cmdArgs);
+      case 'userdel': return this.cmdUserdel(cmdArgs);
+      case 'groupadd': return this.cmdGroupadd(cmdArgs);
+      case 'groupdel': return this.cmdGroupdel(cmdArgs);
+      case 'usermod': return this.cmdUsermod(cmdArgs);
+      case 'passwd': return this.cmdPasswd(cmdArgs);
+      case 'id': return this.cmdId(cmdArgs);
+      case 'whoami': return { stdout: this.currentUser, stderr: '', exitCode: 0 };
+      case 'su': return this.cmdSu(cmdArgs);
+      case 'sudo': return this.cmdSudo(cmdArgs, stdin);
+      case 'systemctl': return this.cmdSystemctl(cmdArgs);
+      case 'service': return this.cmdService(cmdArgs);
+      case 'ps': return this.cmdPs(cmdArgs);
+      case 'top': return this.cmdTop();
+      case 'kill': return this.cmdKill(cmdArgs);
+      case 'pkill': return this.cmdPkill(cmdArgs);
+      case 'crontab': return this.cmdCrontab(cmdArgs, stdin);
+      case 'yum':
+      case 'dnf': return this.cmdYum(cmdArgs);
+      case 'rpm': return this.cmdRpm(cmdArgs);
+      case 'hostnamectl': return this.cmdHostnamectl(cmdArgs);
+      case 'hostname': return this.cmdHostname(cmdArgs);
+      case 'ip': return this.cmdIp(cmdArgs);
+      case 'ifconfig': return this.cmdIfconfig();
+      case 'ping': return this.cmdPing(cmdArgs);
+      case 'netstat':
+      case 'ss': return this.cmdNetstat();
+      case 'df': return this.cmdDf(cmdArgs);
+      case 'free': return this.cmdFree(cmdArgs);
+      case 'uname': return this.cmdUname(cmdArgs);
+      case 'uptime': return this.cmdUptime();
+      case 'date': return { stdout: new Date().toUTCString(), stderr: '', exitCode: 0 };
+      case 'clear': return { stdout: '\x1b[2J\x1b[H', stderr: '', exitCode: 0 };
+      case 'history': return this.cmdHistory();
+      case 'which': return this.cmdWhich(cmdArgs);
+      case 'whereis': return this.cmdWhereis(cmdArgs);
+      case 'vi':
+      case 'vim':
+      case 'nano': return this.cmdEditor(cmd, cmdArgs);
+      case 'help': return this.cmdHelp(cmdArgs);
+      case 'exit': return this.cmdExit();
+      default:
+        // Check if executable file in PATH or current dir
+        return {
+          stdout: '',
+          stderr: `bash: ${cmd}: command not found...`,
+          exitCode: 127,
+        };
+    }
+  }
+
+  // --- Command Implementations ---
+
+  private cmdPwd(): CommandResult {
+    return { stdout: this.cwd, stderr: '', exitCode: 0 };
+  }
+
+  private cmdCd(args: string[]): CommandResult {
+    let target = args[0] || (this.users.get(this.currentUser)?.home || '/root');
+    if (target === '~') {
+      target = this.users.get(this.currentUser)?.home || '/root';
+    } else if (target.startsWith('~/')) {
+      target = (this.users.get(this.currentUser)?.home || '/root') + target.slice(1);
+    }
+
+    const resolved = this.vfs.resolvePath(this.cwd, target);
+    const node = this.vfs.getNode(resolved);
+
+    if (!node) {
+      return { stdout: '', stderr: `bash: cd: ${target}: No such file or directory`, exitCode: 1 };
+    }
+
+    if (node.type !== 'dir') {
+      return { stdout: '', stderr: `bash: cd: ${target}: Not a directory`, exitCode: 1 };
+    }
+
+    // Permission check
+    const groups = this.getUserGroups(this.currentUser);
+    if (!this.vfs.checkPermission(node, this.currentUser, groups, 'exec')) {
+      return { stdout: '', stderr: `bash: cd: ${target}: Permission denied`, exitCode: 1 };
+    }
+
+    this.cwd = resolved;
+    this.env.PWD = resolved;
+    return { stdout: '', stderr: '', exitCode: 0, cwd: this.cwd };
+  }
+
+  private cmdLs(args: string[]): CommandResult {
+    let showAll = false;
+    let longFormat = false;
+    let humanReadable = false;
+    const paths: string[] = [];
+
+    for (const arg of args) {
+      if (arg.startsWith('-')) {
+        if (arg.includes('a')) showAll = true;
+        if (arg.includes('l')) longFormat = true;
+        if (arg.includes('h')) humanReadable = true;
+      } else {
+        paths.push(arg);
+      }
+    }
+
+    const targetPaths = paths.length > 0 ? paths : [this.cwd];
+    let outputLines: string[] = [];
+
+    for (let i = 0; i < targetPaths.length; i++) {
+      const p = targetPaths[i];
+      const resolved = this.vfs.resolvePath(this.cwd, p);
+      const node = this.vfs.getNode(resolved);
+
+      if (!node) {
+        outputLines.push(`ls: cannot access '${p}': No such file or directory`);
+        continue;
+      }
+
+      if (targetPaths.length > 1) {
+        outputLines.push(`${p}:`);
+      }
+
+      if (node.type === 'file') {
+        if (longFormat) {
+          outputLines.push(this.formatLsLine(node, humanReadable));
+        } else {
+          outputLines.push(node.name);
+        }
+        continue;
+      }
+
+      // Directory
+      const items = this.vfs.readdir(resolved) || [];
+      const visibleItems = items.filter(it => showAll || !it.name.startsWith('.'));
+      visibleItems.sort((a, b) => a.name.localeCompare(b.name));
+
+      if (longFormat) {
+        outputLines.push(`total ${visibleItems.length * 4}`);
+        for (const item of visibleItems) {
+          outputLines.push(this.formatLsLine(item, humanReadable));
+        }
+      } else {
+        const names = visibleItems.map(it => {
+          if (it.type === 'dir') return `\x1b[1;34m${it.name}\x1b[0m`;
+          if (it.mode & 0o111) return `\x1b[1;32m${it.name}\x1b[0m`;
+          return it.name;
+        });
+        outputLines.push(names.join('  '));
+      }
+    }
+
+    return { stdout: outputLines.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private formatLsLine(node: any, human: boolean): string {
+    const perm = VirtualFileSystem.modeToString(node.mode, node.type);
+    const links = node.type === 'dir' ? 2 : 1;
+    const owner = (node.owner || 'root').padEnd(8);
+    const group = (node.group || 'root').padEnd(8);
+    
+    let sizeStr = node.size.toString();
+    if (human) {
+      if (node.size > 1024 * 1024) sizeStr = `${(node.size / (1024 * 1024)).toFixed(1)}M`;
+      else if (node.size > 1024) sizeStr = `${(node.size / 1024).toFixed(1)}K`;
+    }
+    sizeStr = sizeStr.padStart(6);
+
+    const date = node.mtime instanceof Date ? node.mtime : new Date();
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    const day = date.getDate().toString().padStart(2);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const mins = date.getMinutes().toString().padStart(2, '0');
+    const dateStr = `${month} ${day} ${hours}:${mins}`;
+
+    let nameStr = node.name;
+    if (node.type === 'dir') {
+      nameStr = `\x1b[1;34m${node.name}\x1b[0m`;
+    } else if (node.mode & 0o111) {
+      nameStr = `\x1b[1;32m${node.name}\x1b[0m`;
+    } else if (node.type === 'symlink') {
+      nameStr = `\x1b[1;36m${node.name}\x1b[0m -> ${node.target}`;
+    }
+
+    return `${perm}  ${links} ${owner} ${group} ${sizeStr} ${dateStr} ${nameStr}`;
+  }
+
+  private cmdMkdir(args: string[]): CommandResult {
+    let recursive = false;
+    let mode: number | undefined;
+    const targets: string[] = [];
+
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i];
+      if (a === '-p') recursive = true;
+      else if (a === '-m' && i + 1 < args.length) {
+        mode = parseInt(args[++i], 8);
+      } else {
+        targets.push(a);
+      }
+    }
+
+    if (targets.length === 0) {
+      return { stdout: '', stderr: 'mkdir: missing operand', exitCode: 1 };
+    }
+
+    for (const target of targets) {
+      const resolved = this.vfs.resolvePath(this.cwd, target);
+      if (this.vfs.exists(resolved)) {
+        if (!recursive) {
+          return { stdout: '', stderr: `mkdir: cannot create directory '${target}': File exists`, exitCode: 1 };
+        }
+        continue;
+      }
+
+      const success = this.vfs.mkdir(resolved, {
+        recursive,
+        mode: mode ?? 0o755,
+        owner: this.currentUser,
+        group: this.getUserPrimaryGroup(this.currentUser),
+      });
+
+      if (!success) {
+        return { stdout: '', stderr: `mkdir: cannot create directory '${target}': No such file or directory`, exitCode: 1 };
+      }
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdTouch(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '', stderr: 'touch: missing file operand', exitCode: 1 };
+    }
+
+    for (const arg of args) {
+      if (arg.startsWith('-')) continue;
+      const resolved = this.vfs.resolvePath(this.cwd, arg);
+      this.vfs.touch(resolved, {
+        owner: this.currentUser,
+        group: this.getUserPrimaryGroup(this.currentUser),
+      });
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdRm(args: string[]): CommandResult {
+    let recursive = false;
+    let force = false;
+    const targets: string[] = [];
+
+    for (const arg of args) {
+      if (arg.startsWith('-')) {
+        if (arg.includes('r') || arg.includes('R')) recursive = true;
+        if (arg.includes('f')) force = true;
+      } else {
+        targets.push(arg);
+      }
+    }
+
+    if (targets.length === 0) {
+      return { stdout: '', stderr: 'rm: missing operand', exitCode: 1 };
+    }
+
+    for (const target of targets) {
+      const resolved = this.vfs.resolvePath(this.cwd, target);
+      const node = this.vfs.getNode(resolved);
+
+      if (!node) {
+        if (!force) {
+          return { stdout: '', stderr: `rm: cannot remove '${target}': No such file or directory`, exitCode: 1 };
+        }
+        continue;
+      }
+
+      if (node.type === 'dir' && !recursive) {
+        return { stdout: '', stderr: `rm: cannot remove '${target}': Is a directory`, exitCode: 1 };
+      }
+
+      this.vfs.rmRecursive(resolved);
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdCp(args: string[]): CommandResult {
+    let recursive = false;
+    const targets: string[] = [];
+
+    for (const arg of args) {
+      if (arg.startsWith('-')) {
+        if (arg.includes('r') || arg.includes('R')) recursive = true;
+      } else {
+        targets.push(arg);
+      }
+    }
+
+    if (targets.length < 2) {
+      return { stdout: '', stderr: 'cp: missing file operand', exitCode: 1 };
+    }
+
+    const src = this.vfs.resolvePath(this.cwd, targets[0]);
+    const dst = this.vfs.resolvePath(this.cwd, targets[1]);
+
+    const success = this.vfs.copy(src, dst, recursive);
+    if (!success) {
+      return { stdout: '', stderr: `cp: cannot copy '${targets[0]}' to '${targets[1]}'`, exitCode: 1 };
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdMv(args: string[]): CommandResult {
+    const targets = args.filter(a => !a.startsWith('-'));
+    if (targets.length < 2) {
+      return { stdout: '', stderr: 'mv: missing file operand', exitCode: 1 };
+    }
+
+    const src = this.vfs.resolvePath(this.cwd, targets[0]);
+    const dst = this.vfs.resolvePath(this.cwd, targets[1]);
+
+    const success = this.vfs.move(src, dst);
+    if (!success) {
+      return { stdout: '', stderr: `mv: cannot move '${targets[0]}' to '${targets[1]}'`, exitCode: 1 };
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdCat(args: string[], stdin: string): CommandResult {
+    let showLineNumbers = false;
+    const files: string[] = [];
+
+    for (const arg of args) {
+      if (arg === '-n') showLineNumbers = true;
+      else if (!arg.startsWith('-')) files.push(arg);
+    }
+
+    if (files.length === 0) {
+      // Print from stdin
+      if (showLineNumbers) {
+        const lines = stdin.split('\n').map((l, i) => `${(i + 1).toString().padStart(6)}  ${l}`);
+        return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+      }
+      return { stdout: stdin, stderr: '', exitCode: 0 };
+    }
+
+    let out = '';
+    for (const f of files) {
+      const resolved = this.vfs.resolvePath(this.cwd, f);
+      const content = this.vfs.readFile(resolved);
+      if (content === null) {
+        return { stdout: out, stderr: `cat: ${f}: No such file or directory`, exitCode: 1 };
+      }
+      out += content;
+    }
+
+    if (showLineNumbers) {
+      const lines = out.split('\n').map((l, i) => `${(i + 1).toString().padStart(6)}  ${l}`);
+      return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+    }
+
+    return { stdout: out.trimEnd(), stderr: '', exitCode: 0 };
+  }
+
+  private cmdHead(args: string[], stdin: string): CommandResult {
+    let n = 10;
+    const files: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-n' && i + 1 < args.length) {
+        n = parseInt(args[++i], 10);
+      } else if (!args[i].startsWith('-')) {
+        files.push(args[i]);
+      }
+    }
+
+    const text = files.length > 0
+      ? (this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) || '')
+      : stdin;
+
+    const lines = text.split('\n').slice(0, n);
+    return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdTail(args: string[], stdin: string): CommandResult {
+    let n = 10;
+    const files: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-n' && i + 1 < args.length) {
+        n = parseInt(args[++i], 10);
+      } else if (!args[i].startsWith('-')) {
+        files.push(args[i]);
+      }
+    }
+
+    const text = files.length > 0
+      ? (this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) || '')
+      : stdin;
+
+    const lines = text.split('\n');
+    const selected = lines.slice(Math.max(0, lines.length - n));
+    return { stdout: selected.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdWc(args: string[], stdin: string): CommandResult {
+    let countLines = false;
+    let countWords = false;
+    let countBytes = false;
+    const files: string[] = [];
+
+    for (const a of args) {
+      if (a.startsWith('-')) {
+        if (a.includes('l')) countLines = true;
+        if (a.includes('w')) countWords = true;
+        if (a.includes('c')) countBytes = true;
+      } else {
+        files.push(a);
+      }
+    }
+
+    if (!countLines && !countWords && !countBytes) {
+      countLines = true;
+      countWords = true;
+      countBytes = true;
+    }
+
+    const text = files.length > 0
+      ? (this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) || '')
+      : stdin;
+
+    const lines = text ? text.split('\n').length : 0;
+    const words = text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+    const bytes = text ? new TextEncoder().encode(text).length : 0;
+
+    const parts: string[] = [];
+    if (countLines) parts.push(lines.toString().padStart(4));
+    if (countWords) parts.push(words.toString().padStart(4));
+    if (countBytes) parts.push(bytes.toString().padStart(4));
+    if (files.length > 0) parts.push(files[0]);
+
+    return { stdout: parts.join(' '), stderr: '', exitCode: 0 };
+  }
+
+  private cmdGrep(args: string[], stdin: string): CommandResult {
+    let ignoreCase = false;
+    let invertMatch = false;
+    let showLineNum = false;
+    let countOnly = false;
+    let pattern = '';
+    const files: string[] = [];
+
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i];
+      if (a.startsWith('-')) {
+        if (a.includes('i')) ignoreCase = true;
+        if (a.includes('v')) invertMatch = true;
+        if (a.includes('n')) showLineNum = true;
+        if (a.includes('c')) countOnly = true;
+      } else if (!pattern) {
+        pattern = a;
+      } else {
+        files.push(a);
+      }
+    }
+
+    if (!pattern) {
+      return { stdout: '', stderr: 'Usage: grep [OPTION]... PATTERN [FILE]...', exitCode: 2 };
+    }
+
+    let text = stdin;
+    if (files.length > 0) {
+      const resolved = this.vfs.resolvePath(this.cwd, files[0]);
+      const fileContent = this.vfs.readFile(resolved);
+      if (fileContent === null) {
+        return { stdout: '', stderr: `grep: ${files[0]}: No such file or directory`, exitCode: 2 };
+      }
+      text = fileContent;
+    }
+
+    const regex = new RegExp(pattern, ignoreCase ? 'i' : '');
+    const lines = text.split('\n');
+    const matched: string[] = [];
+
+    lines.forEach((line, index) => {
+      const isMatch = regex.test(line);
+      const satisfies = invertMatch ? !isMatch : isMatch;
+      if (satisfies) {
+        if (showLineNum) {
+          matched.push(`${index + 1}:${line}`);
+        } else {
+          matched.push(line);
+        }
+      }
+    });
+
+    if (countOnly) {
+      return { stdout: matched.length.toString(), stderr: '', exitCode: 0 };
+    }
+
+    if (matched.length === 0) {
+      return { stdout: '', stderr: '', exitCode: 1 };
+    }
+
+    return { stdout: matched.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdFind(args: string[]): CommandResult {
+    let searchPath = this.cwd;
+    let namePattern: string | null = null;
+    let typeFilter: string | null = null;
+
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-name' && i + 1 < args.length) {
+        namePattern = args[++i].replace(/\*/g, '.*');
+      } else if (args[i] === '-type' && i + 1 < args.length) {
+        typeFilter = args[++i]; // 'f' or 'd'
+      } else if (!args[i].startsWith('-')) {
+        searchPath = this.vfs.resolvePath(this.cwd, args[i]);
+      }
+    }
+
+    const results: string[] = [];
+    const traverse = (currentPath: string) => {
+      const node = this.vfs.getNode(currentPath);
+      if (!node) return;
+
+      let match = true;
+      if (namePattern && !new RegExp(`^${namePattern}$`).test(node.name || currentPath)) {
+        match = false;
+      }
+      if (typeFilter === 'f' && node.type !== 'file') match = false;
+      if (typeFilter === 'd' && node.type !== 'dir') match = false;
+
+      if (match) {
+        results.push(currentPath);
+      }
+
+      if (node.type === 'dir' && node.children) {
+        for (const [childName, _] of node.children) {
+          const childPath = currentPath === '/' ? `/${childName}` : `${currentPath}/${childName}`;
+          traverse(childPath);
+        }
+      }
+    };
+
+    traverse(searchPath);
+    return { stdout: results.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdEcho(args: string[]): CommandResult {
+    return { stdout: args.join(' '), stderr: '', exitCode: 0 };
+  }
+
+  private cmdChmod(args: string[]): CommandResult {
+    let recursive = false;
+    let mode = '';
+    const targets: string[] = [];
+
+    for (const a of args) {
+      if (a === '-R') recursive = true;
+      else if (!mode) mode = a;
+      else targets.push(a);
+    }
+
+    if (!mode || targets.length === 0) {
+      return { stdout: '', stderr: 'chmod: missing operand', exitCode: 1 };
+    }
+
+    for (const target of targets) {
+      const resolved = this.vfs.resolvePath(this.cwd, target);
+      if (!this.vfs.exists(resolved)) {
+        return { stdout: '', stderr: `chmod: cannot access '${target}': No such file or directory`, exitCode: 1 };
+      }
+      this.vfs.chmod(resolved, mode, recursive);
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdChown(args: string[]): CommandResult {
+    let recursive = false;
+    let ownerSpec = '';
+    const targets: string[] = [];
+
+    for (const a of args) {
+      if (a === '-R') recursive = true;
+      else if (!ownerSpec) ownerSpec = a;
+      else targets.push(a);
+    }
+
+    if (!ownerSpec || targets.length === 0) {
+      return { stdout: '', stderr: 'chown: missing operand', exitCode: 1 };
+    }
+
+    let [user, group] = ownerSpec.includes(':') ? ownerSpec.split(':') : [ownerSpec, undefined];
+    if (ownerSpec.includes('.') && !group) {
+      [user, group] = ownerSpec.split('.');
+    }
+
+    for (const target of targets) {
+      const resolved = this.vfs.resolvePath(this.cwd, target);
+      if (!this.vfs.exists(resolved)) {
+        return { stdout: '', stderr: `chown: cannot access '${target}': No such file or directory`, exitCode: 1 };
+      }
+      this.vfs.chown(resolved, user, group, recursive);
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdChgrp(args: string[]): CommandResult {
+    let recursive = false;
+    let group = '';
+    const targets: string[] = [];
+
+    for (const a of args) {
+      if (a === '-R') recursive = true;
+      else if (!group) group = a;
+      else targets.push(a);
+    }
+
+    if (!group || targets.length === 0) {
+      return { stdout: '', stderr: 'chgrp: missing operand', exitCode: 1 };
+    }
+
+    for (const target of targets) {
+      const resolved = this.vfs.resolvePath(this.cwd, target);
+      if (!this.vfs.exists(resolved)) {
+        return { stdout: '', stderr: `chgrp: cannot access '${target}': No such file or directory`, exitCode: 1 };
+      }
+      const node = this.vfs.getNode(resolved);
+      if (node) {
+        this.vfs.chown(resolved, node.owner, group, recursive);
+      }
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdUseradd(args: string[]): CommandResult {
+    let username = '';
+    let home = '';
+    let shell = '/bin/bash';
+    let group = '';
+    let extraGroups: string[] = [];
+    let createHome = true;
+
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-m') createHome = true;
+      else if (args[i] === '-M') createHome = false;
+      else if (args[i] === '-s' && i + 1 < args.length) shell = args[++i];
+      else if (args[i] === '-d' && i + 1 < args.length) home = args[++i];
+      else if (args[i] === '-g' && i + 1 < args.length) group = args[++i];
+      else if (args[i] === '-G' && i + 1 < args.length) extraGroups = args[++i].split(',');
+      else if (!username) username = args[i];
+    }
+
+    if (!username) {
+      return { stdout: '', stderr: 'useradd: missing username', exitCode: 1 };
+    }
+
+    if (this.users.has(username)) {
+      return { stdout: '', stderr: `useradd: user '${username}' already exists`, exitCode: 9 };
+    }
+
+    // Auto assign UID
+    const maxUid = Math.max(1000, ...Array.from(this.users.values()).map(u => u.uid));
+    const newUid = maxUid + 1;
+    const userHome = home || `/home/${username}`;
+
+    // Auto create user's primary group if not specified
+    let gid = newUid;
+    if (group && this.groups.has(group)) {
+      gid = this.groups.get(group)!.gid;
+    } else {
+      this.groups.set(username, { gid: newUid, name: username, members: [username] });
+    }
+
+    const newUser: LinuxUser = {
+      uid: newUid,
+      username,
+      gid,
+      home: userHome,
+      shell,
+    };
+    this.users.set(username, newUser);
+
+    // Add to extra groups
+    for (const gName of extraGroups) {
+      const g = this.groups.get(gName);
+      if (g && !g.members.includes(username)) {
+        g.members.push(username);
+      }
+    }
+
+    // Update /etc/passwd and /etc/group
+    this.vfs.writeFile('/etc/passwd', `${username}:x:${newUid}:${gid}::${userHome}:${shell}\n`, { append: true });
+
+    // Create home directory
+    if (createHome) {
+      this.vfs.mkdir(userHome, { recursive: true, mode: 0o700, owner: username, group: username });
+      this.vfs.writeFile(`${userHome}/.bashrc`, '# .bashrc\n', { owner: username, group: username });
+      this.vfs.writeFile(`${userHome}/.bash_profile`, '# .bash_profile\n', { owner: username, group: username });
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdUserdel(args: string[]): CommandResult {
+    let removeHome = false;
+    let username = '';
+
+    for (const a of args) {
+      if (a === '-r') removeHome = true;
+      else if (!username) username = a;
+    }
+
+    if (!username || !this.users.has(username)) {
+      return { stdout: '', stderr: `userdel: user '${username}' does not exist`, exitCode: 6 };
+    }
+
+    const user = this.users.get(username)!;
+    if (removeHome && user.home) {
+      this.vfs.rmRecursive(user.home);
+    }
+
+    this.users.delete(username);
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdGroupadd(args: string[]): CommandResult {
+    const groupname = args.find(a => !a.startsWith('-'));
+    if (!groupname) {
+      return { stdout: '', stderr: 'groupadd: missing group name', exitCode: 1 };
+    }
+
+    if (this.groups.has(groupname)) {
+      return { stdout: '', stderr: `groupadd: group '${groupname}' already exists`, exitCode: 9 };
+    }
+
+    const maxGid = Math.max(1000, ...Array.from(this.groups.values()).map(g => g.gid));
+    const newGid = maxGid + 1;
+    this.groups.set(groupname, { gid: newGid, name: groupname, members: [] });
+    this.vfs.writeFile('/etc/group', `${groupname}:x:${newGid}:\n`, { append: true });
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdGroupdel(args: string[]): CommandResult {
+    const groupname = args.find(a => !a.startsWith('-'));
+    if (!groupname || !this.groups.has(groupname)) {
+      return { stdout: '', stderr: `groupdel: group '${groupname}' does not exist`, exitCode: 6 };
+    }
+    this.groups.delete(groupname);
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdUsermod(args: string[]): CommandResult {
+    let username = '';
+    let appendGroups: string[] = [];
+    let setGroup = '';
+    let newShell = '';
+
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-aG' && i + 1 < args.length) {
+        appendGroups = args[++i].split(',');
+      } else if (args[i] === '-g' && i + 1 < args.length) {
+        setGroup = args[++i];
+      } else if (args[i] === '-s' && i + 1 < args.length) {
+        newShell = args[++i];
+      } else if (!args[i].startsWith('-')) {
+        username = args[i];
+      }
+    }
+
+    if (!username || !this.users.has(username)) {
+      return { stdout: '', stderr: `usermod: user '${username}' does not exist`, exitCode: 6 };
+    }
+
+    const user = this.users.get(username)!;
+    if (newShell) user.shell = newShell;
+
+    if (setGroup && this.groups.has(setGroup)) {
+      user.gid = this.groups.get(setGroup)!.gid;
+    }
+
+    for (const gName of appendGroups) {
+      const g = this.groups.get(gName);
+      if (g && !g.members.includes(username)) {
+        g.members.push(username);
+      }
+    }
+
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdPasswd(args: string[]): CommandResult {
+    const user = args[0] || this.currentUser;
+    if (!this.users.has(user)) {
+      return { stdout: '', stderr: `passwd: user '${user}' does not exist`, exitCode: 1 };
+    }
+    return { stdout: `Changing password for user ${user}.\npasswd: all authentication tokens updated successfully.`, stderr: '', exitCode: 0 };
+  }
+
+  private cmdId(args: string[]): CommandResult {
+    const targetUser = args[0] || this.currentUser;
+    const user = this.users.get(targetUser);
+
+    if (!user) {
+      return { stdout: '', stderr: `id: '${targetUser}': no such user`, exitCode: 1 };
+    }
+
+    const primaryGrp = Array.from(this.groups.values()).find(g => g.gid === user.gid);
+    const grpName = primaryGrp ? primaryGrp.name : targetUser;
+
+    const allGroups = Array.from(this.groups.values()).filter(g => g.members.includes(targetUser) || g.gid === user.gid);
+    const groupStr = allGroups.map(g => `${g.gid}(${g.name})`).join(',');
+
+    return {
+      stdout: `uid=${user.uid}(${user.username}) gid=${user.gid}(${grpName}) groups=${groupStr}`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdSu(args: string[]): CommandResult {
+    let target = 'root';
+    for (const a of args) {
+      if (a !== '-') target = a;
+    }
+
+    if (!this.users.has(target)) {
+      return { stdout: '', stderr: `su: user ${target} does not exist`, exitCode: 1 };
+    }
+
+    this.currentUser = target;
+    const user = this.users.get(target)!;
+    this.cwd = user.home;
+    this.env.USER = target;
+    this.env.HOME = user.home;
+
+    return { stdout: '', stderr: '', exitCode: 0, cwd: this.cwd, currentUser: this.currentUser };
+  }
+
+  private async cmdSudo(args: string[], stdin: string): Promise<CommandResult> {
+    if (args.length === 0) {
+      return { stdout: '', stderr: 'usage: sudo command...', exitCode: 1 };
+    }
+
+    // Check if user in wheel group or is root
+    const userGroups = this.getUserGroups(this.currentUser);
+    if (this.currentUser !== 'root' && !userGroups.includes('wheel')) {
+      return { stdout: '', stderr: `${this.currentUser} is not in the sudoers file. This incident will be reported.`, exitCode: 1 };
+    }
+
+    const originalUser = this.currentUser;
+    this.currentUser = 'root';
+    const res = await this.dispatchCommand(args, stdin);
+    this.currentUser = originalUser;
+    return res;
+  }
+
+  private cmdSystemctl(args: string[]): CommandResult {
+    const action = args[0];
+    const serviceName = args[1]?.endsWith('.service') ? args[1] : `${args[1]}.service`;
+
+    if (!action) {
+      // List units
+      const lines = ['UNIT                     LOAD   ACTIVE SUB     DESCRIPTION'];
+      this.services.forEach(s => {
+        const sub = s.activeState === 'active' ? 'running' : 'dead';
+        lines.push(`${s.name.padEnd(24)} loaded ${s.activeState.padEnd(6)} ${sub.padEnd(7)} ${s.description}`);
+      });
+      return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+    }
+
+    if (!serviceName || !args[1]) {
+      return { stdout: '', stderr: 'systemctl: missing service name', exitCode: 1 };
+    }
+
+    const svc = this.services.get(serviceName);
+    if (!svc) {
+      return { stdout: '', stderr: `Failed to ${action} ${serviceName}: Unit ${serviceName} not found.`, exitCode: 1 };
+    }
+
+    switch (action) {
+      case 'start':
+        svc.activeState = 'active';
+        svc.mainPid = Math.floor(Math.random() * 2000) + 1000;
+        this.processes.push({
+          pid: svc.mainPid,
+          ppid: 1,
+          user: 'root',
+          cpu: 0.1,
+          mem: 0.8,
+          vsz: 132400,
+          rss: 4200,
+          tty: '?',
+          stat: 'Ss',
+          start: '12:00',
+          time: '0:00',
+          command: svc.execStart,
+        });
+        return { stdout: '', stderr: '', exitCode: 0 };
+
+      case 'stop':
+        svc.activeState = 'inactive';
+        if (svc.mainPid) {
+          this.processes = this.processes.filter(p => p.pid !== svc.mainPid);
+          svc.mainPid = undefined;
+        }
+        return { stdout: '', stderr: '', exitCode: 0 };
+
+      case 'restart':
+        svc.activeState = 'active';
+        svc.mainPid = Math.floor(Math.random() * 2000) + 1000;
+        return { stdout: '', stderr: '', exitCode: 0 };
+
+      case 'enable':
+        svc.unitFileState = 'enabled';
+        this.vfs.createSymlink(`/usr/lib/systemd/system/${serviceName}`, `/etc/systemd/system/multi-user.target.wants/${serviceName}`);
+        return { stdout: `Created symlink from /etc/systemd/system/multi-user.target.wants/${serviceName} to /usr/lib/systemd/system/${serviceName}.`, stderr: '', exitCode: 0 };
+
+      case 'disable':
+        svc.unitFileState = 'disabled';
+        this.vfs.unlink(`/etc/systemd/system/multi-user.target.wants/${serviceName}`);
+        return { stdout: `Removed symlink /etc/systemd/system/multi-user.target.wants/${serviceName}.`, stderr: '', exitCode: 0 };
+
+      case 'is-active':
+        return { stdout: svc.activeState, stderr: '', exitCode: svc.activeState === 'active' ? 0 : 3 };
+
+      case 'is-enabled':
+        return { stdout: svc.unitFileState, stderr: '', exitCode: svc.unitFileState === 'enabled' ? 0 : 1 };
+
+      case 'status':
+        const activeColor = svc.activeState === 'active' ? '\x1b[32m●\x1b[0m active (running)' : '\x1b[31m●\x1b[0m inactive (dead)';
+        const statusOutput = [
+          `● ${svc.name} - ${svc.description}`,
+          `   Loaded: loaded (/usr/lib/systemd/system/${svc.name}; ${svc.unitFileState}; vendor preset: disabled)`,
+          `   Active: ${activeColor} since ${new Date().toUTCString()}`,
+          ` Main PID: ${svc.mainPid || '(none)'} (${svc.execStart.split(' ')[0]})`,
+          `   CGroup: /system.slice/${svc.name}`,
+          `           └─${svc.mainPid || 0} ${svc.execStart}`,
+        ].join('\n');
+        return { stdout: statusOutput, stderr: '', exitCode: svc.activeState === 'active' ? 0 : 3 };
+
+      default:
+        return { stdout: '', stderr: `Unknown operation '${action}'.`, exitCode: 1 };
+    }
+  }
+
+  private cmdService(args: string[]): CommandResult {
+    if (args.length < 2) {
+      return { stdout: '', stderr: 'Usage: service <name> <action>', exitCode: 1 };
+    }
+    return this.cmdSystemctl([args[1], args[0]]);
+  }
+
+  private cmdPs(args: string[]): CommandResult {
+    const full = args.some(a => a.includes('aux') || a.includes('-ef'));
+    const header = full
+      ? 'USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND'
+      : '  PID TTY          TIME CMD';
+
+    const lines = [header];
+    for (const p of this.processes) {
+      if (full) {
+        lines.push(
+          `${p.user.padEnd(8)} ${p.pid.toString().padStart(5)} ${p.cpu.toFixed(1).padStart(4)} ${p.mem.toFixed(1).padStart(4)} ${p.vsz.toString().padStart(6)} ${p.rss.toString().padStart(5)} ${p.tty.padEnd(8)} ${p.stat.padEnd(4)} ${p.start.padEnd(7)} ${p.time.padStart(6)} ${p.command}`
+        );
+      } else {
+        lines.push(`${p.pid.toString().padStart(5)} ${p.tty.padEnd(8)} ${p.time.padStart(8)} ${p.command.split(' ')[0]}`);
+      }
+    }
+
+    return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdTop(): CommandResult {
+    const uptimeStr = 'up 4:12,  2 users,  load average: 0.08, 0.03, 0.01';
+    const header = [
+      `top - ${new Date().toLocaleTimeString()} ${uptimeStr}`,
+      `Tasks: ${this.processes.length} total,   1 running, ${this.processes.length - 1} sleeping,   0 stopped,   0 zombie`,
+      `%Cpu(s):  1.2 us,  0.8 sy,  0.0 ni, 97.9 id,  0.1 wa,  0.0 hi,  0.0 si,  0.0 st`,
+      `KiB Mem :  4044812 total,  2140224 free,   779998 used,  1124580 buff/cache`,
+      `KiB Swap:  2097148 total,  2097148 free,        0 used.  3158912 avail Mem `,
+      '',
+      '  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND',
+    ];
+
+    for (const p of this.processes.slice(0, 10)) {
+      header.push(
+        `${p.pid.toString().padStart(5)} ${p.user.padEnd(8)}  20   0  ${p.vsz.toString().padStart(6)}  ${p.rss.toString().padStart(5)}   1240 S   ${p.cpu.toFixed(1).padStart(4)}  ${p.mem.toFixed(1).padStart(4)}   ${p.time} ${p.command.split(' ')[0]}`
+      );
+    }
+
+    return { stdout: header.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdKill(args: string[]): CommandResult {
+    let pidStr = '';
+    for (const a of args) {
+      if (!a.startsWith('-')) pidStr = a;
+    }
+
+    const pid = parseInt(pidStr, 10);
+    if (isNaN(pid)) {
+      return { stdout: '', stderr: 'kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ...', exitCode: 1 };
+    }
+
+    const idx = this.processes.findIndex(p => p.pid === pid);
+    if (idx === -1) {
+      return { stdout: '', stderr: `bash: kill: (${pid}) - No such process`, exitCode: 1 };
+    }
+
+    this.processes.splice(idx, 1);
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdPkill(args: string[]): CommandResult {
+    const pattern = args.find(a => !a.startsWith('-'));
+    if (!pattern) {
+      return { stdout: '', stderr: 'pkill: pattern required', exitCode: 1 };
+    }
+
+    const before = this.processes.length;
+    this.processes = this.processes.filter(p => !p.command.includes(pattern));
+    return { stdout: '', stderr: '', exitCode: this.processes.length < before ? 0 : 1 };
+  }
+
+  private cmdCrontab(args: string[], stdin: string): CommandResult {
+    const user = this.currentUser;
+
+    if (args.includes('-l')) {
+      const jobs = this.crontabs.get(user) || [];
+      if (jobs.length === 0) {
+        return { stdout: '', stderr: `no crontab for ${user}`, exitCode: 1 };
+      }
+      return { stdout: jobs.join('\n'), stderr: '', exitCode: 0 };
+    }
+
+    if (args.includes('-r')) {
+      this.crontabs.delete(user);
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+
+    if (args.includes('-e')) {
+      // In terminal, provide instructions or prompt
+      return {
+        stdout: `~ Crontab Editor Mode ~\nTo set a crontab entry, you can pipe it directly into crontab:\necho "0 2 * * * /opt/backup.sh" | crontab -\nOr use the Web UI Quick Actions.`,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+
+    if (args.includes('-') && stdin) {
+      // Install from stdin
+      const lines = stdin.split('\n').map(l => l.trim()).filter(Boolean);
+      this.crontabs.set(user, lines);
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+
+    return { stdout: '', stderr: 'crontab: usage error: file name must be specified for replace', exitCode: 1 };
+  }
+
+  private cmdYum(args: string[]): CommandResult {
+    const sub = args[0];
+    const pkgName = args[1];
+
+    if (!sub) {
+      return { stdout: '', stderr: 'Loaded plugins: fastestmirror\nCommand Error: Need to specify an action: install, remove, list, info, update, search', exitCode: 1 };
+    }
+
+    switch (sub) {
+      case 'install': {
+        if (!pkgName) return { stdout: '', stderr: 'Error: Need a package name to install', exitCode: 1 };
+        const pkg = this.packages.get(pkgName);
+        if (!pkg) {
+          return { stdout: '', stderr: `Loaded plugins: fastestmirror\nNo package ${pkgName} available.\nError: Nothing to do`, exitCode: 1 };
+        }
+        if (pkg.installed) {
+          return { stdout: `Package ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch} already installed and latest version\nNothing to do`, stderr: '', exitCode: 0 };
+        }
+
+        // Install files into VFS
+        pkg.installed = true;
+        for (const file of pkg.files) {
+          if (file.endsWith('/')) {
+            this.vfs.mkdir(file, { recursive: true });
+          } else {
+            this.vfs.touch(file);
+          }
+        }
+
+        // If nginx, register service
+        if (pkgName === 'nginx' && !this.services.has('nginx.service')) {
+          this.services.set('nginx.service', {
+            name: 'nginx.service',
+            description: 'The nginx HTTP and reverse proxy server',
+            activeState: 'inactive',
+            unitFileState: 'disabled',
+            execStart: '/usr/sbin/nginx',
+          });
+        }
+
+        return {
+          stdout: `Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+Resolving Dependencies
+--> Running transaction check
+---> Package ${pkg.name}.${pkg.arch} 0:${pkg.version}-${pkg.release} will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+================================================================================
+ Package       Arch         Version                 Repository             Size
+================================================================================
+Installing:
+ ${pkg.name}       ${pkg.arch}       ${pkg.version}-${pkg.release}      base                  ${pkg.size}
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Total download size: ${pkg.size}
+Installed size: 4.8 M
+Downloading packages:
+Running transaction check
+Running transaction test
+Transaction test succeeded
+Running transaction
+  Installing : ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
+  Verifying  : ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
+
+Complete!`,
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      case 'remove': {
+        if (!pkgName) return { stdout: '', stderr: 'Error: Need a package name to remove', exitCode: 1 };
+        const pkg = this.packages.get(pkgName);
+        if (!pkg || !pkg.installed) {
+          return { stdout: '', stderr: `Package(s) ${pkgName} available, but not installed.\nNo Packages marked for removal`, exitCode: 1 };
+        }
+        pkg.installed = false;
+        return {
+          stdout: `Loaded plugins: fastestmirror\nResolving Dependencies\n--> Running transaction check\n---> Package ${pkg.name}.${pkg.arch} will be erased\nComplete!`,
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      case 'search': {
+        const query = args[1] || '';
+        const lines = ['Loaded plugins: fastestmirror', '======================== N/S matched: ' + query + ' ========================'];
+        this.packages.forEach(p => {
+          if (p.name.includes(query) || p.summary.includes(query)) {
+            lines.push(`${p.name}.${p.arch} : ${p.summary}`);
+          }
+        });
+        return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+      }
+
+      case 'list': {
+        const filter = args[1];
+        const lines = ['Loaded plugins: fastestmirror', 'Installed Packages'];
+        this.packages.forEach(p => {
+          if (p.installed && (!filter || p.name.includes(filter))) {
+            lines.push(`${p.name}.${p.arch}`.padEnd(30) + `${p.version}-${p.release}`.padEnd(20) + '@base');
+          }
+        });
+        return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+      }
+
+      case 'clean':
+        return { stdout: 'Loaded plugins: fastestmirror\nCleaning repos: base updates\nCleaning up everything', stderr: '', exitCode: 0 };
+
+      default:
+        return { stdout: '', stderr: `Unknown yum command: ${sub}`, exitCode: 1 };
+    }
+  }
+
+  private cmdRpm(args: string[]): CommandResult {
+    if (args.includes('-qa')) {
+      const installed = Array.from(this.packages.values())
+        .filter(p => p.installed)
+        .map(p => `${p.name}-${p.version}-${p.release}.${p.arch}`);
+      return { stdout: installed.join('\n'), stderr: '', exitCode: 0 };
+    }
+
+    if (args.some(a => a.startsWith('-qi'))) {
+      const pkgName = args[args.length - 1];
+      const pkg = this.packages.get(pkgName);
+      if (!pkg || !pkg.installed) {
+        return { stdout: '', stderr: `package ${pkgName} is not installed`, exitCode: 1 };
+      }
+      return {
+        stdout: `Name        : ${pkg.name}
+Version     : ${pkg.version}
+Release     : ${pkg.release}
+Architecture: ${pkg.arch}
+Install Date: ${new Date().toUTCString()}
+Group       : Applications/System
+Size        : ${pkg.size}
+Summary     : ${pkg.summary}
+Description :
+${pkg.description}`,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+
+    return { stdout: '', stderr: 'rpm: specify -qa or -qi <package>', exitCode: 1 };
+  }
+
+  private cmdHostnamectl(args: string[]): CommandResult {
+    if (args.length === 0 || args[0] === 'status') {
+      return {
+        stdout: `   Static hostname: ${this.hostname}
+         Icon name: computer-vm
+           Chassis: vm
+        Machine ID: e9f21b7762bb44e59dfd306b976722d4
+           Boot ID: 8acbd8469ad04e548235a64393699742
+    Virtualization: kvm
+  Operating System: CentOS Stream 9
+       CPE OS Name: cpe:/o:centos:centos:9
+            Kernel: Linux 5.14.0-362.el9.x86_64
+      Architecture: x86-64`,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+
+    if (args[0] === 'set-hostname' && args[1]) {
+      this.hostname = args[1];
+      this.env.HOSTNAME = args[1];
+      this.vfs.writeFile('/etc/hostname', `${args[1]}\n`);
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+
+    return { stdout: '', stderr: 'hostnamectl: command not recognized', exitCode: 1 };
+  }
+
+  private cmdHostname(args: string[]): CommandResult {
+    if (args.length > 0) {
+      this.hostname = args[0];
+      this.env.HOSTNAME = args[0];
+      this.vfs.writeFile('/etc/hostname', `${args[0]}\n`);
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+    return { stdout: this.hostname, stderr: '', exitCode: 0 };
+  }
+
+  private cmdIp(args: string[]): CommandResult {
+    const sub = args[0] || 'addr';
+    if (sub === 'a' || sub === 'addr') {
+      return {
+        stdout: `1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 52:54:00:12:34:56 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.1.50/24 brd 192.168.1.255 scope global dynamic noprefixroute eth0
+       valid_lft 86320sec preferred_lft 86320sec
+    inet6 fe80::5054:ff:fe12:3456/64 scope link 
+       valid_lft forever preferred_lft forever`,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+    if (sub === 'r' || sub === 'route') {
+      return {
+        stdout: `default via 192.168.1.1 dev eth0 proto dhcp src 192.168.1.50 metric 100 
+192.168.1.0/24 dev eth0 proto kernel scope link src 192.168.1.50 metric 100`,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+    return { stdout: '', stderr: 'ip: argument not supported', exitCode: 1 };
+  }
+
+  private cmdIfconfig(): CommandResult {
+    return {
+      stdout: `eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.50  netmask 255.255.255.0  broadcast 192.168.1.255
+        inet6 fe80::5054:ff:fe12:3456  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:12:34:56  txqueuelen 1000  (Ethernet)
+        RX packets 1452  bytes 129482 (126.4 KiB)
+        TX packets 1204  bytes 108392 (105.8 KiB)
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdPing(args: string[]): CommandResult {
+    const host = args.find(a => !a.startsWith('-')) || 'localhost';
+    return {
+      stdout: `PING ${host} (192.168.1.1) 56(84) bytes of data.
+64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=0.428 ms
+64 bytes from 192.168.1.1: icmp_seq=2 ttl=64 time=0.385 ms
+64 bytes from 192.168.1.1: icmp_seq=3 ttl=64 time=0.392 ms
+
+--- ${host} ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2001ms
+rtt min/avg/max/mdev = 0.385/0.401/0.428/0.024 ms`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdNetstat(): CommandResult {
+    return {
+      stdout: `Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      912/sshd            
+tcp        0      0 127.0.0.1:25            0.0.0.0:*               LISTEN      1014/master         
+tcp6       0      0 :::22                   :::*                    LISTEN      912/sshd            
+tcp6       0      0 ::1:25                  :::*                    LISTEN      1014/master`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdDf(_args?: string[]): CommandResult {
+    return {
+      stdout: `Filesystem     1K-blocks    Used Available Use% Mounted on
+devtmpfs         1998240       0   1998240   0% /dev
+tmpfs            2009404       0   2009404   0% /dev/shm
+tmpfs            2009404    8612   2000792   1% /run
+tmpfs            2009404       0   2009404   0% /sys/fs/cgroup
+/dev/vda1       41931756 2420480  39511276   6% /
+tmpfs             401884       0    401884   0% /run/user/0`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdFree(args: string[]): CommandResult {
+    const isMega = args.includes('-m');
+    if (isMega) {
+      return {
+        stdout: `              total        used        free      shared  buff/cache   available
+Mem:           3949         761        2090          16        1098        3084
+Swap:          2047           0        2047`,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+    return {
+      stdout: `              total        used        free      shared  buff/cache   available
+Mem:        4044812      779998     2140224       16384     1124580     3158912
+Swap:       2097148           0     2097148`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdUname(args: string[]): CommandResult {
+    if (args.includes('-a')) {
+      return {
+        stdout: `Linux ${this.hostname} 5.14.0-362.el9.x86_64 #1 SMP PREEMPT_DYNAMIC Wed Oct 11 17:30:01 UTC 2023 x86_64 x86_64 x86_64 GNU/Linux`,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+    if (args.includes('-r')) {
+      return { stdout: '5.14.0-362.el9.x86_64', stderr: '', exitCode: 0 };
+    }
+    return { stdout: 'Linux', stderr: '', exitCode: 0 };
+  }
+
+  private cmdUptime(): CommandResult {
+    return { stdout: ` 12:45:00 up 4:12,  2 users,  load average: 0.08, 0.03, 0.01`, stderr: '', exitCode: 0 };
+  }
+
+  private cmdHistory(): CommandResult {
+    const lines = this.history.map((h, i) => `${(i + 1).toString().padStart(5)}  ${h}`);
+    return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdWhich(args: string[]): CommandResult {
+    if (args.length === 0) return { stdout: '', stderr: '', exitCode: 1 };
+    const name = args[0];
+    const stdBins = ['/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+    for (const bin of stdBins) {
+      const full = `${bin}/${name}`;
+      if (this.vfs.exists(full)) {
+        return { stdout: full, stderr: '', exitCode: 0 };
+      }
+    }
+    return { stdout: '', stderr: `/usr/bin/which: no ${name} in (${this.env.PATH})`, exitCode: 1 };
+  }
+
+  private cmdWhereis(args: string[]): CommandResult {
+    if (args.length === 0) return { stdout: '', stderr: '', exitCode: 1 };
+    const name = args[0];
+    return { stdout: `${name}: /usr/bin/${name} /usr/share/man/man1/${name}.1.gz`, stderr: '', exitCode: 0 };
+  }
+
+  private cmdEditor(editorName: string, args: string[]): CommandResult {
+    const filename = args[0];
+    if (!filename) {
+      return { stdout: '', stderr: `${editorName}: please specify a file to edit`, exitCode: 1 };
+    }
+
+    const resolved = this.vfs.resolvePath(this.cwd, filename);
+    let content = this.vfs.readFile(resolved) ?? '';
+
+    if (this.onOpenEditor) {
+      this.onOpenEditor(resolved, content);
+      return { stdout: `[Opened ${filename} in Visual Editor modal]`, stderr: '', exitCode: 0 };
+    }
+
+    return { stdout: `[Editor ${editorName} initialized for ${filename}]`, stderr: '', exitCode: 0 };
+  }
+
+  private cmdLess(args: string[], stdin: string): CommandResult {
+    if (args.length === 0) {
+      if (stdin) {
+        return { stdout: stdin, stderr: '', exitCode: 0 };
+      }
+      return { stdout: 'Missing filename ("less --help" for help)', stderr: '', exitCode: 1 };
+    }
+    const fullPath = this.vfs.resolvePath(this.cwd, args[0]);
+    const content = this.vfs.readFile(fullPath);
+    if (content === null) {
+      return { stdout: '', stderr: `${args[0]}: No such file or directory`, exitCode: 1 };
+    }
+    return {
+      stdout: `${content}\n\n(END - Press q or continue typing to exit pager)`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdFile(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '', stderr: "file: missing operand\nTry 'file --help' for more information.", exitCode: 1 };
+    }
+    const lines: string[] = [];
+    for (const arg of args) {
+      if (arg.startsWith('-')) continue;
+      const fullPath = this.vfs.resolvePath(this.cwd, arg);
+      const node = this.vfs.getNode(fullPath);
+      if (!node) {
+        lines.push(`${arg}: cannot open '${arg}' (No such file or directory)`);
+        continue;
+      }
+      if (node.type === 'dir') {
+        lines.push(`${arg}: directory`);
+      } else if (node.type === 'symlink') {
+        lines.push(`${arg}: symbolic link to ${node.target}`);
+      } else {
+        if (fullPath.startsWith('/bin') || fullPath.startsWith('/usr/bin') || fullPath.startsWith('/sbin') || fullPath.startsWith('/usr/sbin')) {
+          lines.push(`${arg}: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=824ef74b, stripped`);
+        } else if (node.content?.startsWith('#!')) {
+          lines.push(`${arg}: POSIX shell script, ASCII text executable`);
+        } else if (arg.endsWith('.gz')) {
+          lines.push(`${arg}: gzip compressed data, max compression, original size 10240`);
+        } else {
+          lines.push(`${arg}: ASCII text`);
+        }
+      }
+    }
+    return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdWhatis(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '', stderr: 'whatis: whatis what?', exitCode: 1 };
+    }
+    const whatisDb: Record<string, string> = {
+      ls: 'ls (1)               - list directory contents',
+      pwd: 'pwd (1)              - print name of current/working directory',
+      cd: 'cd (1)               - change the shell working directory',
+      touch: 'touch (1)            - change file timestamps',
+      file: 'file (1)             - determine file type',
+      cat: 'cat (1)              - concatenate files and print on the standard output',
+      less: 'less (1)             - opposite of more',
+      more: 'more (1)             - file perusal filter for crt viewing',
+      history: 'history (3)          - GNU History Library',
+      cp: 'cp (1)               - copy files and directories',
+      mv: 'mv (1)               - move (rename) files',
+      mkdir: 'mkdir (1)            - make directories',
+      rm: 'rm (1)               - remove files or directories',
+      find: 'find (1)             - search for files in a directory hierarchy',
+      help: 'help (1)             - display information about builtin commands',
+      man: 'man (1)              - an interface to the system reference manuals',
+      whatis: 'whatis (1)           - display one-line manual page descriptions',
+      alias: 'alias (1)            - define or display aliases',
+      unalias: 'unalias (1)          - remove alias definitions',
+      exit: 'exit (1)             - cause the shell to exit',
+      bash: 'bash (1)             - GNU Bourne-Again SHell',
+      grep: 'grep (1)             - print lines that match patterns',
+      echo: 'echo (1)             - display a line of text',
+      chmod: 'chmod (1)            - change file mode bits',
+      chown: 'chown (1)            - change file owner and group',
+      dnf: 'dnf (8)              - Package manager for RPM-based Linux systems',
+      yum: 'yum (8)              - redirector to DNF',
+      rpm: 'rpm (8)              - RPM Package Manager',
+      systemctl: 'systemctl (1)        - Control the systemd system and service manager',
+      ps: 'ps (1)               - report a snapshot of the current processes',
+      df: 'df (1)               - report file system disk space usage',
+      free: 'free (1)             - Display amount of free and used memory in the system',
+      uname: 'uname (1)            - print system information',
+    };
+
+    const lines: string[] = [];
+    let exitCode = 0;
+    for (const arg of args) {
+      if (whatisDb[arg]) {
+        lines.push(whatisDb[arg]);
+      } else {
+        lines.push(`${arg}: nothing appropriate.`);
+        exitCode = 16;
+      }
+    }
+    return { stdout: lines.join('\n'), stderr: '', exitCode };
+  }
+
+  private cmdAlias(args: string[]): CommandResult {
+    if (args.length === 0) {
+      const lines: string[] = [];
+      for (const [k, v] of this.aliases.entries()) {
+        lines.push(`alias ${k}='${v}'`);
+      }
+      return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+    }
+    for (const arg of args) {
+      if (arg.includes('=')) {
+        const eqIdx = arg.indexOf('=');
+        const k = arg.slice(0, eqIdx).trim();
+        let v = arg.slice(eqIdx + 1).trim();
+        if ((v.startsWith("'") && v.endsWith("'")) || (v.startsWith('"') && v.endsWith('"'))) {
+          v = v.slice(1, -1);
+        }
+        this.aliases.set(k, v);
+      } else {
+        if (this.aliases.has(arg)) {
+          return { stdout: `alias ${arg}='${this.aliases.get(arg)}'`, stderr: '', exitCode: 0 };
+        } else {
+          return { stdout: '', stderr: `bash: alias: ${arg}: not found`, exitCode: 1 };
+        }
+      }
+    }
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdUnalias(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '', stderr: 'unalias: usage: unalias [-a] name [name ...]', exitCode: 2 };
+    }
+    for (const arg of args) {
+      if (arg === '-a') {
+        this.aliases.clear();
+      } else {
+        this.aliases.delete(arg);
+      }
+    }
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdMan(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '', stderr: "What manual page do you want?\nFor example, try 'man man'.", exitCode: 1 };
+    }
+    const topic = args[args.length - 1];
+    const manDb: Record<string, string> = {
+      ls: `LS(1)                            User Commands                           LS(1)
+
+NAME
+       ls - list directory contents
+
+SYNOPSIS
+       ls [OPTION]... [FILE]...
+
+DESCRIPTION
+       List  information  about  the FILEs (the current directory by default).
+       Sort entries alphabetically if none of -cftuvSUX nor --sort is specified.
+
+       -a, --all
+              do not ignore entries starting with .
+
+       -l     use a long listing format
+
+       -h, --human-readable
+              with -l and -s, print sizes like 1K 234M 2G etc.
+
+CentOS Stream 9                    March 2024                             LS(1)`,
+      cd: `BASH_BUILTINS(1)                 User Commands                 BASH_BUILTINS(1)
+
+NAME
+       cd - change the working directory
+
+SYNOPSIS
+       cd [-L|[-P [-e]] [-@]] [dir]
+
+DESCRIPTION
+       Change the current directory to dir. The default dir is the value of the
+       HOME shell variable.
+
+CentOS Stream 9                    March 2024                 BASH_BUILTINS(1)`,
+      pwd: `PWD(1)                           User Commands                          PWD(1)
+
+NAME
+       pwd - print name of current/working directory
+
+SYNOPSIS
+       pwd [OPTION]...
+
+DESCRIPTION
+       Print the full filename of the current working directory.
+
+CentOS Stream 9                    March 2024                            PWD(1)`,
+      cat: `CAT(1)                           User Commands                          CAT(1)
+
+NAME
+       cat - concatenate files and print on the standard output
+
+SYNOPSIS
+       cat [OPTION]... [FILE]...
+
+DESCRIPTION
+       Concatenate FILE(s) to standard output. With no FILE, or when FILE is -,
+       read standard input.
+
+       -n, --number
+              number all output lines
+
+CentOS Stream 9                    March 2024                            CAT(1)`,
+      touch: `TOUCH(1)                         User Commands                        TOUCH(1)
+
+NAME
+       touch - change file timestamps
+
+SYNOPSIS
+       touch [OPTION]... FILE...
+
+DESCRIPTION
+       Update the access and modification times of each FILE to the current
+       time. A FILE argument that does not exist is created empty.
+
+CentOS Stream 9                    March 2024                          TOUCH(1)`,
+      mkdir: `MKDIR(1)                         User Commands                        MKDIR(1)
+
+NAME
+       mkdir - make directories
+
+SYNOPSIS
+       mkdir [OPTION]... DIRECTORY...
+
+DESCRIPTION
+       Create the DIRECTORY(ies), if they do not already exist.
+
+       -p, --parents
+              no error if existing, make parent directories as needed
+
+CentOS Stream 9                    March 2024                          MKDIR(1)`,
+      cp: `CP(1)                            User Commands                           CP(1)
+
+NAME
+       cp - copy files and directories
+
+SYNOPSIS
+       cp [OPTION]... SOURCE... DEST
+
+DESCRIPTION
+       Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.
+
+       -r, -R, --recursive
+              copy directories recursively
+
+CentOS Stream 9                    March 2024                             CP(1)`,
+      mv: `MV(1)                            User Commands                           MV(1)
+
+NAME
+       mv - move (rename) files
+
+SYNOPSIS
+       mv [OPTION]... SOURCE... DEST
+
+DESCRIPTION
+       Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
+
+CentOS Stream 9                    March 2024                             MV(1)`,
+      rm: `RM(1)                            User Commands                           RM(1)
+
+NAME
+       rm - remove files or directories
+
+SYNOPSIS
+       rm [OPTION]... [FILE]...
+
+DESCRIPTION
+       rm removes each specified file. By default, it does not remove directories.
+
+       -r, -R, --recursive
+              remove directories and their contents recursively
+
+       -f, --force
+              ignore nonexistent files and arguments, never prompt
+
+CentOS Stream 9                    March 2024                             RM(1)`,
+      find: `FIND(1)                          User Commands                         FIND(1)
+
+NAME
+       find - search for files in a directory hierarchy
+
+SYNOPSIS
+       find [-H] [-L] [-P] [path...] [expression]
+
+DESCRIPTION
+       find searches the directory tree rooted at each given file name by
+       evaluating the given expression from left to right.
+
+CentOS Stream 9                    March 2024                           FIND(1)`,
+    };
+
+    if (manDb[topic]) {
+      return { stdout: manDb[topic], stderr: '', exitCode: 0 };
+    }
+    return {
+      stdout: `${topic.toUpperCase()}(1)                    User Commands                   ${topic.toUpperCase()}(1)\n\nNAME\n       ${topic} - manual page for ${topic}\n\nSYNOPSIS\n       ${topic} [OPTIONS]... [ARGS]...\n\nDESCRIPTION\n       Standard Linux command provided by CentOS Stream 9 core utilities.\n\nCentOS Stream 9                    March 2024                   ${topic.toUpperCase()}(1)`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdHelp(args: string[] = []): CommandResult {
+    if (args.length > 0) {
+      const target = args[0];
+      switch (target) {
+        case 'cd':
+          return {
+            stdout: `cd: cd [-L|[-P [-e]] [-@]] [dir]
+    Change the shell working directory.
+
+    Change the current directory to DIR.  The default DIR is the value of the
+    HOME shell variable.
+
+    Exit Status:
+    Returns 0 if the directory is changed; non-zero otherwise.`,
+            stderr: '',
+            exitCode: 0,
+          };
+        case 'pwd':
+          return {
+            stdout: `pwd: pwd [-LP]
+    Print the name of the current working directory.
+
+    Options:
+      -L\tprint the value of $PWD if it names the current working directory
+      -P\tprint the physical directory, without any symbolic links
+
+    Exit Status:
+    Returns 0 unless an invalid option is given.`,
+            stderr: '',
+            exitCode: 0,
+          };
+        case 'alias':
+          return {
+            stdout: `alias: alias [-p] [name[=value] ... ]
+    Define or display aliases.
+
+    Without arguments, \`alias' prints the list of aliases in the shape
+    \`name=value' on standard output.
+
+    Exit Status:
+    alias returns true unless a NAME is supplied for which no alias has been defined.`,
+            stderr: '',
+            exitCode: 0,
+          };
+        case 'exit':
+          return {
+            stdout: `exit: exit [n]
+    Exit the shell.
+
+    Exits the shell with a status of N.  If N is omitted, the exit status
+    is that of the last command executed.`,
+            stderr: '',
+            exitCode: 0,
+          };
+        case 'history':
+          return {
+            stdout: `history: history [-c] [-d offset] [n] or history -anrw [filename]
+    Display or manipulate the history list.
+
+    Display the history list with line numbers.`,
+            stderr: '',
+            exitCode: 0,
+          };
+        default:
+          return {
+            stdout: `bash: help: no help topics match \`${target}'. Try \`help help' or \`man -k ${target}' or \`${target} --help'.`,
+            stderr: '',
+            exitCode: 1,
+          };
+      }
+    }
+
+    return {
+      stdout: `CentOS Stream 9 Virtual Shell (Bash 5.1.8)
+These shell commands are defined internally. Type a command or run labs on the left panel:
+
+Navigation & Files:
+  ls, cd, pwd, mkdir, touch, rm, cp, mv, cat, less, file, find, grep
+
+Shell & Utilities:
+  help, man, whatis, alias, unalias, history, exit, echo, clear
+
+Package Management & Network:
+  dnf, rpm, ip, ping, netstat, df, free, uname, uptime`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdExit(): CommandResult {
+    if (this.currentUser !== 'root') {
+      this.currentUser = 'root';
+      this.cwd = '/root';
+      return { stdout: 'exit', stderr: '', exitCode: 0, cwd: this.cwd, currentUser: this.currentUser };
+    }
+    return { stdout: 'logout\nConnection to 192.168.1.50 closed.', stderr: '', exitCode: 0 };
+  }
+
+  // --- Helper methods ---
+
+  public getUserGroups(username: string): string[] {
+    const result: string[] = [];
+    const user = this.users.get(username);
+    if (!user) return result;
+
+    for (const group of this.groups.values()) {
+      if (group.gid === user.gid || group.members.includes(username)) {
+        result.push(group.name);
+      }
+    }
+    return result;
+  }
+
+  public getUserPrimaryGroup(username: string): string {
+    const user = this.users.get(username);
+    if (!user) return 'root';
+    const grp = Array.from(this.groups.values()).find(g => g.gid === user.gid);
+    return grp ? grp.name : username;
+  }
+}
