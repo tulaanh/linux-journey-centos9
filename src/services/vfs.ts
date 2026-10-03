@@ -41,6 +41,42 @@ export class VirtualFileSystem {
     return '/' + resolved.join('/');
   }
 
+  // Resolve all symbolic links along a path to return the true physical path (for pwd -P, realpath, readlink -f)
+  public resolvePhysicalPath(path: string, depth: number = 0): string {
+    if (depth > 16) return path; // Prevent infinite symlink loops
+    const normalized = this.resolvePath('/', path);
+    if (normalized === '/' || normalized === '') return '/';
+
+    const parts = normalized.split('/').filter(Boolean);
+    let currentPhysical = '';
+    let currentNode: VFSNode = this.root;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (!currentNode.children) break;
+
+      const nextNode = currentNode.children.get(part);
+      if (!nextNode) {
+        currentPhysical += '/' + parts.slice(i).join('/');
+        return this.resolvePath('/', currentPhysical);
+      }
+
+      if (nextNode.type === 'symlink' && nextNode.target) {
+        const targetBase = nextNode.target.startsWith('/')
+          ? nextNode.target
+          : `${currentPhysical || '/'}/${nextNode.target}`;
+        const remaining = parts.slice(i + 1).join('/');
+        const combined = remaining ? `${targetBase.replace(/\/$/, '')}/${remaining}` : targetBase;
+        return this.resolvePhysicalPath(combined, depth + 1);
+      }
+
+      currentPhysical += '/' + part;
+      currentNode = nextNode;
+    }
+
+    return currentPhysical || '/';
+  }
+
   // Traverse to node given absolute normalized path
   public getNode(path: string): VFSNode | null {
     if (path === '/' || path === '') return this.root;
@@ -530,7 +566,9 @@ export class VirtualFileSystem {
     const dirs = [
       '/bin', '/boot', '/dev', '/etc', '/etc/systemd', '/etc/systemd/system',
       '/etc/sysconfig', '/etc/cron.d', '/etc/cron.daily', '/etc/yum.repos.d',
-      '/home', '/home/centos', '/lib', '/lib64', '/media', '/mnt', '/opt',
+      '/etc/directory1',
+      '/home', '/home/centos', '/home/pete', '/home/pete/Movies', '/home/pete/projects',
+      '/lib', '/lib64', '/media', '/mnt', '/opt',
       '/proc', '/root', '/run', '/sbin', '/srv', '/sys', '/tmp',
       '/usr', '/usr/bin', '/usr/sbin', '/usr/lib', '/usr/lib/systemd/system',
       '/usr/local', '/usr/local/bin', '/usr/share',
@@ -542,12 +580,31 @@ export class VirtualFileSystem {
       this.mkdir(dir, { recursive: true, mode: dir === '/tmp' ? 0o1777 : 0o755 });
     }
 
+    // Standard symlinks for realistic pwd -L vs pwd -P demonstration
+    this.createSymlink('/run', '/var/run');
+    this.createSymlink('/var/log', '/tmp/mylogs');
+
+    // Lesson 2 directory tree & project files
+    this.writeFile('/etc/file3', '# Sample configuration file3\n');
+    this.writeFile('/etc/directory1/file4', '# Sample configuration file4\n');
+    this.writeFile('/etc/directory1/file5', '# Sample configuration file5\n');
+    this.writeFile('/home/pete/projects/app.py', '#!/usr/bin/env python3\nprint("Hello from CentOS Stream 9 project!")\n', { owner: 'pete', group: 'pete', mode: 0o755 });
+    this.writeFile('/home/pete/projects/README.md', '# Linux Journey Project\n\nLocated in `/home/pete/projects`.\n', { owner: 'pete', group: 'pete' });
+    this.writeFile('/home/pete/.bashrc', '# .bashrc for pete\nif [ -f /etc/bashrc ]; then\n\t. /etc/bashrc\nfi\n', { owner: 'pete', group: 'pete' });
+
     // User home permissions
     const centosHome = this.getNode('/home/centos');
     if (centosHome) {
       centosHome.owner = 'centos';
       centosHome.group = 'centos';
       centosHome.mode = 0o700;
+    }
+
+    const peteHome = this.getNode('/home/pete');
+    if (peteHome) {
+      peteHome.owner = 'pete';
+      peteHome.group = 'pete';
+      peteHome.mode = 0o755;
     }
 
     const rootHome = this.getNode('/root');

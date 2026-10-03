@@ -15,6 +15,7 @@ interface TerminalViewProps {
   theme: 'dark' | 'light';
   onKernelUpdate?: () => void;
   onOpenEditor?: (filePath: string, content: string) => void;
+  pendingCommand?: { id: number; command: string } | null;
 }
 
 interface ContextMenuState {
@@ -77,11 +78,13 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
   theme,
   onKernelUpdate,
   onOpenEditor,
+  pendingCommand,
 }) => {
   const isDark = theme === 'dark';
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermInstance = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const lastExecutedIdRef = useRef<number>(0);
 
   // Command line editing state
   const inputBuffer = useRef<string>('');
@@ -469,18 +472,28 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
     }
   };
 
-  const runQuickCommand = async (cmd: string) => {
+  const runQuickCommand = useCallback(async (cmd: string) => {
     if (!xtermInstance.current) return;
     const term = xtermInstance.current;
-    term.write(cmd + '\r\n');
-    const res = await kernel.execute(cmd);
-    if (res.stdout) term.writeln(res.stdout);
-    if (res.stderr) term.writeln(`\x1b[31m${res.stderr}\x1b[0m`);
-    inputBuffer.current = '';
-    cursorPosition.current = 0;
-    showPrompt();
+    const lines = cmd.split('\n').map((l) => l.trim()).filter(Boolean);
+    for (const singleCmd of lines) {
+      term.write(singleCmd + '\r\n');
+      const res = await kernel.execute(singleCmd);
+      if (res.stdout) term.writeln(res.stdout);
+      if (res.stderr) term.writeln(`\x1b[31m${res.stderr}\x1b[0m`);
+      inputBuffer.current = '';
+      cursorPosition.current = 0;
+      showPrompt();
+    }
     if (onKernelUpdate) onKernelUpdate();
-  };
+  }, [kernel, onKernelUpdate, showPrompt]);
+
+  useEffect(() => {
+    if (pendingCommand && pendingCommand.id !== lastExecutedIdRef.current && xtermInstance.current) {
+      lastExecutedIdRef.current = pendingCommand.id;
+      runQuickCommand(pendingCommand.command);
+    }
+  }, [pendingCommand, runQuickCommand]);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();

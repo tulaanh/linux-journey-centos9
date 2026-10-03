@@ -49,6 +49,8 @@ export class CentOSKernel {
     this.env = {
       USER: 'root',
       HOME: '/root',
+      PWD: '/root',
+      OLDPWD: '/root',
       SHELL: '/bin/bash',
       TERM: 'xterm-256color',
       PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin',
@@ -75,6 +77,7 @@ export class CentOSKernel {
       { uid: 2, username: 'daemon', gid: 2, home: '/sbin', shell: '/sbin/nologin' },
       { uid: 74, username: 'sshd', gid: 74, home: '/var/empty/sshd', shell: '/sbin/nologin' },
       { uid: 1000, username: 'centos', gid: 1000, home: '/home/centos', shell: '/bin/bash' },
+      { uid: 1001, username: 'pete', gid: 1001, home: '/home/pete', shell: '/bin/bash' },
     ];
     defaultUsers.forEach(u => this.users.set(u.username, u));
 
@@ -82,9 +85,10 @@ export class CentOSKernel {
     this.groups.clear();
     const defaultGroups: LinuxGroup[] = [
       { gid: 0, name: 'root', members: ['root'] },
-      { gid: 10, name: 'wheel', members: ['centos'] },
+      { gid: 10, name: 'wheel', members: ['centos', 'pete'] },
       { gid: 74, name: 'sshd', members: [] },
       { gid: 1000, name: 'centos', members: ['centos'] },
+      { gid: 1001, name: 'pete', members: ['pete'] },
     ];
     defaultGroups.forEach(g => this.groups.set(g.name, g));
 
@@ -401,9 +405,18 @@ export class CentOSKernel {
   }
 
   private expandVariables(token: string): string {
-    return token.replace(/\$([A-Za-z0-9_?]+)/g, (_, varName) => {
+    const withCmdSub = token
+      .replace(/\$\(pwd\)/g, () => this.cwd)
+      .replace(/\$\(pwd\s+-P\)/g, () => this.vfs.resolvePhysicalPath(this.cwd))
+      .replace(/\$\(pwd\s+-L\)/g, () => this.cwd)
+      .replace(/\$\(whoami\)/g, () => this.currentUser)
+      .replace(/\$\(hostname\)/g, () => this.hostname);
+
+    return withCmdSub.replace(/\$([A-Za-z0-9_?]+)/g, (_, varName) => {
       if (varName === '?') return this.lastExitCode.toString();
       if (varName === 'PWD') return this.cwd;
+      if (varName === 'OLDPWD') return this.env.OLDPWD || this.cwd;
+      if (varName === 'HOME') return this.env.HOME || (this.users.get(this.currentUser)?.home || '/root');
       if (varName === 'USER') return this.currentUser;
       if (varName === 'HOSTNAME') return this.hostname;
       return this.env[varName] ?? '';
@@ -434,9 +447,12 @@ export class CentOSKernel {
     }
 
     switch (cmd) {
-      case 'pwd': return this.cmdPwd();
+      case 'pwd': return this.cmdPwd(cmdArgs);
       case 'cd': return this.cmdCd(cmdArgs);
       case 'ls': return this.cmdLs(cmdArgs);
+      case 'ln': return this.cmdLn(cmdArgs);
+      case 'realpath': return this.cmdRealpath(cmdArgs);
+      case 'readlink': return this.cmdReadlink(cmdArgs);
       case 'mkdir': return this.cmdMkdir(cmdArgs);
       case 'touch': return this.cmdTouch(cmdArgs);
       case 'rm': return this.cmdRm(cmdArgs);
@@ -528,20 +544,77 @@ export class CentOSKernel {
 
   // --- Command Implementations ---
 
-  private cmdPwd(): CommandResult {
-    return { stdout: this.cwd, stderr: '', exitCode: 0 };
+  private cmdPwd(args: string[] = []): CommandResult {
+    let physical = false;
+
+    for (const arg of args) {
+      if (arg === '--help') {
+        return {
+          stdout: `pwd: pwd [-LP]
+    Print the name of the current working directory.
+
+    Options:
+      -L, --logical   print the value of $PWD if it names the current working
+                      directory (default)
+      -P, --physical  print the physical directory, without any symbolic links
+
+    Exit Status:
+    Returns 0 unless an invalid option is given or the current directory
+    cannot be read.`,
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+      if (arg === '--version') {
+        return {
+          stdout: `pwd (GNU coreutils) 8.32
+Copyright (C) 2020 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`,
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+      if (arg === '-P' || arg === '--physical' || arg === '-LP') {
+        physical = true;
+      } else if (arg === '-L' || arg === '--logical' || arg === '-PL') {
+        physical = false;
+      } else if (arg.startsWith('-')) {
+        return {
+          stdout: '',
+          stderr: `bash: pwd: ${arg}: invalid option\npwd: usage: pwd [-LP]`,
+          exitCode: 2,
+        };
+      }
+    }
+
+    const outPath = physical ? this.vfs.resolvePhysicalPath(this.cwd) : this.cwd;
+    return { stdout: outPath, stderr: '', exitCode: 0 };
   }
 
   private cmdCd(args: string[]): CommandResult {
-    let target = args[0] || (this.users.get(this.currentUser)?.home || '/root');
-    if (target === '~') {
+    let physical = false;
+    const positional: string[] = [];
+
+    for (const arg of args) {
+      if (arg === '-P') physical = true;
+      else if (arg === '-L') physical = false;
+      else positional.push(arg);
+    }
+
+    let target = positional[0] || (this.users.get(this.currentUser)?.home || '/root');
+    let printNewDir = false;
+
+    if (target === '-') {
+      target = this.env.OLDPWD || this.cwd;
+      printNewDir = true;
+    } else if (target === '~') {
       target = this.users.get(this.currentUser)?.home || '/root';
     } else if (target.startsWith('~/')) {
       target = (this.users.get(this.currentUser)?.home || '/root') + target.slice(1);
     }
 
-    const resolved = this.vfs.resolvePath(this.cwd, target);
-    const node = this.vfs.getNode(resolved);
+    const resolvedLogical = this.vfs.resolvePath(this.cwd, target);
+    const node = this.vfs.getNode(resolvedLogical);
 
     if (!node) {
       return { stdout: '', stderr: `bash: cd: ${target}: No such file or directory`, exitCode: 1 };
@@ -557,9 +630,87 @@ export class CentOSKernel {
       return { stdout: '', stderr: `bash: cd: ${target}: Permission denied`, exitCode: 1 };
     }
 
-    this.cwd = resolved;
-    this.env.PWD = resolved;
-    return { stdout: '', stderr: '', exitCode: 0, cwd: this.cwd };
+    const nextCwd = physical ? this.vfs.resolvePhysicalPath(resolvedLogical) : resolvedLogical;
+    this.env.OLDPWD = this.cwd;
+    this.cwd = nextCwd;
+    this.env.PWD = nextCwd;
+    return { stdout: printNewDir ? this.cwd : '', stderr: '', exitCode: 0, cwd: this.cwd };
+  }
+
+  private cmdLn(args: string[]): CommandResult {
+    let symbolic = false;
+    let force = false;
+    const targets: string[] = [];
+
+    for (const arg of args) {
+      if (arg.startsWith('-')) {
+        if (arg.includes('s')) symbolic = true;
+        if (arg.includes('f')) force = true;
+      } else {
+        targets.push(arg);
+      }
+    }
+
+    if (targets.length < 2) {
+      return { stdout: '', stderr: 'ln: missing file operand\nTry \'ln --help\' for more information.', exitCode: 1 };
+    }
+
+    const [targetPath, linkArg] = targets;
+    const resolvedLink = this.vfs.resolvePath(this.cwd, linkArg);
+
+    if (this.vfs.getRawNode(resolvedLink)) {
+      if (force) {
+        this.vfs.unlink(resolvedLink);
+      } else {
+        return { stdout: '', stderr: `ln: failed to create ${symbolic ? 'symbolic ' : ''}link '${linkArg}': File exists`, exitCode: 1 };
+      }
+    }
+
+    if (symbolic) {
+      const ok = this.vfs.createSymlink(targetPath, resolvedLink);
+      if (!ok) {
+        return { stdout: '', stderr: `ln: failed to create symbolic link '${linkArg}': No such file or directory`, exitCode: 1 };
+      }
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+
+    const resolvedTarget = this.vfs.resolvePath(this.cwd, targetPath);
+    const ok = this.vfs.copy(resolvedTarget, resolvedLink, false);
+    if (!ok) {
+      return { stdout: '', stderr: `ln: failed to access '${targetPath}': No such file or directory`, exitCode: 1 };
+    }
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdRealpath(args: string[]): CommandResult {
+    const targets = args.filter(a => !a.startsWith('-'));
+    if (targets.length === 0) {
+      return { stdout: '', stderr: 'realpath: missing operand', exitCode: 1 };
+    }
+    const out: string[] = [];
+    for (const t of targets) {
+      const logical = this.vfs.resolvePath(this.cwd, t);
+      out.push(this.vfs.resolvePhysicalPath(logical));
+    }
+    return { stdout: out.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdReadlink(args: string[]): CommandResult {
+    const follow = args.some(a => a === '-f' || a === '-e' || a === '-m');
+    const targets = args.filter(a => !a.startsWith('-'));
+    if (targets.length === 0) {
+      return { stdout: '', stderr: 'readlink: missing operand', exitCode: 1 };
+    }
+    const t = targets[0];
+    const logical = this.vfs.resolvePath(this.cwd, t);
+    if (follow) {
+      return { stdout: this.vfs.resolvePhysicalPath(logical), stderr: '', exitCode: 0 };
+    }
+    const raw = this.vfs.getRawNode(logical);
+    if (!raw || raw.type !== 'symlink' || !raw.target) {
+      return { stdout: '', stderr: '', exitCode: 1 };
+    }
+    return { stdout: raw.target, stderr: '', exitCode: 0 };
   }
 
   private cmdLs(args: string[]): CommandResult {

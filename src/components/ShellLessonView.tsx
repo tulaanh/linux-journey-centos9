@@ -65,6 +65,7 @@ export const ShellLessonView: React.FC<ShellLessonViewProps> = ({
 
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [showTerminalSplit, setShowTerminalSplit] = useState(false);
+  const [pendingCommand, setPendingCommand] = useState<{ id: number; command: string } | null>(null);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -72,10 +73,9 @@ export const ShellLessonView: React.FC<ShellLessonViewProps> = ({
     setTimeout(() => setCopiedText(null), 2000);
   };
 
-  const handleRunInTerminal = async (cmd: string) => {
+  const handleRunInTerminal = (cmd: string) => {
     setShowTerminalSplit(true);
-    await kernel.execute(cmd);
-    refreshKernel();
+    setPendingCommand({ id: Date.now(), command: cmd });
   };
 
   const advanceStep = () => {
@@ -1034,6 +1034,7 @@ export const ShellLessonView: React.FC<ShellLessonViewProps> = ({
                 theme={theme}
                 onKernelUpdate={refreshKernel}
                 onOpenEditor={onOpenEditor}
+                pendingCommand={pendingCommand}
               />
             </div>
           </aside>

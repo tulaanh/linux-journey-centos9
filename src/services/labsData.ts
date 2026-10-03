@@ -101,34 +101,44 @@ export const COMMAND_LINE_LABS: LabDefinition[] = [
     difficulty: 'Cơ bản',
     estimatedTime: '5 phút',
     summary: 'Learn how to use pwd to identify your current location in the Linux filesystem.',
-    scenario: 'Trong Linux, bạn luôn hoạt động trong một thư mục làm việc hiện tại (working directory). Lệnh pwd sẽ in ra đường dẫn tuyệt đối bắt đầu từ gốc `/` đến vị trí hiện tại của bạn.',
+    scenario: 'Trong Linux, bạn luôn hoạt động trong một thư mục làm việc hiện tại (working directory). Lệnh pwd (Print Working Directory) in ra đường dẫn tuyệt đối bắt đầu từ gốc `/` đến vị trí hiện tại, đồng thời hỗ trợ phân biệt đường dẫn logic (`pwd -L`) và vật lý (`pwd -P`).',
     tasks: [
-      'Chạy lệnh `pwd` tại thư mục hiện tại để xác định vị trí ban đầu (ví dụ `/root`).',
-      'Di chuyển sang thư mục `/var/log` bằng lệnh `cd /var/log`.',
-      'Tiếp tục chạy lại lệnh `pwd` để xác nhận thư mục làm việc đã thay đổi thành `/var/log`.',
+      'Chạy lệnh `pwd` tại thư mục hiện tại để xác định vị trí ban đầu (ví dụ `/root` hoặc `/home/pete`).',
+      'Di chuyển sang thư mục `/home/pete/projects` (hoặc `/var/log`) và chạy `pwd` kèm `ls` để xác nhận vị trí.',
+      'Thử nghiệm di chuyển vào symbolic link `/tmp/mylogs` (`cd /tmp/mylogs`) và so sánh `pwd -L` (logical) với `pwd -P` (physical).',
     ],
     hints: [
-      'Nhập `pwd` và gõ Enter.',
-      'Dùng `cd /var/log` để di chuyển thư mục, sau đó gõ `pwd` một lần nữa.',
+      'Nhập `pwd` và nhấn Enter để xem đường dẫn tuyệt đối.',
+      'Dùng `cd /home/pete/projects` hoặc `cd /var/log`, sau đó gõ `pwd`.',
+      'Dùng `cd /tmp/mylogs && pwd -L && pwd -P` để thấy sự khác biệt khi phân giải symlink.',
     ],
     usefulCommands: [
-      'pwd - In đường dẫn thư mục hiện hành',
-      'cd <path> - Đổi thư mục làm việc',
+      'pwd - In đường dẫn tuyệt đối của thư mục hiện hành',
+      'pwd -L - Hiển thị đường dẫn logic (giữ nguyên symbolic link)',
+      'pwd -P - Hiển thị đường dẫn vật lý thật (phân giải symbolic link)',
+      'echo "Dir: $(pwd)" - Chèn đường dẫn hiện tại vào lệnh khác',
     ],
     checks: [
       {
         id: 'pwd-1',
         title: 'Thực thi lệnh pwd',
-        description: 'Đã sử dụng lệnh pwd để in thư mục hiện hành',
-        points: 50,
+        description: 'Đã sử dụng lệnh pwd để in thư mục làm việc hiện hành',
+        points: 35,
         hint: 'Chạy: pwd',
       },
       {
         id: 'pwd-2',
-        title: 'Chuyển thư mục và kiểm tra lại vị trí',
-        description: 'Vị trí hiện tại đang ở /var/log hoặc đã đổi thư mục và chạy pwd',
-        points: 50,
-        hint: 'Chạy: cd /var/log && pwd',
+        title: 'Kiểm tra thư mục dự án hoặc hệ thống',
+        description: 'Đã di chuyển tới /home/pete/projects hoặc /var/log và kiểm tra vị trí',
+        points: 35,
+        hint: 'Chạy: cd /home/pete/projects && pwd && ls',
+      },
+      {
+        id: 'pwd-3',
+        title: 'Phân biệt đường dẫn Vật lý (pwd -P) và Logic (pwd -L)',
+        description: 'Đã thực thi pwd -P (hoặc kiểm tra symlink /tmp/mylogs)',
+        points: 30,
+        hint: 'Chạy: cd /tmp/mylogs && pwd -P',
       },
     ],
     setupState: (kernel: CentOSKernel) => {
@@ -137,26 +147,45 @@ export const COMMAND_LINE_LABS: LabDefinition[] = [
     evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
       const hist = kernel.history.map(h => h.trim().toLowerCase());
       const ranPwd = hist.some(h => h === 'pwd' || h.startsWith('pwd '));
-      const atVarLogOrRan = kernel.cwd === '/var/log' || hist.some(h => h.includes('cd /var/log'));
+      const atTargetOrRan =
+        kernel.cwd === '/var/log' ||
+        kernel.cwd === '/home/pete/projects' ||
+        hist.some(h => h.includes('/var/log') || h.includes('/home/pete'));
+      const ranPhysical = hist.some(
+        h => h.includes('pwd -p') || h.includes('pwd --physical') || h.includes('/tmp/mylogs')
+      );
 
       return [
         {
           id: 'pwd-1',
           title: 'Thực thi lệnh pwd',
           passed: ranPwd,
-          pointsEarned: ranPwd ? 50 : 0,
-          maxPoints: 50,
+          pointsEarned: ranPwd ? 35 : 0,
+          maxPoints: 35,
           message: ranPwd ? 'Đã chạy lệnh pwd chính xác.' : 'Chưa thực hiện lệnh pwd.',
           hint: 'Chạy: pwd',
         },
         {
           id: 'pwd-2',
-          title: 'Chuyển thư mục và kiểm tra lại vị trí',
-          passed: ranPwd && atVarLogOrRan,
-          pointsEarned: ranPwd && atVarLogOrRan ? 50 : 0,
-          maxPoints: 50,
-          message: atVarLogOrRan ? 'Đã chuyển sang /var/log và xác nhận thư mục.' : 'Chưa chuyển đến /var/log.',
-          hint: 'Chạy: cd /var/log sau đó gõ pwd',
+          title: 'Kiểm tra thư mục dự án hoặc hệ thống',
+          passed: ranPwd && atTargetOrRan,
+          pointsEarned: ranPwd && atTargetOrRan ? 35 : 0,
+          maxPoints: 35,
+          message: atTargetOrRan
+            ? 'Đã di chuyển thư mục và xác nhận vị trí.'
+            : 'Chưa chuyển đến /home/pete/projects hoặc /var/log.',
+          hint: 'Chạy: cd /home/pete/projects && pwd',
+        },
+        {
+          id: 'pwd-3',
+          title: 'Phân biệt đường dẫn Vật lý (pwd -P) và Logic (pwd -L)',
+          passed: ranPhysical,
+          pointsEarned: ranPhysical ? 30 : 0,
+          maxPoints: 30,
+          message: ranPhysical
+            ? 'Đã thực hành phân giải đường dẫn vật lý với pwd -P.'
+            : 'Chưa thử nghiệm lệnh pwd -P.',
+          hint: 'Chạy: cd /tmp/mylogs && pwd -P',
         },
       ];
     },

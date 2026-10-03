@@ -4,6 +4,7 @@ import { LABS } from './services/labsData';
 import type { LabDefinition, LabCheckResult } from './types/linux';
 import { CommandLineSyllabus } from './components/CommandLineSyllabus';
 import { ShellLessonView } from './components/ShellLessonView';
+import { PwdLessonView } from './components/PwdLessonView';
 import { TopNav } from './components/TopNav';
 import { LabSidebar } from './components/LabSidebar';
 import { TerminalView } from './components/TerminalView';
@@ -18,6 +19,7 @@ export const App: React.FC = () => {
 
   // View mode: 'syllabus' (Course view matching Image 2) or 'practice' (Interactive Lab & Terminal)
   const [viewMode, setViewMode] = useState<'syllabus' | 'practice'>('syllabus');
+  const [forceGradingLab, setForceGradingLab] = useState<boolean>(false);
 
   // Theme state: dark / light
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -93,6 +95,7 @@ export const App: React.FC = () => {
   // Setup current lab when changed
   const handleSelectLab = (lab: LabDefinition) => {
     setCurrentLab(lab);
+    setForceGradingLab(false);
     lab.setupState(kernel);
     refreshKernel();
     setViewMode('practice');
@@ -220,7 +223,7 @@ export const App: React.FC = () => {
             onOpenGuide={() => setIsGuideOpen(true)}
           />
         </div>
-      ) : currentLab.id === 1 ? (
+      ) : currentLab.id === 1 && !forceGradingLab ? (
         /* SPECIAL INTERACTIVE LESSON VIEW FOR LESSON 1: THE SHELL (MATCHES USER PDF) */
         <div className="h-full overflow-y-auto">
           <ShellLessonView
@@ -242,6 +245,34 @@ export const App: React.FC = () => {
                 }
               }
             }}
+            kernel={kernel}
+            refreshKernel={refreshKernel}
+            onOpenEditor={handleOpenEditor}
+          />
+        </div>
+      ) : currentLab.id === 2 && !forceGradingLab ? (
+        /* SPECIAL INTERACTIVE LESSON VIEW FOR LESSON 2: PWD (PRINT WORKING DIRECTORY) (MATCHES USER PDF) */
+        <div className="h-full overflow-y-auto">
+          <PwdLessonView
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onBackToSyllabus={() => setViewMode('syllabus')}
+            onNextLesson={() => {
+              const nextLab = LABS.find((l) => l.id === 3);
+              if (nextLab) handleSelectLab(nextLab);
+            }}
+            onCompleteLesson={() => {
+              if (!completedLabIds.includes(2)) {
+                const next = [...completedLabIds, 2];
+                setCompletedLabIds(next);
+                try {
+                  localStorage.setItem('centos_completed_labs', JSON.stringify(next));
+                } catch {
+                  // ignore
+                }
+              }
+            }}
+            onSwitchToPracticeMode={() => setForceGradingLab(true)}
             kernel={kernel}
             refreshKernel={refreshKernel}
             onOpenEditor={handleOpenEditor}
