@@ -635,29 +635,7 @@ nameserver 1.1.1.1
 search localdomain
 `);
 
-    // Realistic system logs
-    this.writeFile('/var/log/messages', `Oct  2 08:12:01 localhost systemd[1]: Starting System Logging Service...
-Oct  2 08:12:01 localhost systemd[1]: Started System Logging Service.
-Oct  2 08:12:02 localhost kernel: Initializing cgroup subsys cpuset
-Oct  2 08:12:02 localhost kernel: Linux version 3.10.0-1160.el7.x86_64 (mockbuild@kbuilder.bsys.centos.org)
-Oct  2 08:12:03 localhost systemd[1]: Starting Network Manager...
-Oct  2 08:12:04 localhost NetworkManager[621]: <info>  [1696234324.12] NetworkManager (version 1.18.8-2.el7_9) is starting...
-Oct  2 08:12:05 localhost sshd[912]: Server listening on 0.0.0.0 port 22.
-Oct  2 08:12:05 localhost sshd[912]: Server listening on :: port 22.
-Oct  2 08:12:06 localhost systemd[1]: Started OpenSSH server daemon.
-Oct  2 08:15:22 localhost sshd[1240]: Failed password for invalid user admin from 192.168.1.150 port 54312 ssh2
-Oct  2 08:15:25 localhost sshd[1240]: Failed password for invalid user admin from 192.168.1.150 port 54312 ssh2
-Oct  2 08:15:30 localhost sshd[1243]: ERROR: Connection reset by peer [preauth]
-Oct  2 08:18:44 localhost sshd[1301]: Failed password for root from 192.168.1.188 port 48210 ssh2
-Oct  2 08:19:02 localhost systemd[1]: Started Session 1 of user centos.
-Oct  2 08:20:11 localhost systemd[1]: ERROR: Failed to start Custom Analytics Reporter service. Unit not found.
-Oct  2 08:25:00 localhost CROND[1422]: (root) CMD (/usr/lib64/sa/sa1 1 1)
-Oct  2 08:30:15 localhost kernel: [Firmware Bug]: ACPI: BIOS _OSI(Linux) query ignored
-Oct  2 08:35:00 localhost CROND[1510]: (root) CMD (/usr/lib64/sa/sa1 1 1)
-Oct  2 08:42:19 localhost auditd[520]: Audit daemon rotating log files
-Oct  2 08:45:00 localhost CROND[1602]: (root) CMD (/usr/lib64/sa/sa1 1 1)
-`);
-
+    // Realistic system logs (CentOS Stream 9 - Kernel 5.14.0, systemd 252)
     this.writeFile('/var/log/messages', `Oct  2 08:12:01 centos9 systemd[1]: Starting System Logging Service...
 Oct  2 08:12:01 centos9 systemd[1]: Started System Logging Service.
 Oct  2 08:12:02 centos9 kernel: Linux version 5.14.0-362.el9.x86_64 (mockbuild@x86-04.stream.rdu2.redhat.com)
@@ -667,10 +645,9 @@ Oct  2 08:12:05 centos9 sshd[912]: Server listening on 0.0.0.0 port 22.
 Oct  2 08:12:06 centos9 systemd[1]: Started OpenSSH server daemon.
 Oct  2 08:15:22 centos9 sshd[1240]: Failed password for invalid user admin from 192.168.1.150 port 54312 ssh2
 Oct  2 08:15:25 centos9 sshd[1240]: Failed password for invalid user admin from 192.168.1.150 port 54312 ssh2
-Oct  2 08:15:30 centos9 sshd[1243]: ERROR: Connection reset by peer [preauth]
+Oct  2 08:15:30 centos9 sshd[1243]: Connection reset by peer [preauth]
 Oct  2 08:18:44 centos9 sshd[1301]: Failed password for root from 192.168.1.188 port 48210 ssh2
 Oct  2 08:19:02 centos9 systemd[1]: Started Session 1 of user centos.
-Oct  2 08:20:11 centos9 systemd[1]: ERROR: Failed to start Custom Analytics Reporter service. Unit not found.
 Oct  2 08:25:00 centos9 crond[1422]: (root) CMD (/usr/lib64/sa/sa1 1 1)
 Oct  2 08:42:19 centos9 auditd[520]: Audit daemon rotating log files
 Oct  2 08:45:00 centos9 crond[1602]: (root) CMD (/usr/lib64/sa/sa1 1 1)
@@ -682,6 +659,98 @@ Oct  2 08:15:25 centos9 sshd[1240]: Failed password for invalid user admin from 
 Oct  2 08:18:44 centos9 sshd[1301]: Failed password for root from 192.168.1.188 port 48210 ssh2
 Oct  2 08:19:02 centos9 sshd[1305]: Accepted publickey for centos from 192.168.1.2 port 51234 ssh2
 Oct  2 08:19:02 centos9 sshd[1305]: pam_unix(sshd:session): session opened for user centos by (uid=0)
+`);
+
+    // CentOS 9 Storage, SELinux, NetworkManager, SSH & Web default configs
+    this.writeFile('/etc/fstab', `#
+# /etc/fstab
+# Created by anaconda on Thu Oct  2 07:45:12 2026
+#
+# Accessible filesystems, by reference, are maintained under '/dev/disk/'.
+# See man pages fstab(5), findfs(8), mount(8) and/or blkid(8) for more info.
+#
+/dev/mapper/cs-root     /                       xfs     defaults        0 0
+UUID=84b7218e-4a6c-48be-a6b1-4f938d21b712 /boot                   xfs     defaults        0 0
+/dev/mapper/cs-swap     none                    swap    defaults        0 0
+`);
+
+    this.writeFile('/etc/selinux/config', `# This file controls the state of SELinux on the system.
+# SELINUX= can take one of these three values:
+#     enforcing - SELinux security policy is enforced.
+#     permissive - SELinux prints warnings instead of enforcing.
+#     disabled - No SELinux policy is loaded.
+SELINUX=enforcing
+# SELINUXTYPE= can take one of these three values:
+#     targeted - Targeted processes are protected,
+#     minimum - Modification of targeted policy. Only selected processes are protected.
+#     mls - Multi Level Security protection.
+SELINUXTYPE=targeted
+`);
+
+    this.mkdir('/etc/NetworkManager/system-connections', { recursive: true });
+    this.writeFile('/etc/NetworkManager/system-connections/ens160.nmconnection', `[connection]
+id=ens160
+uuid=8e6b12a0-43b5-4a41-b0e6-990a42429402
+type=ethernet
+interface-name=ens160
+
+[ethernet]
+
+[ipv4]
+address1=192.168.1.50/24,192.168.1.1
+dns=8.8.8.8;1.1.1.1;
+method=manual
+
+[ipv6]
+addr-gen-mode=default
+method=auto
+`, { mode: 0o600 });
+
+    this.writeFile('/etc/ssh/sshd_config', `# OpenSSH Server configuration - CentOS Stream 9
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+ListenAddress ::
+PermitRootLogin yes
+AuthorizedKeysFile .ssh/authorized_keys
+PasswordAuthentication yes
+ChallengeResponseAuthentication no
+GSSAPIAuthentication yes
+GSSAPICleanupCredentials no
+UsePAM yes
+X11Forwarding yes
+Subsystem sftp /usr/libexec/openssh/sftp-server
+`);
+
+    this.mkdir('/usr/share/nginx/html', { recursive: true });
+    this.writeFile('/usr/share/nginx/html/index.html', `<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to CentOS Stream 9!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto; font-family: Tahoma, Verdana, Arial, sans-serif; padding-top: 2rem; }
+h1 { color: #2e7d32; }
+</style>
+</head>
+<body>
+<h1>Welcome to CentOS Stream 9 Web Server!</h1>
+<p>If you see this page, the web server is successfully installed and working.</p>
+<p>For online documentation and support please refer to <a href="https://centos.org/">centos.org</a>.</p>
+<p><em>Thank you for using CentOS Stream 9.</em></p>
+</body>
+</html>
+`);
+
+    this.mkdir('/var/www/html', { recursive: true });
+    this.writeFile('/var/www/html/index.html', `<!DOCTYPE html>
+<html>
+<head><title>Apache HTTP Server on CentOS Stream 9</title></head>
+<body>
+<h1>It works!</h1>
+<p>This is the default web page for this server on CentOS Stream 9.</p>
+</body>
+</html>
 `);
 
     this.writeFile('/etc/yum.repos.d/centos.repo', `[baseos]

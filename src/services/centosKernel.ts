@@ -24,6 +24,9 @@ export class CentOSKernel {
   public crontabs: Map<string, string[]> = new Map();
   public packages: Map<string, YumPackage> = new Map();
   public aliases: Map<string, string> = new Map();
+  public selinuxMode: 'Enforcing' | 'Permissive' | 'Disabled' = 'Enforcing';
+  public firewallServices: Set<string> = new Set(['cockpit', 'dhcpv6-client', 'ssh']);
+  public firewallPorts: Set<string> = new Set();
 
   // Callback to open interactive editor in UI if user types `vi` or `nano`
   public onOpenEditor?: (filePath: string, content: string) => void;
@@ -39,6 +42,9 @@ export class CentOSKernel {
     this.currentUser = 'root';
     this.hostname = 'centos9.localdomain';
     this.lastExitCode = 0;
+    this.selinuxMode = 'Enforcing';
+    this.firewallServices = new Set(['cockpit', 'dhcpv6-client', 'ssh']);
+    this.firewallPorts = new Set();
 
     this.env = {
       USER: 'root',
@@ -157,9 +163,31 @@ export class CentOSKernel {
         arch: 'x86_64',
         summary: 'File and directory tree display tool',
         description: 'Tree is a recursive directory listing command that produces a depth indented listing of files.',
-        installed: false,
+        installed: true,
         size: '56 k',
         files: ['/usr/bin/tree'],
+      },
+      {
+        name: 'tar',
+        version: '1.34',
+        release: '6.el9',
+        arch: 'x86_64',
+        summary: 'A GNU file archiving program',
+        description: 'The GNU tar program saves many files together into a single tape or disk archive.',
+        installed: true,
+        size: '860 k',
+        files: ['/bin/tar', '/usr/bin/tar'],
+      },
+      {
+        name: 'gzip',
+        version: '1.12',
+        release: '1.el9',
+        arch: 'x86_64',
+        summary: 'The GNU data compression program',
+        description: 'Gzip reduces the size of the named files using Lempel-Ziv coding (LZ77).',
+        installed: true,
+        size: '165 k',
+        files: ['/bin/gzip', '/bin/gunzip', '/usr/bin/gzip'],
       },
       {
         name: 'git',
@@ -456,6 +484,22 @@ export class CentOSKernel {
       case 'ip': return this.cmdIp(cmdArgs);
       case 'ifconfig': return this.cmdIfconfig();
       case 'ping': return this.cmdPing(cmdArgs);
+      case 'curl': return this.cmdCurl(cmdArgs);
+      case 'wget': return this.cmdWget(cmdArgs);
+      case 'nmcli': return this.cmdNmcli(cmdArgs);
+      case 'journalctl': return this.cmdJournalctl(cmdArgs);
+      case 'firewall-cmd': return this.cmdFirewallCmd(cmdArgs);
+      case 'sestatus': return this.cmdSestatus();
+      case 'getenforce': return this.cmdGetenforce();
+      case 'setenforce': return this.cmdSetenforce(cmdArgs);
+      case 'tree': return this.cmdTree(cmdArgs);
+      case 'lscpu': return this.cmdLscpu();
+      case 'lsblk': return this.cmdLsblk(cmdArgs);
+      case 'tar': return this.cmdTar(cmdArgs);
+      case 'gzip': return this.cmdGzip(cmdArgs);
+      case 'gunzip': return this.cmdGunzip(cmdArgs);
+      case 'export': return this.cmdExport(cmdArgs);
+      case 'env': return this.cmdEnv();
       case 'netstat':
       case 'ss': return this.cmdNetstat();
       case 'df': return this.cmdDf(cmdArgs);
@@ -1495,11 +1539,12 @@ export class CentOSKernel {
   }
 
   private cmdYum(args: string[]): CommandResult {
-    const sub = args[0];
-    const pkgName = args[1];
+    const nonFlags = args.filter(a => !a.startsWith('-'));
+    const sub = nonFlags[0];
+    const pkgName = nonFlags[1];
 
     if (!sub) {
-      return { stdout: '', stderr: 'Loaded plugins: fastestmirror\nCommand Error: Need to specify an action: install, remove, list, info, update, search', exitCode: 1 };
+      return { stdout: '', stderr: 'Updating Subscription Management repositories.\nCommand Error: Need to specify an action: install, remove, list, info, update, search', exitCode: 1 };
     }
 
     switch (sub) {
@@ -1507,10 +1552,10 @@ export class CentOSKernel {
         if (!pkgName) return { stdout: '', stderr: 'Error: Need a package name to install', exitCode: 1 };
         const pkg = this.packages.get(pkgName);
         if (!pkg) {
-          return { stdout: '', stderr: `Loaded plugins: fastestmirror\nNo package ${pkgName} available.\nError: Nothing to do`, exitCode: 1 };
+          return { stdout: '', stderr: `Updating Subscription Management repositories.\nLast metadata expiration check: 0:14:22 ago.\nNo match for argument: ${pkgName}\nError: Unable to find a match: ${pkgName}`, exitCode: 1 };
         }
         if (pkg.installed) {
-          return { stdout: `Package ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch} already installed and latest version\nNothing to do`, stderr: '', exitCode: 0 };
+          return { stdout: `Updating Subscription Management repositories.\nLast metadata expiration check: 0:14:22 ago.\nPackage ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch} is already installed.\nDependencies resolved.\nNothing to do.\nComplete!`, stderr: '', exitCode: 0 };
         }
 
         // Install files into VFS
@@ -1523,7 +1568,7 @@ export class CentOSKernel {
           }
         }
 
-        // If nginx, register service
+        // If nginx, register service and default page
         if (pkgName === 'nginx' && !this.services.has('nginx.service')) {
           this.services.set('nginx.service', {
             name: 'nginx.service',
@@ -1532,22 +1577,19 @@ export class CentOSKernel {
             unitFileState: 'disabled',
             execStart: '/usr/sbin/nginx',
           });
+          this.vfs.mkdir('/usr/share/nginx/html', { recursive: true });
+          this.vfs.writeFile('/usr/share/nginx/html/index.html', '<!DOCTYPE html><html><body><h1>Welcome to CentOS Stream 9 NGINX Server!</h1></body></html>\n');
         }
 
         return {
-          stdout: `Loaded plugins: fastestmirror
-Loading mirror speeds from cached hostfile
-Resolving Dependencies
---> Running transaction check
----> Package ${pkg.name}.${pkg.arch} 0:${pkg.version}-${pkg.release} will be installed
---> Finished Dependency Resolution
-
-Dependencies Resolved
+          stdout: `Updating Subscription Management repositories.
+Last metadata expiration check: 0:14:22 ago on Thu 02 Oct 2026.
+Dependencies resolved.
 ================================================================================
  Package       Arch         Version                 Repository             Size
 ================================================================================
 Installing:
- ${pkg.name}       ${pkg.arch}       ${pkg.version}-${pkg.release}      base                  ${pkg.size}
+ ${pkg.name.padEnd(12)}  ${pkg.arch.padEnd(10)}  ${(pkg.version + '-' + pkg.release).padEnd(22)}  appstream             ${pkg.size}
 
 Transaction Summary
 ================================================================================
@@ -1555,13 +1597,22 @@ Install  1 Package
 
 Total download size: ${pkg.size}
 Installed size: 4.8 M
-Downloading packages:
+Downloading Packages:
+${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}.rpm                   2.4 MB/s | ${pkg.size}     00:00    
+--------------------------------------------------------------------------------
+Total                                           2.4 MB/s | ${pkg.size}     00:00     
 Running transaction check
+Transaction check succeeded.
 Running transaction test
-Transaction test succeeded
+Transaction test succeeded.
 Running transaction
-  Installing : ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
-  Verifying  : ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
+  Preparing        :                                                        1/1 
+  Installing       : ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
+  Running scriptlet: ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
+  Verifying        : ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
+
+Installed:
+  ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}
 
 Complete!`,
           stderr: '',
@@ -1573,19 +1624,46 @@ Complete!`,
         if (!pkgName) return { stdout: '', stderr: 'Error: Need a package name to remove', exitCode: 1 };
         const pkg = this.packages.get(pkgName);
         if (!pkg || !pkg.installed) {
-          return { stdout: '', stderr: `Package(s) ${pkgName} available, but not installed.\nNo Packages marked for removal`, exitCode: 1 };
+          return { stdout: '', stderr: `No match for argument: ${pkgName}\nNo packages marked for removal.`, exitCode: 1 };
         }
         pkg.installed = false;
         return {
-          stdout: `Loaded plugins: fastestmirror\nResolving Dependencies\n--> Running transaction check\n---> Package ${pkg.name}.${pkg.arch} will be erased\nComplete!`,
+          stdout: `Dependencies resolved.
+================================================================================
+ Package       Arch         Version                 Repository             Size
+================================================================================
+Removing:
+ ${pkg.name.padEnd(12)}  ${pkg.arch.padEnd(10)}  ${(pkg.version + '-' + pkg.release).padEnd(22)}  @appstream            ${pkg.size}
+
+Transaction Summary
+================================================================================
+Remove  1 Package
+
+Freed space: 4.8 M
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Erasing          : ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
+  Verifying        : ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}                                  1/1 
+
+Removed:
+  ${pkg.name}-${pkg.version}-${pkg.release}.${pkg.arch}
+
+Complete!`,
           stderr: '',
           exitCode: 0,
         };
       }
 
       case 'search': {
-        const query = args[1] || '';
-        const lines = ['Loaded plugins: fastestmirror', '======================== N/S matched: ' + query + ' ========================'];
+        const query = nonFlags[1] || '';
+        const lines = [
+          'Updating Subscription Management repositories.',
+          'Last metadata expiration check: 0:14:22 ago.',
+          '========================== Name & Summary Matched: ' + query + ' ==========================',
+        ];
         this.packages.forEach(p => {
           if (p.name.includes(query) || p.summary.includes(query)) {
             lines.push(`${p.name}.${p.arch} : ${p.summary}`);
@@ -1595,11 +1673,15 @@ Complete!`,
       }
 
       case 'list': {
-        const filter = args[1];
-        const lines = ['Loaded plugins: fastestmirror', 'Installed Packages'];
+        const filter = nonFlags[1];
+        const lines = [
+          'Updating Subscription Management repositories.',
+          'Last metadata expiration check: 0:14:22 ago.',
+          'Installed Packages',
+        ];
         this.packages.forEach(p => {
           if (p.installed && (!filter || p.name.includes(filter))) {
-            lines.push(`${p.name}.${p.arch}`.padEnd(30) + `${p.version}-${p.release}`.padEnd(20) + '@base');
+            lines.push(`${p.name}.${p.arch}`.padEnd(32) + `${p.version}-${p.release}`.padEnd(24) + '@appstream');
           }
         });
         return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
@@ -1750,16 +1832,594 @@ rtt min/avg/max/mdev = 0.385/0.401/0.428/0.024 ms`,
   }
 
   private cmdNetstat(): CommandResult {
+    const rows = [
+      'Active Internet connections (only servers)',
+      'Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    ',
+    ];
+
+    const sshd = this.services.get('sshd.service');
+    if (sshd?.activeState === 'active') {
+      rows.push(`tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      ${sshd.mainPid || 912}/sshd`);
+      rows.push(`tcp6       0      0 :::22                   :::*                    LISTEN      ${sshd.mainPid || 912}/sshd`);
+    }
+
+    const nginx = this.services.get('nginx.service');
+    if (nginx?.activeState === 'active') {
+      rows.push(`tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      ${nginx.mainPid || 1420}/nginx: master`);
+      rows.push(`tcp        0      0 0.0.0.0:443             0.0.0.0:*               LISTEN      ${nginx.mainPid || 1420}/nginx: master`);
+    }
+
+    const httpd = this.services.get('httpd.service');
+    if (httpd?.activeState === 'active') {
+      rows.push(`tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      ${httpd.mainPid || 1510}/httpd`);
+    }
+
+    const mariadb = this.services.get('mariadb.service');
+    if (mariadb?.activeState === 'active') {
+      rows.push(`tcp        0      0 0.0.0.0:3306            0.0.0.0:*               LISTEN      ${mariadb.mainPid || 1620}/mariadbd`);
+    }
+
+    return { stdout: rows.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdCurl(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '', stderr: "curl: try 'curl --help' for more information", exitCode: 2 };
+    }
+
+    const headOnly = args.includes('-I') || args.includes('--head');
+    const silent = args.includes('-s') || args.includes('--silent');
+    const verbose = args.includes('-v') || args.includes('--verbose');
+    let outputFile: string | null = null;
+    const oIdx = args.indexOf('-o');
+    if (oIdx !== -1 && args[oIdx + 1]) {
+      outputFile = args[oIdx + 1];
+    }
+
+    let url = '';
+    for (let i = 0; i < args.length; i++) {
+      if (args[i].startsWith('-')) {
+        if (args[i] === '-o') i++;
+        continue;
+      }
+      url = args[i];
+      break;
+    }
+
+    if (!url) {
+      return { stdout: '', stderr: 'curl: no URL specified!', exitCode: 2 };
+    }
+
+    const isLocal = url.includes('localhost') || url.includes('127.0.0.1') || url.includes('centos9') || url.includes('192.168.1.50');
+
+    if (isLocal) {
+      const nginx = this.services.get('nginx.service');
+      const httpd = this.services.get('httpd.service');
+      const isNginxActive = nginx?.activeState === 'active';
+      const isHttpdActive = httpd?.activeState === 'active';
+
+      if (!isNginxActive && !isHttpdActive) {
+        return {
+          stdout: '',
+          stderr: 'curl: (7) Failed to connect to localhost port 80: Connection refused',
+          exitCode: 7,
+        };
+      }
+
+      const serverName = isNginxActive ? 'nginx/1.22.1' : 'Apache/2.4.57 (CentOS Stream)';
+      const filePath = isNginxActive ? '/usr/share/nginx/html/index.html' : '/var/www/html/index.html';
+      const htmlContent = this.vfs.readFile(filePath) || '<!DOCTYPE html><html><body><h1>Welcome to CentOS Stream 9 Web Server!</h1></body></html>\n';
+      const dateStr = new Date().toUTCString();
+
+      const headers = [
+        'HTTP/1.1 200 OK',
+        `Server: ${serverName}`,
+        `Date: ${dateStr}`,
+        'Content-Type: text/html; charset=UTF-8',
+        `Content-Length: ${htmlContent.length}`,
+        'Connection: keep-alive',
+        'ETag: "651a2b3c-4e8"',
+        'Accept-Ranges: bytes',
+        '',
+      ].join('\r\n');
+
+      if (headOnly) {
+        return { stdout: headers, stderr: '', exitCode: 0 };
+      }
+
+      let out = htmlContent;
+      if (verbose) {
+        out = `*   Trying 127.0.0.1:80...\n* Connected to localhost (127.0.0.1) port 80 (#0)\n> GET / HTTP/1.1\n> Host: localhost\n> User-Agent: curl/7.76.1\n> Accept: */*\n>\n< HTTP/1.1 200 OK\n< Server: ${serverName}\n< Content-Length: ${htmlContent.length}\n< \n` + htmlContent;
+      }
+
+      if (outputFile) {
+        const dest = this.vfs.resolvePath(this.cwd, outputFile);
+        this.vfs.writeFile(dest, htmlContent);
+        return {
+          stdout: silent ? '' : `  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n100   ${htmlContent.length}  100   ${htmlContent.length}    0     0   240k      0 --:--:-- --:--:-- --:--:--  240k`,
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return { stdout: out, stderr: '', exitCode: 0 };
+    }
+
+    if (headOnly) {
+      return {
+        stdout: `HTTP/2 200\r\ndate: ${new Date().toUTCString()}\r\ncontent-type: text/html; charset=UTF-8\r\nserver: cloudflare\r\n`,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+
+    const remoteContent = `<!doctype html>\n<html>\n<head><title>CentOS Stream 9 Client</title></head>\n<body>\n<h1>Connected to ${url}</h1>\n<p>Simulation response received successfully.</p>\n</body>\n</html>\n`;
+
+    if (outputFile) {
+      const dest = this.vfs.resolvePath(this.cwd, outputFile);
+      this.vfs.writeFile(dest, remoteContent);
+      return { stdout: silent ? '' : `100   ${remoteContent.length}  100   ${remoteContent.length}    0     0   310k      0 --:--:-- --:--:-- --:--:--  310k`, stderr: '', exitCode: 0 };
+    }
+
     return {
-      stdout: `Active Internet connections (only servers)
-Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
-tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      912/sshd            
-tcp        0      0 127.0.0.1:25            0.0.0.0:*               LISTEN      1014/master         
-tcp6       0      0 :::22                   :::*                    LISTEN      912/sshd            
-tcp6       0      0 ::1:25                  :::*                    LISTEN      1014/master`,
+      stdout: remoteContent,
       stderr: '',
       exitCode: 0,
     };
+  }
+
+  private cmdWget(args: string[]): CommandResult {
+    const url = args.find(a => !a.startsWith('-'));
+    if (!url) {
+      return { stdout: '', stderr: 'wget: missing URL\nUsage: wget [OPTION]... [URL]...', exitCode: 1 };
+    }
+
+    const filename = url.split('/').filter(Boolean).pop() || 'index.html';
+    const filePath = this.vfs.resolvePath(this.cwd, filename);
+    const content = `<!-- Downloaded from ${url} via wget on ${new Date().toISOString()} -->\n<!DOCTYPE html><html><body><h1>Saved content from ${url}</h1></body></html>\n`;
+    this.vfs.writeFile(filePath, content);
+
+    const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const host = url.replace(/^https?:\/\//, '').split('/')[0];
+    const output = `--${nowStr}--  ${url}
+Resolving ${host}... 104.18.24.120, 2606:4700::6812:1878
+Connecting to ${host}|104.18.24.120|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: ${content.length} [text/html]
+Saving to: ‘${filename}’
+
+${filename}        100%[===================>]     ${content.length}  --.-KB/s    in 0.001s  
+
+${nowStr} (1.42 MB/s) - ‘${filename}’ saved [${content.length}/${content.length}]`;
+
+    return { stdout: output, stderr: '', exitCode: 0 };
+  }
+
+  private cmdNmcli(args: string[]): CommandResult {
+    const target = args[0] || 'general';
+    const sub = args[1] || 'status';
+
+    if (target === 'g' || target === 'general' || args.length === 0) {
+      return {
+        stdout: `STATE      CONNECTIVITY  WIFI-HW  WIFI     WWAN-HW  WWAN    
+connected  full          enabled  enabled  enabled  enabled `,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+
+    if (target === 'c' || target === 'connection' || target === 'con') {
+      if (sub === 'show' || sub === 's' || args.length === 1) {
+        return {
+          stdout: `NAME    UUID                                  TYPE      DEVICE 
+ens160  8e6b12a0-43b5-4a41-b0e6-990a42429402  ethernet  ens160 `,
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+      if (sub === 'up') {
+        return { stdout: 'Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/1)', stderr: '', exitCode: 0 };
+      }
+      if (sub === 'down') {
+        return { stdout: "Connection 'ens160' successfully deactivated.", stderr: '', exitCode: 0 };
+      }
+    }
+
+    if (target === 'd' || target === 'device' || target === 'dev') {
+      if (sub === 'status' || sub === 's' || args.length === 1) {
+        return {
+          stdout: `DEVICE  TYPE      STATE      CONNECTION 
+ens160  ethernet  connected  ens160     
+lo      loopback  unmanaged  --         `,
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+      if (sub === 'show') {
+        return {
+          stdout: `GENERAL.DEVICE:                         ens160
+GENERAL.TYPE:                           ethernet
+GENERAL.HWADDR:                         52:54:00:12:34:56
+GENERAL.MTU:                            1500
+GENERAL.STATE:                          100 (connected)
+GENERAL.CONNECTION:                     ens160
+IP4.ADDRESS[1]:                         192.168.1.50/24
+IP4.GATEWAY:                            192.168.1.1
+IP4.DNS[1]:                             8.8.8.8
+IP4.DNS[2]:                             1.1.1.1`,
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+    }
+
+    return { stdout: `Error: Object '${target}' is unknown, try 'nmcli help'.`, stderr: '', exitCode: 1 };
+  }
+
+  private cmdJournalctl(args: string[]): CommandResult {
+    let lines = (this.vfs.readFile('/var/log/messages') || '').split('\n').filter(Boolean);
+
+    const uIdx = args.indexOf('-u');
+    if (uIdx !== -1 && args[uIdx + 1]) {
+      const unit = args[uIdx + 1].replace(/\.service$/, '');
+      lines = lines.filter(l => l.toLowerCase().includes(unit.toLowerCase()));
+      if (lines.length === 0) {
+        lines = [
+          '-- Logs begin at Thu 2026-10-02 08:12:01 UTC, end at Thu 2026-10-02 12:45:00 UTC. --',
+          `Oct  2 08:12:05 centos9 systemd[1]: Starting ${unit}.service...`,
+          `Oct  2 08:12:06 centos9 systemd[1]: Started ${unit}.service.`,
+        ];
+      }
+    }
+
+    const nIdx = args.indexOf('-n');
+    let limit = 50;
+    if (nIdx !== -1 && args[nIdx + 1]) {
+      const parsed = parseInt(args[nIdx + 1], 10);
+      if (!isNaN(parsed)) limit = parsed;
+    }
+
+    const output = [
+      '-- Logs begin at Thu 2026-10-02 08:12:01 UTC, end at Thu 2026-10-02 12:45:00 UTC. --',
+      ...lines.slice(-limit),
+    ].join('\n');
+
+    return { stdout: output, stderr: '', exitCode: 0 };
+  }
+
+  private cmdFirewallCmd(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '', stderr: 'firewall-cmd: error: no options specified', exitCode: 2 };
+    }
+
+    if (args.includes('--state')) {
+      const fwService = this.services.get('firewalld.service');
+      const isRunning = fwService?.activeState === 'active';
+      return { stdout: isRunning ? 'running' : 'not running', stderr: '', exitCode: isRunning ? 0 : 252 };
+    }
+
+    if (args.includes('--reload')) {
+      return { stdout: 'success', stderr: '', exitCode: 0 };
+    }
+
+    if (args.includes('--list-all')) {
+      const svcs = Array.from(this.firewallServices).join(' ');
+      const ports = Array.from(this.firewallPorts).join(' ');
+      return {
+        stdout: `public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: ens160
+  sources: 
+  services: ${svcs}
+  ports: ${ports}
+  protocols: 
+  forward: yes
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: `,
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+
+    for (const arg of args) {
+      if (arg.startsWith('--add-service=')) {
+        const s = arg.split('=')[1];
+        this.firewallServices.add(s);
+        return { stdout: 'success', stderr: '', exitCode: 0 };
+      }
+      if (arg.startsWith('--remove-service=')) {
+        const s = arg.split('=')[1];
+        this.firewallServices.delete(s);
+        return { stdout: 'success', stderr: '', exitCode: 0 };
+      }
+      if (arg.startsWith('--add-port=')) {
+        const p = arg.split('=')[1];
+        this.firewallPorts.add(p);
+        return { stdout: 'success', stderr: '', exitCode: 0 };
+      }
+      if (arg.startsWith('--remove-port=')) {
+        const p = arg.split('=')[1];
+        this.firewallPorts.delete(p);
+        return { stdout: 'success', stderr: '', exitCode: 0 };
+      }
+    }
+
+    return { stdout: 'success', stderr: '', exitCode: 0 };
+  }
+
+  private cmdSestatus(): CommandResult {
+    return {
+      stdout: `SELinux status:                 enabled
+SELinuxfs mount:                /sys/fs/selinux
+SELinux root directory:         /etc/selinux
+Loaded policy name:             targeted
+Current mode:                   ${this.selinuxMode.toLowerCase()}
+Mode from config file:          enforcing
+Policy MLS status:              enabled
+Policy deny_unknown status:     allowed
+Memory protection checking:     actual (secure)
+Max kernel policy version:      33`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdGetenforce(): CommandResult {
+    return { stdout: this.selinuxMode, stderr: '', exitCode: 0 };
+  }
+
+  private cmdSetenforce(args: string[]): CommandResult {
+    if (this.currentUser !== 'root') {
+      return { stdout: '', stderr: 'setenforce: setenforce() failed', exitCode: 1 };
+    }
+    const val = args[0]?.toLowerCase();
+    if (val === '0' || val === 'permissive') {
+      this.selinuxMode = 'Permissive';
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+    if (val === '1' || val === 'enforcing') {
+      this.selinuxMode = 'Enforcing';
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+    return { stdout: '', stderr: 'usage:  setenforce [ Enforcing | Permissive | 1 | 0 ]', exitCode: 1 };
+  }
+
+  private cmdTree(args: string[]): CommandResult {
+    const target = args.find(a => !a.startsWith('-')) || '.';
+    const resolved = this.vfs.resolvePath(this.cwd, target);
+    const rootNode = this.vfs.getNode(resolved);
+
+    if (!rootNode) {
+      return { stdout: '', stderr: `${target} [error opening dir]`, exitCode: 1 };
+    }
+
+    if (rootNode.type !== 'dir') {
+      return { stdout: `${target}\n\n0 directories, 1 file`, stderr: '', exitCode: 0 };
+    }
+
+    const lines: string[] = [target];
+    let dirCount = 0;
+    let fileCount = 0;
+
+    const buildTree = (dirPath: string, prefix: string, depth: number) => {
+      if (depth > 4) return;
+      const entries = this.vfs.readdir(dirPath);
+      if (!entries) return;
+      const visible = entries.filter(e => !e.name.startsWith('.') || args.includes('-a'));
+
+      visible.forEach((entry, idx) => {
+        const isLast = idx === visible.length - 1;
+        const branch = isLast ? '└── ' : '├── ';
+        const childPrefix = isLast ? '    ' : '│   ';
+
+        if (entry.type === 'dir') {
+          dirCount++;
+          lines.push(`${prefix}${branch}\x1b[1;34m${entry.name}\x1b[0m`);
+          const nextPath = dirPath === '/' ? `/${entry.name}` : `${dirPath}/${entry.name}`;
+          buildTree(nextPath, prefix + childPrefix, depth + 1);
+        } else if (entry.type === 'symlink') {
+          fileCount++;
+          lines.push(`${prefix}${branch}\x1b[36m${entry.name} -> ${entry.target}\x1b[0m`);
+        } else {
+          fileCount++;
+          const isExec = (entry.mode & 0o111) !== 0;
+          const colorName = isExec ? `\x1b[1;32m${entry.name}\x1b[0m` : entry.name;
+          lines.push(`${prefix}${branch}${colorName}`);
+        }
+      });
+    };
+
+    buildTree(resolved, '', 1);
+    lines.push('');
+    lines.push(`${dirCount} directories, ${fileCount} files`);
+    return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdLscpu(): CommandResult {
+    return {
+      stdout: `Architecture:                    x86_64
+CPU op-mode(s):                  32-bit, 64-bit
+Address sizes:                   48 bits physical, 48 bits virtual
+Byte Order:                      Little Endian
+CPU(s):                          2
+On-line CPU(s) list:             0,1
+Vendor ID:                       GenuineIntel
+Model name:                      Intel(R) Xeon(R) Platinum 8375C CPU @ 2.80GHz
+CPU family:                      6
+Model:                           106
+Thread(s) per core:              1
+Core(s) per socket:              2
+Socket(s):                       1
+Stepping:                        2
+BogoMIPS:                        5599.99
+Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single ssbd ibrs ibpb stibp fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsave xsaves wbnoinvd arat spec_ctrl intel_stibp flush_l1d arch_capabilities
+Hypervisor vendor:               KVM
+Virtualization type:             full
+L1d cache:                       96 KiB (2 instances)
+L1i cache:                       64 KiB (2 instances)
+L2 cache:                        2.5 MiB (2 instances)
+L3 cache:                        54 MiB (1 instance)
+NUMA node(s):                    1
+NUMA node0 CPU(s):               0,1`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdLsblk(_args: string[] = []): CommandResult {
+    return {
+      stdout: `NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda         252:0    0   40G  0 disk 
+├─vda1      252:1    0    1G  0 part /boot
+└─vda2      252:2    0   39G  0 part 
+  ├─cs-root 253:0    0 37.2G  0 lvm  /
+  └─cs-swap 253:1    0  1.8G  0 lvm  [SWAP]`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdTar(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '', stderr: "tar: You must specify one of the '-Acdtrux', '--delete' or '--test-label' options\nTry 'tar --help' for more information.", exitCode: 2 };
+    }
+
+    let mode = '';
+    let archiveFile = '';
+    const fileTargets: string[] = [];
+
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i];
+      if (a.startsWith('-')) {
+        if (a.includes('c')) mode = 'create';
+        if (a.includes('x')) mode = 'extract';
+        if (a.includes('t')) mode = 'list';
+        if (a.includes('f')) {
+          if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+            archiveFile = args[++i];
+          }
+        }
+      } else {
+        if (!archiveFile) {
+          archiveFile = a;
+        } else {
+          fileTargets.push(a);
+        }
+      }
+    }
+
+    if (!archiveFile) {
+      return { stdout: '', stderr: 'tar: Refusing to read archive contents from terminal (missing -f flag?)', exitCode: 2 };
+    }
+
+    const archivePath = this.vfs.resolvePath(this.cwd, archiveFile);
+
+    if (mode === 'create') {
+      if (fileTargets.length === 0) {
+        return { stdout: '', stderr: 'tar: Cowardly refusing to create an empty archive', exitCode: 2 };
+      }
+      const recorded: Record<string, string> = {};
+      const lines: string[] = [];
+      for (const t of fileTargets) {
+        const full = this.vfs.resolvePath(this.cwd, t);
+        const node = this.vfs.getNode(full);
+        if (!node) {
+          return { stdout: '', stderr: `tar: ${t}: Cannot stat: No such file or directory`, exitCode: 2 };
+        }
+        lines.push(t);
+        recorded[t] = node.content ?? '';
+      }
+      this.vfs.writeFile(archivePath, `TAR_ARCHIVE_V1\n${JSON.stringify(recorded)}`);
+      return { stdout: args.some(a => a.includes('v')) ? lines.join('\n') : '', stderr: '', exitCode: 0 };
+    }
+
+    if (mode === 'extract') {
+      const raw = this.vfs.readFile(archivePath);
+      if (!raw) {
+        return { stdout: '', stderr: `tar: ${archiveFile}: Cannot open: No such file or directory`, exitCode: 2 };
+      }
+      if (!raw.startsWith('TAR_ARCHIVE_V1\n')) {
+        return { stdout: args.some(a => a.includes('v')) ? archiveFile : '', stderr: '', exitCode: 0 };
+      }
+      const jsonStr = raw.replace('TAR_ARCHIVE_V1\n', '');
+      try {
+        const files: Record<string, string> = JSON.parse(jsonStr);
+        const lines: string[] = [];
+        for (const [fname, content] of Object.entries(files)) {
+          lines.push(fname);
+          const dest = this.vfs.resolvePath(this.cwd, fname);
+          this.vfs.writeFile(dest, content);
+        }
+        return { stdout: args.some(a => a.includes('v')) ? lines.join('\n') : '', stderr: '', exitCode: 0 };
+      } catch {
+        return { stdout: '', stderr: 'tar: Error parsing archive', exitCode: 2 };
+      }
+    }
+
+    if (mode === 'list') {
+      const raw = this.vfs.readFile(archivePath);
+      if (!raw) {
+        return { stdout: '', stderr: `tar: ${archiveFile}: Cannot open: No such file or directory`, exitCode: 2 };
+      }
+      if (raw.startsWith('TAR_ARCHIVE_V1\n')) {
+        const jsonStr = raw.replace('TAR_ARCHIVE_V1\n', '');
+        try {
+          const files: Record<string, string> = JSON.parse(jsonStr);
+          return { stdout: Object.keys(files).join('\n'), stderr: '', exitCode: 0 };
+        } catch {
+          return { stdout: '', stderr: 'tar: Error reading archive', exitCode: 2 };
+        }
+      }
+      return { stdout: `${archiveFile}\ninstall.sh\nREADME.txt`, stderr: '', exitCode: 0 };
+    }
+
+    return { stdout: '', stderr: 'tar: specify action (-c, -x, -t)', exitCode: 2 };
+  }
+
+  private cmdGzip(args: string[]): CommandResult {
+    const filename = args.find(a => !a.startsWith('-'));
+    if (!filename) return { stdout: '', stderr: 'gzip: missing file', exitCode: 1 };
+    const src = this.vfs.resolvePath(this.cwd, filename);
+    const content = this.vfs.readFile(src);
+    if (content === null) return { stdout: '', stderr: `gzip: ${filename}: No such file or directory`, exitCode: 1 };
+    this.vfs.unlink(src);
+    this.vfs.writeFile(`${src}.gz`, content);
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdGunzip(args: string[]): CommandResult {
+    const filename = args.find(a => !a.startsWith('-'));
+    if (!filename) return { stdout: '', stderr: 'gunzip: missing file', exitCode: 1 };
+    const src = this.vfs.resolvePath(this.cwd, filename);
+    const content = this.vfs.readFile(src);
+    if (content === null) return { stdout: '', stderr: `gunzip: ${filename}: No such file or directory`, exitCode: 1 };
+    const dest = src.endsWith('.gz') ? src.slice(0, -3) : src + '.out';
+    this.vfs.unlink(src);
+    this.vfs.writeFile(dest, content);
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdEnv(): CommandResult {
+    const lines = Object.entries(this.env).map(([k, v]) => `${k}=${v}`);
+    return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdExport(args: string[]): CommandResult {
+    if (args.length === 0) {
+      const lines = Object.entries(this.env).map(([k, v]) => `declare -x ${k}="${v}"`);
+      return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+    }
+    for (const a of args) {
+      if (a.includes('=')) {
+        const [k, ...v] = a.split('=');
+        this.env[k] = v.join('=');
+      }
+    }
+    return { stdout: '', stderr: '', exitCode: 0 };
   }
 
   private cmdDf(_args?: string[]): CommandResult {

@@ -421,8 +421,11 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
         'wc', 'grep', 'find', 'echo', 'chmod', 'chown', 'chgrp', 'useradd', 'userdel',
         'groupadd', 'groupdel', 'usermod', 'passwd', 'id', 'whoami', 'su', 'sudo',
         'systemctl', 'service', 'ps', 'top', 'kill', 'pkill', 'crontab', 'dnf', 'yum',
-        'rpm', 'hostnamectl', 'hostname', 'ip', 'ifconfig', 'ping', 'netstat', 'df',
-        'free', 'uname', 'uptime', 'date', 'clear', 'history', 'vi', 'nano', 'help'
+        'rpm', 'hostnamectl', 'hostname', 'ip', 'ifconfig', 'ping', 'curl', 'wget',
+        'nmcli', 'journalctl', 'firewall-cmd', 'sestatus', 'getenforce', 'setenforce',
+        'tree', 'lscpu', 'lsblk', 'tar', 'gzip', 'gunzip', 'export', 'env',
+        'netstat', 'ss', 'df', 'free', 'uname', 'uptime', 'date', 'clear', 'history',
+        'which', 'whereis', 'whatis', 'alias', 'unalias', 'vi', 'nano', 'help'
       ];
       const matches = commonCommands.filter((c) => c.startsWith(lastWord));
       if (matches.length === 1) {
