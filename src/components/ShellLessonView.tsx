@@ -21,6 +21,7 @@ import { TerminalView } from './TerminalView';
 interface ShellLessonViewProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  onBackToHome?: () => void;
   onBackToSyllabus: () => void;
   onNextLesson: () => void;
   onCompleteLesson: () => void;
@@ -32,6 +33,7 @@ interface ShellLessonViewProps {
 export const ShellLessonView: React.FC<ShellLessonViewProps> = ({
   theme,
   onToggleTheme,
+  onBackToHome,
   onBackToSyllabus,
   onNextLesson,
   onCompleteLesson,
@@ -142,7 +144,21 @@ export const ShellLessonView: React.FC<ShellLessonViewProps> = ({
       <header className={`sticky top-0 z-40 border-b backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between transition-colors ${
         isDark ? 'bg-[#0f1422]/90 border-slate-800' : 'bg-white/90 border-slate-200'
       }`}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {onBackToHome && (
+            <button
+              onClick={onBackToHome}
+              className={`hidden sm:flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                isDark
+                  ? 'border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-blue-400'
+                  : 'border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-blue-600'
+              }`}
+              title="Về trang chủ Linux Journey (Grasshopper)"
+            >
+              <span>Linux Journey</span>
+            </button>
+          )}
+
           <button
             onClick={onBackToSyllabus}
             className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer ${

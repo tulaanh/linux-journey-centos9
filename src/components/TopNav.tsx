@@ -8,7 +8,8 @@ import {
   User,
   HelpCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FlaskConical,
 } from 'lucide-react';
 
 interface TopNavProps {
@@ -21,7 +22,9 @@ interface TopNavProps {
   completedCount: number;
   totalLabs: number;
   onToggleUser: () => void;
+  onBackToHome?: () => void;
   onBackToSyllabus?: () => void;
+  currentModuleTitle?: string;
   currentLabTitle?: string;
 }
 
@@ -35,7 +38,9 @@ export const TopNav: React.FC<TopNavProps> = ({
   completedCount,
   totalLabs,
   onToggleUser,
+  onBackToHome,
   onBackToSyllabus,
+  currentModuleTitle = 'Command Line',
   currentLabTitle,
 }) => {
   const isDark = theme === 'dark';
@@ -48,14 +53,14 @@ export const TopNav: React.FC<TopNavProps> = ({
           : 'bg-white border-[#d0d7de] text-slate-800 shadow-xs'
       }`}
     >
-      {/* Left Area: Back Button & Breadcrumbs */}
+      {/* Left Area: Back Button & 3-Level Breadcrumbs */}
       <div className="flex items-center gap-2 min-w-0">
         {onBackToSyllabus && (
           <button
             onClick={onBackToSyllabus}
             className={`flex items-center gap-1 px-2 py-1 rounded font-medium transition cursor-pointer ${
-              isDark 
-                ? 'bg-slate-800 hover:bg-slate-700 text-blue-400' 
+              isDark
+                ? 'bg-slate-800 hover:bg-slate-700 text-blue-400'
                 : 'bg-slate-100 hover:bg-slate-200 text-blue-600'
             }`}
             title="Quay lại danh sách bài học"
@@ -66,9 +71,48 @@ export const TopNav: React.FC<TopNavProps> = ({
         )}
 
         <div className="flex items-center gap-1.5 text-xs truncate">
-          <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Command Line</span>
-          <ChevronRight className={`w-3 h-3 flex-shrink-0 ${isDark ? 'text-slate-600' : 'text-slate-400'}`} />
-          <span className={`font-semibold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          {onBackToHome && (
+            <>
+              <button
+                onClick={onBackToHome}
+                className={`hidden sm:inline-flex items-center gap-1 transition-colors cursor-pointer ${
+                  isDark
+                    ? 'text-slate-400 hover:text-blue-400'
+                    : 'text-slate-500 hover:text-blue-600'
+                }`}
+                title="Về trang chủ Linux Journey"
+              >
+                <FlaskConical className="w-3 h-3" />
+                <span>Linux Journey</span>
+              </button>
+              <ChevronRight
+                className={`hidden sm:inline w-3 h-3 flex-shrink-0 ${
+                  isDark ? 'text-slate-600' : 'text-slate-400'
+                }`}
+              />
+            </>
+          )}
+
+          <button
+            onClick={onBackToSyllabus}
+            className={`transition-colors cursor-pointer ${
+              isDark
+                ? 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            {currentModuleTitle}
+          </button>
+          <ChevronRight
+            className={`w-3 h-3 flex-shrink-0 ${
+              isDark ? 'text-slate-600' : 'text-slate-400'
+            }`}
+          />
+          <span
+            className={`font-semibold truncate ${
+              isDark ? 'text-white' : 'text-slate-900'
+            }`}
+          >
             {currentLabTitle || 'Interactive Terminal'}
           </span>
         </div>
@@ -93,7 +137,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         >
           <div
             className="bg-emerald-500 h-full transition-all duration-300"
-            style={{ width: `${(completedCount / totalLabs) * 100}%` }}
+            style={{ width: `${totalLabs > 0 ? (completedCount / totalLabs) * 100 : 0}%` }}
           />
         </div>
       </div>
@@ -111,7 +155,13 @@ export const TopNav: React.FC<TopNavProps> = ({
           title="Chuyển user giữa root và centos"
         >
           <User className="w-3 h-3 text-blue-500" />
-          <span className={kernel.currentUser === 'root' ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold'}>
+          <span
+            className={
+              kernel.currentUser === 'root'
+                ? 'text-red-400 font-bold'
+                : 'text-emerald-400 font-bold'
+            }
+          >
             {kernel.currentUser}
           </span>
         </button>

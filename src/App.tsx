@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { CentOSKernel } from './services/centosKernel';
-import { LABS } from './services/labsData';
-import type { LabDefinition, LabCheckResult } from './types/linux';
+import { GRASSHOPPER_MODULES, COMMAND_LINE_LABS } from './services/labsData';
+import type { CourseModule, LabDefinition, LabCheckResult } from './types/linux';
+import { LinuxJourneyHome } from './components/LinuxJourneyHome';
 import { CommandLineSyllabus } from './components/CommandLineSyllabus';
 import { ShellLessonView } from './components/ShellLessonView';
 import { PwdLessonView } from './components/PwdLessonView';
+import { CdLessonView } from './components/CdLessonView';
 import { TopNav } from './components/TopNav';
 import { LabSidebar } from './components/LabSidebar';
 import { TerminalView } from './components/TerminalView';
@@ -17,9 +19,17 @@ export const App: React.FC = () => {
   const [kernel] = useState<CentOSKernel>(() => new CentOSKernel());
   const [, setKernelVersion] = useState(0);
 
-  // View mode: 'syllabus' (Course view matching Image 2) or 'practice' (Interactive Lab & Terminal)
-  const [viewMode, setViewMode] = useState<'syllabus' | 'practice'>('syllabus');
+  // 3-Level View Mode:
+  // 'home' -> Linux Journey Grasshopper 8-card grid (matches user's LabEx screenshot)
+  // 'syllabus' -> Selected Module Overview + Interactive Lessons Stepper
+  // 'practice' -> Interactive Lesson / Split-pane CentOS 9 Terminal
+  const [viewMode, setViewMode] = useState<'home' | 'syllabus' | 'practice'>('home');
   const [forceGradingLab, setForceGradingLab] = useState<boolean>(false);
+
+  // Current active module (defaults to Command Line)
+  const [currentModule, setCurrentModule] = useState<CourseModule>(
+    () => GRASSHOPPER_MODULES.find((m) => m.id === 'command-line') || GRASSHOPPER_MODULES[0]
+  );
 
   // Theme state: dark / light
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -50,12 +60,11 @@ export const App: React.FC = () => {
     }
   }, [theme]);
 
-  // Initial completed labs: default to 1..10 to match Image 2 (53% complete, 10/19) if not previously modified
+  // Initial completed labs
   const [completedLabIds, setCompletedLabIds] = useState<number[]>(() => {
     try {
       const saved = localStorage.getItem('centos_completed_labs');
       if (saved) return JSON.parse(saved);
-      // Default to Image 2 state (first 10 completed, 11-19 pending)
       return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     } catch {
       return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -64,9 +73,10 @@ export const App: React.FC = () => {
 
   // Current active lab
   const [currentLab, setCurrentLab] = useState<LabDefinition>(() => {
-    // Pick the first incomplete lab (e.g. #11 'mv (Move)') or the first lab
-    const firstIncomplete = LABS.find((l) => ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(l.id));
-    return firstIncomplete || LABS[0];
+    const firstIncomplete = COMMAND_LINE_LABS.find(
+      (l) => ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(l.id)
+    );
+    return firstIncomplete || COMMAND_LINE_LABS[0];
   });
 
   // Modals state
@@ -92,7 +102,13 @@ export const App: React.FC = () => {
     setKernelVersion((v) => v + 1);
   }, []);
 
-  // Setup current lab when changed
+  // Level 1 -> Level 2: Select a Grasshopper module card on Home view
+  const handleSelectModule = (module: CourseModule) => {
+    setCurrentModule(module);
+    setViewMode('syllabus');
+  };
+
+  // Level 2 -> Level 3: Select a specific lesson/lab
   const handleSelectLab = (lab: LabDefinition) => {
     setCurrentLab(lab);
     setForceGradingLab(false);
@@ -101,17 +117,26 @@ export const App: React.FC = () => {
     setViewMode('practice');
   };
 
+  // Direct jump from search on Home view
+  const handleSelectLabDirectly = (module: CourseModule, lab: LabDefinition) => {
+    setCurrentModule(module);
+    handleSelectLab(lab);
+  };
+
   const handleContinueLearning = () => {
-    // Find first incomplete lab or fallback to current
-    const nextIncomplete = LABS.find((l) => !completedLabIds.includes(l.id)) || currentLab;
+    const moduleLabs = currentModule.labs;
+    const nextIncomplete =
+      moduleLabs.find((l) => !completedLabIds.includes(l.id)) || moduleLabs[0] || currentLab;
     handleSelectLab(nextIncomplete);
   };
 
   const handleResetProgress = () => {
-    if (window.confirm('Đặt lại toàn bộ tiến độ các bài học về 0/19?')) {
-      setCompletedLabIds([]);
+    if (window.confirm(`Đặt lại tiến độ các bài học của chủ đề ${currentModule.title}?`)) {
+      const moduleLabIds = new Set(currentModule.labs.map((l) => l.id));
+      const next = completedLabIds.filter((id) => !moduleLabIds.has(id));
+      setCompletedLabIds(next);
       try {
-        localStorage.setItem('centos_completed_labs', JSON.stringify([]));
+        localStorage.setItem('centos_completed_labs', JSON.stringify(next));
       } catch {
         // ignore
       }
@@ -200,6 +225,10 @@ export const App: React.FC = () => {
   }, []);
 
   const isDark = theme === 'dark';
+  const activeModuleLabs = currentModule.labs;
+  const completedInActiveModule = activeModuleLabs.filter((l) =>
+    completedLabIds.includes(l.id)
+  ).length;
 
   return (
     <div
@@ -207,14 +236,31 @@ export const App: React.FC = () => {
         isDark ? 'bg-[#0b0f19] text-slate-100' : 'bg-[#f4f6fa] text-slate-900'
       }`}
     >
-      {/* 1. SYLLABUS VIEW: Matches Image 2 */}
-      {viewMode === 'syllabus' ? (
+      {/* LEVEL 1: LINUX JOURNEY HOME VIEW (Grasshopper 8-Card Grid) */}
+      {viewMode === 'home' ? (
         <div className="h-full overflow-y-auto">
-          <CommandLineSyllabus
-            labs={LABS}
+          <LinuxJourneyHome
+            modules={GRASSHOPPER_MODULES}
             completedLabIds={completedLabIds}
             theme={theme}
             onToggleTheme={toggleTheme}
+            onSelectModule={handleSelectModule}
+            onSelectLabDirectly={handleSelectLabDirectly}
+            onOpenFileBrowser={() => setIsFileBrowserOpen(true)}
+            onOpenGuide={() => setIsGuideOpen(true)}
+            onResetVM={handleResetVM}
+          />
+        </div>
+      ) : viewMode === 'syllabus' ? (
+        /* LEVEL 2: MODULE SYLLABUS VIEW */
+        <div className="h-full overflow-y-auto">
+          <CommandLineSyllabus
+            module={currentModule}
+            labs={activeModuleLabs}
+            completedLabIds={completedLabIds}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onBackToHome={() => setViewMode('home')}
             onSelectLab={handleSelectLab}
             onContinueLearning={handleContinueLearning}
             onResetProgress={handleResetProgress}
@@ -224,14 +270,15 @@ export const App: React.FC = () => {
           />
         </div>
       ) : currentLab.id === 1 && !forceGradingLab ? (
-        /* SPECIAL INTERACTIVE LESSON VIEW FOR LESSON 1: THE SHELL (MATCHES USER PDF) */
+        /* LEVEL 3A: SPECIAL INTERACTIVE LESSON VIEW FOR LESSON 1: THE SHELL */
         <div className="h-full overflow-y-auto">
           <ShellLessonView
             theme={theme}
             onToggleTheme={toggleTheme}
+            onBackToHome={() => setViewMode('home')}
             onBackToSyllabus={() => setViewMode('syllabus')}
             onNextLesson={() => {
-              const nextLab = LABS.find((l) => l.id === 2);
+              const nextLab = activeModuleLabs.find((l) => l.id === 2);
               if (nextLab) handleSelectLab(nextLab);
             }}
             onCompleteLesson={() => {
@@ -251,14 +298,15 @@ export const App: React.FC = () => {
           />
         </div>
       ) : currentLab.id === 2 && !forceGradingLab ? (
-        /* SPECIAL INTERACTIVE LESSON VIEW FOR LESSON 2: PWD (PRINT WORKING DIRECTORY) (MATCHES USER PDF) */
+        /* LEVEL 3B: SPECIAL INTERACTIVE LESSON VIEW FOR LESSON 2: PWD */
         <div className="h-full overflow-y-auto">
           <PwdLessonView
             theme={theme}
             onToggleTheme={toggleTheme}
+            onBackToHome={() => setViewMode('home')}
             onBackToSyllabus={() => setViewMode('syllabus')}
             onNextLesson={() => {
-              const nextLab = LABS.find((l) => l.id === 3);
+              const nextLab = activeModuleLabs.find((l) => l.id === 3);
               if (nextLab) handleSelectLab(nextLab);
             }}
             onCompleteLesson={() => {
@@ -278,8 +326,37 @@ export const App: React.FC = () => {
             onOpenEditor={handleOpenEditor}
           />
         </div>
+      ) : currentLab.id === 3 && !forceGradingLab ? (
+        /* LEVEL 3C: SPECIAL INTERACTIVE LESSON VIEW FOR LESSON 3: CD (CHANGE DIRECTORY) */
+        <div className="h-full overflow-y-auto">
+          <CdLessonView
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onBackToHome={() => setViewMode('home')}
+            onBackToSyllabus={() => setViewMode('syllabus')}
+            onNextLesson={() => {
+              const nextLab = activeModuleLabs.find((l) => l.id === 4);
+              if (nextLab) handleSelectLab(nextLab);
+            }}
+            onCompleteLesson={() => {
+              if (!completedLabIds.includes(3)) {
+                const next = [...completedLabIds, 3];
+                setCompletedLabIds(next);
+                try {
+                  localStorage.setItem('centos_completed_labs', JSON.stringify(next));
+                } catch {
+                  // ignore
+                }
+              }
+            }}
+            onSwitchToPracticeMode={() => setForceGradingLab(true)}
+            kernel={kernel}
+            refreshKernel={refreshKernel}
+            onOpenEditor={handleOpenEditor}
+          />
+        </div>
       ) : (
-        /* 2. PRACTICE & TERMINAL VIEW */
+        /* LEVEL 3D: INTERACTIVE PRACTICE & SPLIT TERMINAL VIEW */
         <div className="flex flex-col h-full overflow-hidden">
           {/* Top Navbar */}
           <TopNav
@@ -289,10 +366,12 @@ export const App: React.FC = () => {
             onOpenFileBrowser={() => setIsFileBrowserOpen(true)}
             onResetVM={handleResetVM}
             onOpenGuide={() => setIsGuideOpen(true)}
-            completedCount={completedLabIds.length}
-            totalLabs={LABS.length}
+            completedCount={completedInActiveModule}
+            totalLabs={activeModuleLabs.length}
             onToggleUser={handleToggleUser}
+            onBackToHome={() => setViewMode('home')}
             onBackToSyllabus={() => setViewMode('syllabus')}
+            currentModuleTitle={currentModule.title}
             currentLabTitle={currentLab.title}
           />
 
@@ -304,7 +383,7 @@ export const App: React.FC = () => {
               className="flex-shrink-0 h-full overflow-hidden select-text"
             >
               <LabSidebar
-                labs={LABS}
+                labs={activeModuleLabs}
                 currentLab={currentLab}
                 theme={theme}
                 onSelectLab={handleSelectLab}

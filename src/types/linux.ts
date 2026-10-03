@@ -116,3 +116,22 @@ export interface LabDefinition {
   setupState: (kernel: any) => void;
   evaluate: (kernel: any) => LabCheckResult[];
 }
+
+export type GrasshopperModuleId =
+  | 'getting-started'
+  | 'command-line'
+  | 'text-fu'
+  | 'advanced-text-fu'
+  | 'user-management'
+  | 'permissions'
+  | 'processes'
+  | 'packages';
+
+export interface CourseModule {
+  id: GrasshopperModuleId;
+  title: string;
+  description: string;
+  section: string;
+  labs: LabDefinition[];
+}
+

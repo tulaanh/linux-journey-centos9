@@ -601,6 +601,10 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
       else positional.push(arg);
     }
 
+    if (positional.length > 1) {
+      return { stdout: '', stderr: 'bash: cd: too many arguments', exitCode: 1 };
+    }
+
     let target = positional[0] || (this.users.get(this.currentUser)?.home || '/root');
     let printNewDir = false;
 

@@ -1,4 +1,4 @@
-import type { LabDefinition, LabCheckResult } from '../types/linux';
+import type { LabDefinition, LabCheckResult, CourseModule } from '../types/linux';
 import { CentOSKernel } from './centosKernel';
 
 export const COMMAND_LINE_LABS: LabDefinition[] = [
@@ -198,66 +198,76 @@ export const COMMAND_LINE_LABS: LabDefinition[] = [
     title: 'cd (Change Directory)',
     category: 'Command Line',
     difficulty: 'Cơ bản',
-    estimatedTime: '5 phút',
+    estimatedTime: '6 phút',
     summary: 'Learn how to use cd with paths and shortcuts to move through the Linux filesystem.',
-    scenario: 'Lệnh cd cho phép bạn điều hướng cây thư mục. Các phím tắt quan trọng bao gồm: `cd /` (thư mục gốc), `cd ..` (lên thư mục cha), `cd ~` hoặc `cd` (về thư mục nhà), `cd -` (về thư mục trước đó).',
+    scenario: 'Lệnh cd (change directory) cho phép bạn di chuyển trong hệ thống tệp tin bằng đường dẫn tuyệt đối (`/home/pete/Pictures`), đường dẫn tương đối (`Hawaii`, `"Vacation Photos"`) và các phím tắt shell (`.`, `..`, `~`, `-`).',
     tasks: [
-      'Điều hướng đến thư mục `/etc/systemd` bằng đường dẫn tuyệt đối: `cd /etc/systemd`.',
-      'Di chuyển lên 1 cấp thư mục cha (`/etc`) bằng phím tắt: `cd ..`.',
-      'Quay trở về thư mục home của bạn bằng lệnh `cd ~` hoặc `cd`.',
+      'Điều hướng đến thư mục `/home/pete/Pictures` (hoặc `/etc/systemd`) bằng đường dẫn tuyệt đối: `cd /home/pete/Pictures`.',
+      'Di chuyển lên thư mục cha bằng phím tắt `cd ..` (hoặc `cd ../..`).',
+      'Quay trở về thư mục home bằng lệnh `cd ~` hoặc `cd` (hoặc quay lại thư mục trước đó bằng `cd -`).',
     ],
     hints: [
-      'Đường dẫn tuyệt đối luôn bắt đầu bằng dấu `/`, ví dụ `/etc/systemd`.',
-      '`..` đại diện cho thư mục cấp cha ngay trên vị trí hiện tại.',
-      '`~` là ký hiệu đại diện cho home directory của user hiện tại.',
+      'Đường dẫn tuyệt đối luôn bắt đầu bằng dấu `/`, ví dụ `cd /home/pete/Pictures`.',
+      '`..` đại diện cho thư mục cấp cha ngay trên vị trí hiện tại (`cd ..`).',
+      '`~` đại diện cho thư mục Home, và `-` đưa bạn quay lại thư mục vừa đứng trước đó (`cd -`).',
     ],
     usefulCommands: [
-      'cd /etc/systemd - Di chuyển đến thư mục chỉ định bằng đường dẫn tuyệt đối',
-      'cd .. - Lên một cấp thư mục cha',
-      'cd ~ - Trở về thư mục Home ($HOME)',
-      'cd - - Trở về thư mục làm việc trước đó',
+      'cd /home/pete/Pictures - Di chuyển bằng đường dẫn tuyệt đối',
+      'cd Hawaii - Di chuyển vào thư mục con bằng đường dẫn tương đối',
+      'cd "Vacation Photos" - Di chuyển vào thư mục có tên chứa khoảng trắng',
+      'cd .. / cd ~ / cd - - Lên thư mục cha / Về thư mục Home / Về thư mục trước đó',
     ],
     checks: [
       {
         id: 'cd-1',
-        title: 'Điều hướng đến /etc/systemd',
-        description: 'Đã thực hiện di chuyển đến thư mục /etc/systemd',
+        title: 'Điều hướng bằng đường dẫn tuyệt đối',
+        description: 'Đã di chuyển đến /home/pete/Pictures hoặc /etc/systemd',
         points: 40,
-        hint: 'Chạy: cd /etc/systemd',
+        hint: 'Chạy: cd /home/pete/Pictures',
       },
       {
         id: 'cd-2',
         title: 'Sử dụng phím tắt cd ..',
-        description: 'Đã dùng cd .. để di chuyển lên thư mục cha',
+        description: 'Đã dùng cd .. hoặc cd ../.. để di chuyển lên thư mục cha',
         points: 30,
         hint: 'Chạy: cd ..',
       },
       {
         id: 'cd-3',
-        title: 'Quay về thư mục Home',
-        description: 'Đã quay về thư mục Home (/root hoặc /home/centos)',
+        title: 'Sử dụng phím tắt cd ~, cd hoặc cd -',
+        description: 'Đã quay về thư mục Home (cd ~ / cd) hoặc thư mục trước đó (cd -)',
         points: 30,
-        hint: 'Chạy: cd ~ hoặc cd',
+        hint: 'Chạy: cd ~ hoặc cd -',
       },
     ],
     setupState: (kernel: CentOSKernel) => {
-      kernel.cwd = '/root';
+      kernel.cwd = '/home/pete';
     },
     evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
       const hist = kernel.history.map(h => h.trim().toLowerCase());
-      const toSystemd = hist.some(h => h === 'cd /etc/systemd' || h === 'cd /etc/systemd/');
+      const absMove = hist.some(
+        h =>
+          h.includes('cd /home/pete/pictures') ||
+          h.includes('cd /etc/systemd') ||
+          h.includes('cd hawaii') ||
+          h.includes('vacation photos')
+      );
       const dotDot = hist.some(h => h === 'cd ..' || h.startsWith('cd ../'));
-      const homeOk = hist.some(h => h === 'cd' || h === 'cd ~' || h === 'cd ~/');
+      const homeOrPrev = hist.some(
+        h => h === 'cd' || h === 'cd ~' || h === 'cd ~/' || h === 'cd -'
+      );
 
       return [
         {
           id: 'cd-1',
-          title: 'Điều hướng đến /etc/systemd',
-          passed: toSystemd,
-          pointsEarned: toSystemd ? 40 : 0,
+          title: 'Điều hướng bằng đường dẫn tuyệt đối',
+          passed: absMove,
+          pointsEarned: absMove ? 40 : 0,
           maxPoints: 40,
-          message: toSystemd ? 'Đã điều hướng đến /etc/systemd.' : 'Chưa điều hướng đến /etc/systemd.',
-          hint: 'Chạy: cd /etc/systemd',
+          message: absMove
+            ? 'Đã điều hướng đến thư mục đích thành công.'
+            : 'Chưa điều hướng đến /home/pete/Pictures.',
+          hint: 'Chạy: cd /home/pete/Pictures',
         },
         {
           id: 'cd-2',
@@ -270,11 +280,13 @@ export const COMMAND_LINE_LABS: LabDefinition[] = [
         },
         {
           id: 'cd-3',
-          title: 'Quay về thư mục Home',
-          passed: homeOk,
-          pointsEarned: homeOk ? 30 : 0,
+          title: 'Sử dụng phím tắt cd ~, cd hoặc cd -',
+          passed: homeOrPrev,
+          pointsEarned: homeOrPrev ? 30 : 0,
           maxPoints: 30,
-          message: homeOk ? 'Đã quay về thư mục Home.' : 'Chưa dùng cd hoặc cd ~ để về thư mục Home.',
+          message: homeOrPrev
+            ? 'Đã sử dụng phím tắt điều hướng thành công.'
+            : 'Chưa dùng cd, cd ~ hoặc cd -.',
           hint: 'Chạy: cd ~',
         },
       ];
@@ -1474,4 +1486,801 @@ export const COMMAND_LINE_LABS: LabDefinition[] = [
   },
 ];
 
+export const GETTING_STARTED_LABS: LabDefinition[] = [
+  {
+    id: 101,
+    slug: 'linux-history',
+    title: 'History of Linux',
+    category: 'Getting Started',
+    difficulty: 'Cơ bản',
+    estimatedTime: '5 phút',
+    summary: 'Explore the UNIX heritage, GNU project, and Linux kernel architecture.',
+    scenario: 'Linux ra đời năm 1991 bởi Linus Torvalds kết hợp cùng bộ công cụ GNU của Richard Stallman. Trên máy ảo CentOS Stream 9, bạn có thể kiểm tra thông tin kernel và hệ điều hành GNU/Linux trực tiếp từ terminal.',
+    tasks: [
+      'Kiểm tra tên hệ điều hành và phiên bản kernel bằng lệnh `uname -sr`.',
+      'Xem thông tin chi tiết bản phân phối trong `/etc/os-release` bằng lệnh `cat /etc/os-release`.',
+    ],
+    hints: [
+      'Gõ `uname -sr` hoặc `uname -a` để hiển thị tên kernel Linux.',
+      'Gõ `cat /etc/os-release` để xem thông tin CentOS Stream 9.',
+    ],
+    usefulCommands: [
+      'uname -a - Hiển thị toàn bộ thông tin kernel',
+      'cat /etc/os-release - Xem thông tin bản phân phối Linux',
+      'hostnamectl - Xem thông tin định danh hệ thống và OS',
+    ],
+    checks: [
+      {
+        id: 'gs-1',
+        title: 'Kiểm tra thông tin Kernel với uname',
+        description: 'Đã chạy lệnh uname để kiểm tra phiên bản nhân Linux',
+        points: 50,
+        hint: 'Chạy: uname -sr hoặc uname -a',
+      },
+      {
+        id: 'gs-2',
+        title: 'Đọc thông tin bản phân phối /etc/os-release',
+        description: 'Đã xem nội dung tệp /etc/os-release',
+        points: 50,
+        hint: 'Chạy: cat /etc/os-release',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.startsWith('uname'));
+      const p2 = hist.some((h) => h.includes('/etc/os-release') || h.includes('redhat-release'));
+      return [
+        {
+          id: 'gs-1',
+          title: 'Kiểm tra thông tin Kernel với uname',
+          passed: p1,
+          pointsEarned: p1 ? 50 : 0,
+          maxPoints: 50,
+          message: p1 ? 'Đã kiểm tra thông tin kernel thành công.' : 'Chưa chạy lệnh uname.',
+          hint: 'Chạy: uname -sr',
+        },
+        {
+          id: 'gs-2',
+          title: 'Đọc thông tin bản phân phối /etc/os-release',
+          passed: p2,
+          pointsEarned: p2 ? 50 : 0,
+          maxPoints: 50,
+          message: p2 ? 'Đã đọc thông tin bản phân phối.' : 'Chưa đọc /etc/os-release.',
+          hint: 'Chạy: cat /etc/os-release',
+        },
+      ];
+    },
+  },
+  {
+    id: 102,
+    slug: 'choosing-distribution',
+    title: 'Choosing a Linux Distribution',
+    category: 'Getting Started',
+    difficulty: 'Cơ bản',
+    estimatedTime: '5 phút',
+    summary: 'Understand major Linux families: Debian/Ubuntu, RHEL/CentOS/Fedora, and SUSE.',
+    scenario: 'CentOS Stream 9 thuộc nhánh Red Hat Enterprise Linux (RHEL), đóng vai trò upstream cho các bản phát hành RHEL minor tiếp theo. Hãy kiểm tra tệp định danh nhánh Red Hat và thông tin hostname của máy chủ.',
+    tasks: [
+      'Đọc tệp `/etc/redhat-release` bằng lệnh `cat /etc/redhat-release`.',
+      'Kiểm tra hostname và kiến trúc phần cứng bằng lệnh `hostname` hoặc `uname -m`.',
+    ],
+    hints: [
+      'Chạy `cat /etc/redhat-release` để xác minh dòng RHEL/CentOS.',
+      'Chạy `uname -m` hoặc `hostname` để xem kiến trúc hệ thống.',
+    ],
+    usefulCommands: [
+      'cat /etc/redhat-release - Xem phiên bản dòng Red Hat / CentOS',
+      'uname -m - Xem kiến trúc phần cứng (x86_64)',
+      'hostname - Xem tên máy chủ hiện tại',
+    ],
+    checks: [
+      {
+        id: 'gs-distro-1',
+        title: 'Kiểm tra /etc/redhat-release',
+        description: 'Đã đọc tệp /etc/redhat-release',
+        points: 50,
+        hint: 'Chạy: cat /etc/redhat-release',
+      },
+      {
+        id: 'gs-distro-2',
+        title: 'Kiểm tra kiến trúc hoặc hostname',
+        description: 'Đã chạy uname -m hoặc hostname',
+        points: 50,
+        hint: 'Chạy: uname -m',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('redhat-release') || h.includes('os-release'));
+      const p2 = hist.some((h) => h.includes('uname') || h.includes('hostname') || h.includes('arch'));
+      return [
+        {
+          id: 'gs-distro-1',
+          title: 'Kiểm tra /etc/redhat-release',
+          passed: p1,
+          pointsEarned: p1 ? 50 : 0,
+          maxPoints: 50,
+          message: p1 ? 'Đã kiểm tra thông tin nhánh Red Hat.' : 'Chưa xem /etc/redhat-release.',
+          hint: 'Chạy: cat /etc/redhat-release',
+        },
+        {
+          id: 'gs-distro-2',
+          title: 'Kiểm tra kiến trúc hoặc hostname',
+          passed: p2,
+          pointsEarned: p2 ? 50 : 0,
+          maxPoints: 50,
+          message: p2 ? 'Đã kiểm tra hostname/kiến trúc.' : 'Chưa chạy uname -m hoặc hostname.',
+          hint: 'Chạy: uname -m',
+        },
+      ];
+    },
+  },
+];
+
+export const TEXT_FU_LABS: LabDefinition[] = [
+  {
+    id: 201,
+    slug: 'stdout-redirect',
+    title: 'stdout (Standard Output)',
+    category: 'Text-Fu',
+    difficulty: 'Cơ bản',
+    estimatedTime: '6 phút',
+    summary: 'Redirect standard output to files using > and >> operators.',
+    scenario: 'Trong Linux, mọi tiến trình đều sử dụng các luồng I/O chuẩn. Toán tử `>` ghi đè kết quả ra tệp mới, còn `>>` nối thêm (append) vào cuối tệp hiện có.',
+    tasks: [
+      'Ghi chuỗi `"Hello Peanut"` vào tệp `/tmp/hello.txt` bằng lệnh `echo "Hello Peanut" > /tmp/hello.txt`.',
+      'Nối thêm dòng `"Linux Text-Fu"` vào cuối tệp `/tmp/hello.txt` bằng toán tử `>>`.',
+    ],
+    hints: [
+      'Chạy: `echo "Hello Peanut" > /tmp/hello.txt`',
+      'Chạy: `echo "Linux Text-Fu" >> /tmp/hello.txt`',
+    ],
+    usefulCommands: [
+      'echo "text" > file - Ghi đè nội dung vào tệp',
+      'echo "text" >> file - Nối thêm nội dung vào cuối tệp',
+      'cat /tmp/hello.txt - Kiểm tra nội dung tệp vừa ghi',
+    ],
+    checks: [
+      {
+        id: 'tf-1',
+        title: 'Tạo tệp /tmp/hello.txt bằng chuyển hướng >',
+        description: 'Tệp /tmp/hello.txt tồn tại và có nội dung',
+        points: 50,
+        hint: 'Chạy: echo "Hello Peanut" > /tmp/hello.txt',
+      },
+      {
+        id: 'tf-2',
+        title: 'Nối thêm dòng bằng >>',
+        description: 'Tệp /tmp/hello.txt chứa từ khóa Linux hoặc có từ 2 dòng trở lên',
+        points: 50,
+        hint: 'Chạy: echo "Linux Text-Fu" >> /tmp/hello.txt',
+      },
+    ],
+    setupState: (kernel: CentOSKernel) => {
+      kernel.vfs.unlink('/tmp/hello.txt');
+    },
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const content = kernel.vfs.readFile('/tmp/hello.txt');
+      const exists = content !== null;
+      const lines = (content || '').trim().split('\n').filter(Boolean);
+      const p1 = exists && lines.length >= 1;
+      const p2 = exists && lines.length >= 2;
+      return [
+        {
+          id: 'tf-1',
+          title: 'Tạo tệp /tmp/hello.txt bằng chuyển hướng >',
+          passed: p1,
+          pointsEarned: p1 ? 50 : 0,
+          maxPoints: 50,
+          message: p1 ? 'Đã tạo tệp /tmp/hello.txt thành công.' : 'Chưa tạo /tmp/hello.txt.',
+          hint: 'Chạy: echo "Hello Peanut" > /tmp/hello.txt',
+        },
+        {
+          id: 'tf-2',
+          title: 'Nối thêm dòng bằng >>',
+          passed: p2,
+          pointsEarned: p2 ? 50 : 0,
+          maxPoints: 50,
+          message: p2 ? 'Đã nối thêm dòng thứ 2 vào tệp.' : 'Tệp chưa có dòng thứ 2.',
+          hint: 'Chạy: echo "Linux Text-Fu" >> /tmp/hello.txt',
+        },
+      ];
+    },
+  },
+  {
+    id: 202,
+    slug: 'pipe-tee',
+    title: 'pipe and tee',
+    category: 'Text-Fu',
+    difficulty: 'Cơ bản',
+    estimatedTime: '6 phút',
+    summary: 'Chain commands together with pipes (|) and split output streams.',
+    scenario: 'Toán tử đường ống `|` (pipe) cho phép lấy đầu ra (stdout) của lệnh bên trái làm đầu vào (stdin) cho lệnh bên phải.',
+    tasks: [
+      'Kết hợp `ls /etc` và `head` qua pipe: `ls /etc | head -n 5`.',
+      'Đếm số lượng dòng trong `/etc/passwd` bằng pipe: `cat /etc/passwd | wc -l`.',
+    ],
+    hints: [
+      'Gõ `ls /etc | head -n 5` để xem 5 mục đầu tiên trong `/etc`.',
+      'Gõ `cat /etc/passwd | wc -l` để đếm tổng số dòng.',
+    ],
+    usefulCommands: [
+      'cmd1 | cmd2 - Chuyển kết quả của cmd1 sang cmd2',
+      'wc -l - Đếm số dòng',
+      'head -n 5 - Lấy 5 dòng đầu tiên',
+    ],
+    checks: [
+      {
+        id: 'pipe-1',
+        title: 'Sử dụng pipe với head',
+        description: 'Đã thực thi lệnh kết hợp | head',
+        points: 50,
+        hint: 'Chạy: ls /etc | head -n 5',
+      },
+      {
+        id: 'pipe-2',
+        title: 'Sử dụng pipe với wc -l',
+        description: 'Đã thực thi lệnh kết hợp | wc',
+        points: 50,
+        hint: 'Chạy: cat /etc/passwd | wc -l',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('|') && h.includes('head'));
+      const p2 = hist.some((h) => h.includes('|') && h.includes('wc'));
+      return [
+        {
+          id: 'pipe-1',
+          title: 'Sử dụng pipe với head',
+          passed: p1,
+          pointsEarned: p1 ? 50 : 0,
+          maxPoints: 50,
+          message: p1 ? 'Đã kết hợp pipe với head.' : 'Chưa chạy lệnh có | head.',
+          hint: 'Chạy: ls /etc | head -n 5',
+        },
+        {
+          id: 'pipe-2',
+          title: 'Sử dụng pipe với wc -l',
+          passed: p2,
+          pointsEarned: p2 ? 50 : 0,
+          maxPoints: 50,
+          message: p2 ? 'Đã kết hợp pipe với wc.' : 'Chưa chạy lệnh có | wc.',
+          hint: 'Chạy: cat /etc/passwd | wc -l',
+        },
+      ];
+    },
+  },
+  {
+    id: 203,
+    slug: 'grep-search',
+    title: 'grep',
+    category: 'Text-Fu',
+    difficulty: 'Cơ bản',
+    estimatedTime: '6 phút',
+    summary: 'Search files for lines matching specific text patterns with grep.',
+    scenario: '`grep` (Global Regular Expression Print) là công cụ tìm kiếm chuỗi văn bản phổ biến nhất trên Linux.',
+    tasks: [
+      'Tìm dòng chứa thông tin user `root` trong `/etc/passwd` bằng lệnh `grep root /etc/passwd`.',
+      'Tìm kiếm không phân biệt chữ hoa/thường với cờ `-i`: `grep -i centos /etc/os-release`.',
+    ],
+    hints: [
+      'Chạy `grep root /etc/passwd`.',
+      'Chạy `grep -i centos /etc/os-release`.',
+    ],
+    usefulCommands: [
+      'grep pattern file - Tìm dòng khớp mẫu trong tệp',
+      'grep -i pattern file - Tìm kiếm không phân biệt hoa thường',
+      'grep -n pattern file - Hiển thị kèm số thứ tự dòng',
+    ],
+    checks: [
+      {
+        id: 'grep-1',
+        title: 'Tìm user root trong /etc/passwd',
+        description: 'Đã chạy grep root /etc/passwd',
+        points: 50,
+        hint: 'Chạy: grep root /etc/passwd',
+      },
+      {
+        id: 'grep-2',
+        title: 'Tìm kiếm với grep -i trong /etc/os-release',
+        description: 'Đã chạy grep trên /etc/os-release',
+        points: 50,
+        hint: 'Chạy: grep -i centos /etc/os-release',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('grep') && h.includes('/etc/passwd'));
+      const p2 = hist.some((h) => h.includes('grep') && h.includes('os-release'));
+      return [
+        {
+          id: 'grep-1',
+          title: 'Tìm user root trong /etc/passwd',
+          passed: p1,
+          pointsEarned: p1 ? 50 : 0,
+          maxPoints: 50,
+          message: p1 ? 'Đã tìm kiếm trong /etc/passwd thành công.' : 'Chưa chạy grep trên /etc/passwd.',
+          hint: 'Chạy: grep root /etc/passwd',
+        },
+        {
+          id: 'grep-2',
+          title: 'Tìm kiếm với grep -i trong /etc/os-release',
+          passed: p2,
+          pointsEarned: p2 ? 50 : 0,
+          maxPoints: 50,
+          message: p2 ? 'Đã tìm kiếm trong /etc/os-release thành công.' : 'Chưa chạy grep trên /etc/os-release.',
+          hint: 'Chạy: grep -i centos /etc/os-release',
+        },
+      ];
+    },
+  },
+];
+
+export const ADVANCED_TEXT_FU_LABS: LabDefinition[] = [
+  {
+    id: 301,
+    slug: 'vim-editor',
+    title: 'Vim Text Editor',
+    category: 'Advanced Text-Fu',
+    difficulty: 'Trung bình',
+    estimatedTime: '8 phút',
+    summary: 'Master modal text editing, saving, and navigation in Vim/Nano.',
+    scenario: 'Trình soạn thảo văn bản trực tiếp trên terminal giúp quản trị viên chỉnh sửa tệp cấu hình nhanh chóng. Bạn có thể mở trình soạn thảo bằng `vim` hoặc `nano` và lưu thay đổi.',
+    tasks: [
+      'Mở trình soạn thảo tạo tệp `/tmp/notes.txt` bằng lệnh `vim /tmp/notes.txt` (hoặc `nano /tmp/notes.txt`) và lưu nội dung bất kỳ.',
+      'Kiểm tra lại nội dung tệp `/tmp/notes.txt` bằng lệnh `cat /tmp/notes.txt`.',
+    ],
+    hints: [
+      'Gõ `vim /tmp/notes.txt` trên terminal để mở cửa sổ soạn thảo, nhập nội dung rồi bấm Lưu.',
+      'Gõ `cat /tmp/notes.txt` để xác nhận nội dung.',
+    ],
+    usefulCommands: [
+      'vim <file> - Mở tệp trong trình soạn thảo Vim',
+      'nano <file> - Mở tệp trong trình soạn thảo Nano',
+      'cat <file> - Xem nội dung tệp sau khi lưu',
+    ],
+    checks: [
+      {
+        id: 'adv-1',
+        title: 'Tạo và lưu tệp /tmp/notes.txt',
+        description: 'Tệp /tmp/notes.txt tồn tại và có nội dung',
+        points: 100,
+        hint: 'Chạy vim /tmp/notes.txt, nhập văn bản và nhấn Lưu',
+      },
+    ],
+    setupState: (kernel: CentOSKernel) => {
+      kernel.vfs.unlink('/tmp/notes.txt');
+    },
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const content = kernel.vfs.readFile('/tmp/notes.txt');
+      const p1 = content !== null && content.trim().length > 0;
+      return [
+        {
+          id: 'adv-1',
+          title: 'Tạo và lưu tệp /tmp/notes.txt',
+          passed: p1,
+          pointsEarned: p1 ? 100 : 0,
+          maxPoints: 100,
+          message: p1 ? 'Đã tạo và lưu nội dung vào /tmp/notes.txt.' : 'Tệp /tmp/notes.txt chưa tồn tại hoặc đang trống.',
+          hint: 'Chạy: vim /tmp/notes.txt',
+        },
+      ];
+    },
+  },
+  {
+    id: 302,
+    slug: 'sed-awk-manipulation',
+    title: 'Regular Expressions & Stream Filtering',
+    category: 'Advanced Text-Fu',
+    difficulty: 'Trung bình',
+    estimatedTime: '8 phút',
+    summary: 'Filter and transform structured text files using sort, uniq, and cut.',
+    scenario: 'Khi xử lý dữ liệu cấu trúc như `/etc/passwd`, bạn có thể trích xuất cột tên người dùng và sắp xếp theo thứ tự bảng chữ cái.',
+    tasks: [
+      'Trích xuất cột đầu tiên (username) từ `/etc/passwd` bằng lệnh `cut -d: -f1 /etc/passwd`.',
+      'Kết hợp sắp xếp danh sách người dùng bằng `cut -d: -f1 /etc/passwd | sort`.',
+    ],
+    hints: [
+      'Chạy `cut -d: -f1 /etc/passwd`',
+      'Chạy `cut -d: -f1 /etc/passwd | sort`',
+    ],
+    usefulCommands: [
+      'cut -d: -f1 /etc/passwd - Cắt trường số 1 phân cách bởi dấu hai chấm',
+      'sort - Sắp xếp các dòng theo thứ tự ABC',
+      'uniq - Loại bỏ các dòng trùng lặp liên tiếp',
+    ],
+    checks: [
+      {
+        id: 'adv-cut',
+        title: 'Sử dụng cut trích xuất cột từ /etc/passwd',
+        description: 'Đã chạy lệnh cut trên /etc/passwd',
+        points: 50,
+        hint: 'Chạy: cut -d: -f1 /etc/passwd',
+      },
+      {
+        id: 'adv-sort',
+        title: 'Kết hợp sort để sắp xếp kết quả',
+        description: 'Đã sử dụng lệnh sort',
+        points: 50,
+        hint: 'Chạy: cut -d: -f1 /etc/passwd | sort',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('cut') && h.includes('/etc/passwd'));
+      const p2 = hist.some((h) => h.includes('sort'));
+      return [
+        {
+          id: 'adv-cut',
+          title: 'Sử dụng cut trích xuất cột từ /etc/passwd',
+          passed: p1,
+          pointsEarned: p1 ? 50 : 0,
+          maxPoints: 50,
+          message: p1 ? 'Đã trích xuất cột thành công.' : 'Chưa chạy lệnh cut trên /etc/passwd.',
+          hint: 'Chạy: cut -d: -f1 /etc/passwd',
+        },
+        {
+          id: 'adv-sort',
+          title: 'Kết hợp sort để sắp xếp kết quả',
+          passed: p2,
+          pointsEarned: p2 ? 50 : 0,
+          maxPoints: 50,
+          message: p2 ? 'Đã sắp xếp dữ liệu với sort.' : 'Chưa chạy lệnh sort.',
+          hint: 'Chạy: cut -d: -f1 /etc/passwd | sort',
+        },
+      ];
+    },
+  },
+];
+
+export const USER_MANAGEMENT_LABS: LabDefinition[] = [
+  {
+    id: 401,
+    slug: 'users-and-groups',
+    title: 'Users and /etc/passwd',
+    category: 'User Management',
+    difficulty: 'Cơ bản',
+    estimatedTime: '6 phút',
+    summary: 'Inspect user identities, UID/GID mappings, and /etc/passwd structure.',
+    scenario: 'Linux quản lý người dùng thông qua UID (User ID) và GID (Group ID). Bạn có thể kiểm tra định danh hiện tại bằng `id` và tạo tài khoản mới bằng `useradd`.',
+    tasks: [
+      'Kiểm tra UID và GID của tài khoản hiện tại bằng lệnh `id`.',
+      'Tạo một người dùng mới tên là `alice` bằng lệnh `useradd alice`.',
+    ],
+    hints: [
+      'Gõ `id` để xem UID/GID.',
+      'Gõ `useradd alice` (với quyền root hoặc sudo) để thêm user `alice`.',
+    ],
+    usefulCommands: [
+      'id - Hiển thị UID, GID và các nhóm của người dùng',
+      'useradd <username> - Tạo tài khoản người dùng mới',
+      'cat /etc/passwd - Xem danh sách tài khoản trên hệ thống',
+    ],
+    checks: [
+      {
+        id: 'um-1',
+        title: 'Kiểm tra định danh bằng lệnh id',
+        description: 'Đã chạy lệnh id',
+        points: 40,
+        hint: 'Chạy: id',
+      },
+      {
+        id: 'um-2',
+        title: 'Tạo người dùng alice',
+        description: 'Người dùng alice tồn tại trong hệ thống',
+        points: 60,
+        hint: 'Chạy: useradd alice',
+      },
+    ],
+    setupState: (kernel: CentOSKernel) => {
+      kernel.users.delete('alice');
+    },
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h === 'id' || h.startsWith('id '));
+      const p2 = kernel.users.has('alice');
+      return [
+        {
+          id: 'um-1',
+          title: 'Kiểm tra định danh bằng lệnh id',
+          passed: p1,
+          pointsEarned: p1 ? 40 : 0,
+          maxPoints: 40,
+          message: p1 ? 'Đã kiểm tra UID/GID bằng lệnh id.' : 'Chưa chạy lệnh id.',
+          hint: 'Chạy: id',
+        },
+        {
+          id: 'um-2',
+          title: 'Tạo người dùng alice',
+          passed: p2,
+          pointsEarned: p2 ? 60 : 0,
+          maxPoints: 60,
+          message: p2 ? 'Đã tạo người dùng alice thành công.' : 'Người dùng alice chưa được tạo.',
+          hint: 'Chạy: useradd alice',
+        },
+      ];
+    },
+  },
+];
+
+export const PERMISSIONS_LABS: LabDefinition[] = [
+  {
+    id: 501,
+    slug: 'file-permissions-chmod',
+    title: 'Modifying Permissions (chmod & chown)',
+    category: 'Permissions',
+    difficulty: 'Trung bình',
+    estimatedTime: '8 phút',
+    summary: 'Understand read, write, and execute bits (rwx) and modify them with chmod.',
+    scenario: 'Mỗi tệp trong Linux có 3 nhóm quyền: Owner (u), Group (g), và Others (o). Chế độ số bát phân `755` tương ứng với `rwxr-xr-x`.',
+    tasks: [
+      'Tạo tệp `/tmp/deploy.sh` bằng lệnh `touch /tmp/deploy.sh`.',
+      'Cấp quyền thực thi `755` (`rwxr-xr-x`) cho `/tmp/deploy.sh` bằng lệnh `chmod 755 /tmp/deploy.sh`.',
+    ],
+    hints: [
+      'Chạy `touch /tmp/deploy.sh`',
+      'Chạy `chmod 755 /tmp/deploy.sh` rồi kiểm tra bằng `ls -l /tmp/deploy.sh`',
+    ],
+    usefulCommands: [
+      'ls -l <file> - Xem quyền hạn hiện tại của tệp',
+      'chmod 755 <file> - Đặt quyền rwxr-xr-x cho tệp',
+      'chown user:group <file> - Thay đổi chủ sở hữu tệp',
+    ],
+    checks: [
+      {
+        id: 'perm-1',
+        title: 'Tạo tệp /tmp/deploy.sh',
+        description: 'Tệp /tmp/deploy.sh tồn tại',
+        points: 40,
+        hint: 'Chạy: touch /tmp/deploy.sh',
+      },
+      {
+        id: 'perm-2',
+        title: 'Đặt quyền 755 cho /tmp/deploy.sh',
+        description: 'Mode của /tmp/deploy.sh là 0o755',
+        points: 60,
+        hint: 'Chạy: chmod 755 /tmp/deploy.sh',
+      },
+    ],
+    setupState: (kernel: CentOSKernel) => {
+      kernel.vfs.unlink('/tmp/deploy.sh');
+    },
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const node = kernel.vfs.getNode('/tmp/deploy.sh');
+      const p1 = node !== null;
+      const p2 = node !== null && node.mode === 0o755;
+      return [
+        {
+          id: 'perm-1',
+          title: 'Tạo tệp /tmp/deploy.sh',
+          passed: p1,
+          pointsEarned: p1 ? 40 : 0,
+          maxPoints: 40,
+          message: p1 ? 'Tệp /tmp/deploy.sh đã được tạo.' : 'Chưa tạo /tmp/deploy.sh.',
+          hint: 'Chạy: touch /tmp/deploy.sh',
+        },
+        {
+          id: 'perm-2',
+          title: 'Đặt quyền 755 cho /tmp/deploy.sh',
+          passed: p2,
+          pointsEarned: p2 ? 60 : 0,
+          maxPoints: 60,
+          message: p2 ? 'Đã cấp quyền 755 (rwxr-xr-x) chính xác.' : 'Quyền của tệp chưa phải là 755.',
+          hint: 'Chạy: chmod 755 /tmp/deploy.sh',
+        },
+      ];
+    },
+  },
+];
+
+export const PROCESSES_LABS: LabDefinition[] = [
+  {
+    id: 601,
+    slug: 'ps-and-kill',
+    title: 'Tracking & Terminating Processes (ps, kill)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '7 phút',
+    summary: 'Monitor running processes with ps aux and manage signals using kill.',
+    scenario: 'Mỗi chương trình đang chạy trên Linux là một tiến trình có PID riêng. Bạn có thể liệt kê toàn bộ tiến trình bằng `ps aux` và kiểm tra tài nguyên bằng `free -h` hoặc `uptime`.',
+    tasks: [
+      'Liệt kê toàn bộ tiến trình đang chạy trên hệ thống bằng lệnh `ps aux`.',
+      'Kiểm tra thời gian hoạt động và tải hệ thống bằng lệnh `uptime`.',
+    ],
+    hints: [
+      'Chạy `ps aux` để xem danh sách PID, USER, COMMAND.',
+      'Chạy `uptime` để xem thời gian máy chủ đã chạy.',
+    ],
+    usefulCommands: [
+      'ps aux - Liệt kê tất cả tiến trình đang chạy',
+      'kill <PID> - Gửi tín hiệu dừng tiến trình theo PID',
+      'uptime - Xem thời gian hoạt động và load average',
+    ],
+    checks: [
+      {
+        id: 'proc-1',
+        title: 'Liệt kê tiến trình với ps aux',
+        description: 'Đã chạy lệnh ps aux',
+        points: 50,
+        hint: 'Chạy: ps aux',
+      },
+      {
+        id: 'proc-2',
+        title: 'Kiểm tra tải hệ thống với uptime',
+        description: 'Đã chạy lệnh uptime',
+        points: 50,
+        hint: 'Chạy: uptime',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.startsWith('ps'));
+      const p2 = hist.some((h) => h.startsWith('uptime') || h.startsWith('top') || h.startsWith('free'));
+      return [
+        {
+          id: 'proc-1',
+          title: 'Liệt kê tiến trình với ps aux',
+          passed: p1,
+          pointsEarned: p1 ? 50 : 0,
+          maxPoints: 50,
+          message: p1 ? 'Đã liệt kê danh sách tiến trình.' : 'Chưa chạy lệnh ps aux.',
+          hint: 'Chạy: ps aux',
+        },
+        {
+          id: 'proc-2',
+          title: 'Kiểm tra tải hệ thống với uptime',
+          passed: p2,
+          pointsEarned: p2 ? 50 : 0,
+          maxPoints: 50,
+          message: p2 ? 'Đã kiểm tra trạng thái hệ thống.' : 'Chưa chạy lệnh uptime.',
+          hint: 'Chạy: uptime',
+        },
+      ];
+    },
+  },
+];
+
+export const PACKAGES_LABS: LabDefinition[] = [
+  {
+    id: 701,
+    slug: 'yum-dnf-package-management',
+    title: 'Package Management with DNF / YUM & RPM',
+    category: 'Packages',
+    difficulty: 'Trung bình',
+    estimatedTime: '8 phút',
+    summary: 'Search, inspect, and install software packages on CentOS Stream 9 using dnf/yum.',
+    scenario: 'Trên CentOS Stream 9 / RHEL 9, `dnf` ( và `yum`) cùng `rpm` được sử dụng để quản lý các gói phần mềm. Hãy cài đặt gói máy chủ web `nginx` hoặc công cụ `htop`.',
+    tasks: [
+      'Kiểm tra danh sách các gói đã cài đặt bằng lệnh `dnf list installed` (hoặc `rpm -qa`).',
+      'Cài đặt gói `nginx` bằng lệnh `dnf install -y nginx` (hoặc `yum install -y nginx`).',
+    ],
+    hints: [
+      'Gõ `dnf list installed` hoặc `rpm -qa`.',
+      'Gõ `dnf install -y nginx` để cài đặt gói nginx.',
+    ],
+    usefulCommands: [
+      'dnf list installed - Xem các gói đã cài đặt',
+      'dnf install -y <pkg> - Cài đặt gói phần mềm mới',
+      'rpm -qa - Truy vấn tất cả gói RPM trên hệ thống',
+    ],
+    checks: [
+      {
+        id: 'pkg-1',
+        title: 'Truy vấn danh sách gói đã cài đặt',
+        description: 'Đã chạy dnf list installed hoặc rpm -qa',
+        points: 40,
+        hint: 'Chạy: dnf list installed',
+      },
+      {
+        id: 'pkg-2',
+        title: 'Cài đặt gói phần mềm nginx',
+        description: 'Gói nginx đã được đánh dấu installed trong hệ thống',
+        points: 60,
+        hint: 'Chạy: dnf install -y nginx',
+      },
+    ],
+    setupState: (kernel: CentOSKernel) => {
+      const nginxPkg = kernel.packages.get('nginx');
+      if (nginxPkg) nginxPkg.installed = false;
+    },
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some(
+        (h) => h.includes('dnf list') || h.includes('yum list') || h.includes('rpm -q')
+      );
+      const nginxPkg = kernel.packages.get('nginx');
+      const p2 = Boolean(nginxPkg?.installed);
+      return [
+        {
+          id: 'pkg-1',
+          title: 'Truy vấn danh sách gói đã cài đặt',
+          passed: p1,
+          pointsEarned: p1 ? 40 : 0,
+          maxPoints: 40,
+          message: p1 ? 'Đã kiểm tra danh sách gói.' : 'Chưa chạy dnf list installed hoặc rpm -qa.',
+          hint: 'Chạy: dnf list installed',
+        },
+        {
+          id: 'pkg-2',
+          title: 'Cài đặt gói phần mềm nginx',
+          passed: p2,
+          pointsEarned: p2 ? 60 : 0,
+          maxPoints: 60,
+          message: p2 ? 'Đã cài đặt gói nginx thành công.' : 'Gói nginx chưa được cài đặt.',
+          hint: 'Chạy: dnf install -y nginx',
+        },
+      ];
+    },
+  },
+];
+
+export const GRASSHOPPER_MODULES: CourseModule[] = [
+  {
+    id: 'getting-started',
+    title: 'Getting Started',
+    description: 'What is Linux? Get started with choosing a distribution and installation.',
+    section: 'Grasshopper',
+    labs: GETTING_STARTED_LABS,
+  },
+  {
+    id: 'command-line',
+    title: 'Command Line',
+    description: 'Learn the fundamentals of the command line, navigating files, directories, and more.',
+    section: 'Grasshopper',
+    labs: COMMAND_LINE_LABS,
+  },
+  {
+    id: 'text-fu',
+    title: 'Text-Fu',
+    description: 'Learn basic text manipulation and navigation.',
+    section: 'Grasshopper',
+    labs: TEXT_FU_LABS,
+  },
+  {
+    id: 'advanced-text-fu',
+    title: 'Advanced Text-Fu',
+    description: 'Navigate text like a Linux spider monkey with Vim and Emacs.',
+    section: 'Grasshopper',
+    labs: ADVANCED_TEXT_FU_LABS,
+  },
+  {
+    id: 'user-management',
+    title: 'User Management',
+    description: 'Learn about user roles and management.',
+    section: 'Grasshopper',
+    labs: USER_MANAGEMENT_LABS,
+  },
+  {
+    id: 'permissions',
+    title: 'Permissions',
+    description: 'Learn about permission levels and modifying permissions.',
+    section: 'Grasshopper',
+    labs: PERMISSIONS_LABS,
+  },
+  {
+    id: 'processes',
+    title: 'Processes',
+    description: 'Learn about the running processes on the system.',
+    section: 'Grasshopper',
+    labs: PROCESSES_LABS,
+  },
+  {
+    id: 'packages',
+    title: 'Packages',
+    description: 'Learn all about the dpkg, apt-get, rpm, and yum package management tools.',
+    section: 'Grasshopper',
+    labs: PACKAGES_LABS,
+  },
+];
+
+export const ALL_LABS: LabDefinition[] = GRASSHOPPER_MODULES.flatMap((m) => m.labs);
+
 export const LABS: LabDefinition[] = COMMAND_LINE_LABS;
+
