@@ -1,0 +1,363 @@
+{
+  "id": 3,
+  "slug": "cd",
+  "category": "Command Line",
+  "lessonNumber": 3,
+  "title": "cd (Đổi thư mục làm việc)",
+  "subtitle": "Học cách sử dụng lệnh cd cùng với đường dẫn và các phím tắt để di chuyển linh hoạt trong hệ thống tệp tin Linux.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Cú pháp lệnh cd & Hiểu về đường dẫn",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Để di chuyển qua lại giữa các vị trí trong hệ thống tệp tin Linux, bạn sử dụng đường dẫn để chỉ định điểm đến. Công cụ chính để thực hiện điều này là lệnh `cd` (change directory) nhằm thay đổi thư mục làm việc hiện tại của shell."
+        },
+        {
+          "type": "paragraph",
+          "text": "Điểm đến bắt buộc phải là một thư mục, không thể là một tệp tin thông thường. Nếu thư mục không tồn tại, gõ sai tên hoặc bạn không có quyền truy cập, lệnh `cd` sẽ báo lỗi và giữ nguyên vị trí hiện tại."
+        },
+        {
+          "type": "paragraph",
+          "text": "Cú pháp cơ bản:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "cd [DIRECTORY]"
+          }
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Phân loại đường dẫn di chuyển"
+        },
+        {
+          "type": "paragraph",
+          "text": "Có hai cách để chỉ định đường dẫn khi chuyển thư mục:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Đường dẫn tuyệt đối (Absolute path): Toàn bộ đường dẫn bắt đầu từ thư mục gốc (`/`). Ví dụ: `/home/pete/Desktop`.",
+            "Đường dẫn tương đối (Relative path): Đường dẫn dựa trên vị trí hiện tại của bạn. Nếu bạn đang ở `/home/pete/Documents` và muốn truy cập thư mục con `taxes`, bạn có thể dùng `taxes/`."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "q1",
+        "question": "Phát biểu nào sau đây mô tả chính xác về đường dẫn tuyệt đối?",
+        "options": [
+          { "text": "Bắt đầu từ bất kỳ thư mục nào shell đang đứng." },
+          { "text": "Chỉ chứa tên thư mục con cuối cùng mà không có thư mục cha." },
+          { "text": "Luôn bắt đầu từ thư mục gốc, được ký hiệu bằng dấu gạch chéo `/`." }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Đường dẫn tuyệt đối luôn bắt đầu từ thư mục gốc bằng dấu gạch chéo `/`."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Sử dụng câu lệnh cd với đường dẫn tuyệt đối",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Để di chuyển đến một thư mục xác định bằng đường dẫn tuyệt đối, bạn gõ:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cd /home/pete/Pictures",
+            "runnableCommand": "cd /home/pete/Pictures"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Lệnh này sẽ đưa bạn trực tiếp vào thư mục `Pictures`. Bạn có thể xác nhận vị trí hiện tại bằng lệnh `pwd`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ pwd\n/home/pete/Pictures",
+            "runnableCommand": "cd /home/pete/Pictures\npwd"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "q2",
+        "question": "Câu lệnh nào giúp xác nhận vị trí hiện tại của shell sau khi dùng lệnh `cd`?",
+        "options": [
+          { "text": "cd", "isCode": true },
+          { "text": "ls", "isCode": true },
+          { "text": "pwd", "isCode": true }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh `pwd` in ra thư mục làm việc hiện tại mà không làm thay đổi vị trí đứng."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Di chuyển vào thư mục con & Các phím tắt tiện ích",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu bạn đã ở sẵn trong một thư mục và muốn vào thư mục con bên trong, bạn chỉ cần dùng đường dẫn tương đối. Ví dụ bạn đang ở `/home/pete/Pictures` và bên trong có thư mục `Hawaii`, bạn chỉ cần gõ:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cd Hawaii",
+            "runnableCommand": "cd /home/pete/Pictures\ncd Hawaii\npwd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn chỉ cần gõ trực tiếp tên thư mục vì bạn đã đứng sẵn bên trong thư mục cha `/home/pete/Pictures`."
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Các phím tắt điều hướng nhanh"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nhập đường dẫn đầy đủ có thể rất dài và bất tiện. Shell cung cấp sẵn các phím tắt giúp việc di chuyển nhanh chóng hơn rất nhiều:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`.` (thư mục hiện tại): Đại diện cho chính thư mục bạn đang đứng.",
+            "`..` (thư mục cha): Lùi lên một cấp thư mục chứa thư mục hiện tại.",
+            "`~` (thư mục home): Lối tắt trỏ về thư mục cá nhân của người dùng hiện tại (như `/home/pete`).",
+            "`-` (thư mục trước đó): Quay trở lại thư mục bạn vừa đứng ngay trước đó."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể kết hợp các phím tắt này với `cd`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cd .\n$ cd ..\n$ cd ~\n$ cd -",
+            "runnableCommand": "cd /home/pete/Pictures\ncd .\ncd ..\npwd\ncd -"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "q3",
+        "question": "Từ thư mục `/home/pete/Pictures`, câu lệnh nào sẽ đưa bạn về `/home/pete`?",
+        "options": [
+          { "text": "cd .", "isCode": true },
+          { "text": "cd -", "isCode": true },
+          { "text": "cd ..", "isCode": true }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! `cd ..` giúp lùi lên một cấp tới thư mục cha."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "q4",
+        "question": "Câu lệnh nào đưa bạn quay trở lại thư mục làm việc ngay trước đó?",
+        "options": [
+          { "text": "cd -", "isCode": true },
+          { "text": "cd ..", "isCode": true },
+          { "text": "cd ~", "isCode": true }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `cd -` đưa bạn trở về thư mục làm việc trước đó (lưu trong biến môi trường `$OLDPWD`)."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Các trường hợp sử dụng cd thường gặp",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Thử nghiệm với các phím tắt này để thao tác hiệu quả hơn trên dòng lệnh:"
+        },
+        {
+          "type": "paragraph",
+          "text": "Trở về thư mục Home của bạn (chạy `cd` không kèm đối số thư mục cũng sẽ đưa bạn về thư mục home):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cd",
+            "runnableCommand": "cd\npwd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Lùi lên hai cấp thư mục:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cd ../..",
+            "runnableCommand": "cd /home/pete/Pictures/Hawaii\ncd ../..\npwd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Chuyển vào thư mục có tên chứa khoảng trắng bằng cách đặt trong dấu ngoặc kép:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cd \"Vacation Photos\"",
+            "runnableCommand": "cd /home/pete/Pictures\ncd \"Vacation Photos\"\npwd"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "q5",
+        "question": "Câu lệnh nào coi Vacation Photos là tên của một thư mục duy nhất?",
+        "options": [
+          { "text": "cd Vacation Photos", "isCode": true },
+          { "text": "\"cd Vacation Photos\"", "isCode": true },
+          { "text": "cd \"Vacation Photos\"", "isCode": true }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Dấu ngoặc kép phải bao quanh đối số nhiều từ để shell coi đó là tên điểm đến duy nhất."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "content",
+      "title": "Quay lại thư mục trước đó",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Quay lại thư mục trước đó:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cd -\n/home/pete/Documents",
+            "runnableCommand": "cd /home/pete/Documents\ncd /home/pete/Pictures\ncd -"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác: Điều hướng thư mục",
+      "handsOn": [
+        {
+          "id": "cd-lab-1",
+          "title": "1. Linux cd Command: Kỹ thuật chuyển thư mục",
+          "description": "Học cách dùng lệnh cd để điều hướng hệ thống tệp tin hiệu quả, nắm vững các kỹ thuật chuyển đổi thư mục, hiểu về đường dẫn và khám phá cấu trúc file.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "cd-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Di chuyển bằng đường dẫn tuyệt đối & tương đối",
+              "description": "Chuyển tới `/home/pete/Pictures` và đi tiếp vào thư mục con `Hawaii`.",
+              "runnableCommand": "cd /home/pete/Pictures\ncd Hawaii\npwd",
+              "buttonLabel": "Thực hành"
+            },
+            {
+              "id": "cd-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Sử dụng phím tắt cd .., cd ../.. và cd -",
+              "description": "Lùi lên thư mục cha bằng `cd ..` và quay lại thư mục trước đó bằng `cd -`.",
+              "runnableCommand": "cd ..\npwd\ncd -",
+              "buttonLabel": "Thực hành"
+            },
+            {
+              "id": "cd-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Vào thư mục có khoảng trắng \"Vacation Photos\"",
+              "description": "Đặt tên thư mục trong dấu ngoặc kép: `cd \"Vacation Photos\"`.",
+              "runnableCommand": "cd /home/pete/Pictures\ncd \"Vacation Photos\"\npwd",
+              "buttonLabel": "Thực hành"
+            },
+            {
+              "id": "cd-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Quay về thư mục Home với cd hoặc cd ~",
+              "description": "Gõ `cd` hoặc `cd ~` để trở về thư mục cá nhân ngay lập tức.",
+              "runnableCommand": "cd ~\npwd",
+              "buttonLabel": "Thực hành"
+            }
+          ]
+        },
+        {
+          "id": "cd-lab-2",
+          "title": "2. Khám phá điều hướng thư mục Linux",
+          "description": "Thử thách kỹ năng dòng lệnh Linux cơ bản bằng cách điều hướng qua các thư mục.",
+          "runnableCommand": "cd /home/pete/Documents\ncd taxes/\npwd\ncd ../..\npwd",
+          "buttonLabel": "Thực hành điều hướng"
+        },
+        {
+          "id": "cd-lab-3",
+          "title": "3. Tạo cấu trúc thư mục dự án mới",
+          "description": "Thực hành kỹ năng quản lý thư mục bằng cách tạo cấu trúc dự án cụ thể và điều hướng qua nó với các lệnh mkdir và cd.",
+          "runnableCommand": "mkdir -p /home/pete/projects/webapp/src\ncd /home/pete/projects/webapp/src\npwd",
+          "buttonLabel": "Tạo & Điều hướng"
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh cd",
+      "takeaways": [
+        { "text": "Phân biệt đường dẫn tuyệt đối và đường dẫn tương đối." },
+        { "text": "Chuyển thư mục và xác thực kết quả bằng `pwd`." },
+        { "text": "Di chuyển lên thư mục cha, về thư mục home, và quay lại thư mục trước đó." },
+        { "text": "Truy cập các thư mục có tên chứa khoảng trắng." },
+        { "text": "Nhận biết các lỗi đường dẫn và quyền hạn thông thường." }
+      ]
+    }
+  ]
+}

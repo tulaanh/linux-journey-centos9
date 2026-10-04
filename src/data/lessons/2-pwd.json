@@ -1,0 +1,240 @@
+{
+  "id": 2,
+  "slug": "pwd",
+  "category": "Command Line",
+  "lessonNumber": 2,
+  "title": "pwd (In thư mục làm việc)",
+  "subtitle": "Tìm hiểu cách sử dụng lệnh pwd để xác định vị trí hiện tại của bạn trong hệ thống tệp tin Linux.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Cây thư mục trong Linux",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong Linux, toàn bộ tệp tin và thư mục được tổ chức theo cấu trúc hình cây phân cấp (filesystem hierarchy). Trước khi thao tác với hệ thống, bạn luôn cần biết mình đang đứng ở vị trí nào. Lệnh `pwd` (Print Working Directory) giúp bạn in ra thư mục làm việc hiện tại."
+        },
+        {
+          "type": "paragraph",
+          "text": "Toàn bộ hệ thống tệp tin bắt đầu từ một thư mục cấp cao nhất duy nhất gọi là thư mục gốc (root directory), được biểu diễn bằng ký tự gạch chéo xuôi (`/`). Từ thư mục gốc, cây thư mục phân nhánh thành các thư mục con như `/bin`, `/etc`, `/home`, `/var`."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "diagram",
+            "code": "/\n|-- bin\n|   |-- file1\n|   |-- file2\n|-- etc\n|   |-- file3\n|   `-- directory1\n|       |-- file4\n|       `-- file5\n|-- home\n|-- var",
+            "runnableCommand": "tree /etc"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "q1",
+        "question": "Các thư mục như `/home` và `/etc` có quan hệ như thế nào với thư mục gốc `/` trong cây thư mục Linux?",
+        "options": [
+          { "text": "Chúng là các nhánh thư mục con phân nhánh trực tiếp từ thư mục gốc `/`." },
+          { "text": "Chúng là các tệp tin được lưu trữ bên trong thư mục `/bin`." },
+          { "text": "Chúng là các ổ đĩa độc lập hoàn toàn không kết nối với thư mục gốc `/`." }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Tất cả các thư mục trong Linux (như `/home`, `/etc`, `/var`) đều là các nhánh con xuất phát từ thư mục gốc `/`."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Hiểu về đường dẫn tệp tin (File Paths)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Đường dẫn (path) là địa chỉ chỉ ra vị trí chính xác của một tệp hoặc thư mục trong hệ thống. Có hai loại đường dẫn chính: đường dẫn tuyệt đối (absolute path) và đường dẫn tương đối (relative path)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Đường dẫn tuyệt đối luôn bắt đầu bằng dấu gạch chéo `/` đại diện cho thư mục gốc. Ví dụ: `/home/pete/Movies`."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "output",
+            "code": "/home/pete/Movies"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "q2",
+        "question": "Yếu tố nào làm cho `/home/pete/Movies` trở thành một đường dẫn tuyệt đối?",
+        "options": [
+          { "text": "Nó kết thúc bằng một tên thư mục cụ thể." },
+          { "text": "Nó tham chiếu đến các tệp tin trong thư mục home của người dùng." },
+          { "text": "Nó bắt đầu từ thư mục gốc với dấu gạch chéo `/` ở đầu tiên." }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Đường dẫn tuyệt đối luôn bắt đầu từ thư mục gốc với dấu `/` dẫn đầu."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "q3",
+        "question": "Từ viết tắt `pwd` trong Linux có nghĩa là gì?",
+        "options": [
+          { "text": "Print working directory" },
+          { "text": "Process web data" },
+          { "text": "Path with directory" }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `pwd` là viết tắt của Print Working Directory (in thư mục làm việc hiện tại)."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Sử dụng câu lệnh pwd",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi bạn gõ `pwd` và nhấn Enter, shell sẽ ngay lập tức in ra đường dẫn tuyệt đối đầy đủ của thư mục bạn đang đứng."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ pwd\n/home/pete",
+            "runnableCommand": "pwd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Lưu ý rằng lệnh `pwd` chỉ kiểm tra và báo cáo vị trí hiện tại chứ không hề làm thay đổi vị trí của bạn (lệnh thay đổi thư mục là `cd`)."
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "q4",
+        "question": "Hành động nào giúp bạn kiểm tra vị trí thư mục hiện tại mà không làm thay đổi vị trí đó?",
+        "options": [
+          { "text": "Chạy lệnh `cd` và kiểm tra xem nó dẫn bạn tới đâu." },
+          { "text": "Mở một cửa sổ terminal mới mỗi lần cần kiểm tra." },
+          { "text": "Chạy lệnh `pwd` và đọc đường dẫn tuyệt đối mà nó in ra." }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh `pwd` đọc và in ra đường dẫn tuyệt đối an toàn mà không làm thay đổi trạng thái làm việc."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Tại sao pwd lại quan trọng và các tùy chọn nâng cao",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi làm việc với các dự án lớn hoặc các tệp cấu hình hệ thống, bạn cần kiểm tra chính xác đường dẫn trước khi chạy các lệnh tạo, xóa hoặc sửa đổi tệp tin. Ngoài ra, `pwd` hỗ trợ hai tùy chọn quan trọng: `pwd -L` (đường dẫn logic, giữ nguyên symbolic link) và `pwd -P` (đường dẫn vật lý thực tế)."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cd /home/pete/projects\n$ pwd\n/home/pete/projects",
+            "runnableCommand": "cd /home/pete/projects\npwd"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "hands_on",
+      "title": "Thực hành tương tác (Hands-on Labs)",
+      "handsOn": [
+        {
+          "id": "labex-pwd",
+          "title": "1. Thực hành lệnh pwd trên CentOS 9",
+          "description": "Thực hành sử dụng lệnh pwd để điều hướng, kiểm tra đường dẫn tuyệt đối và phân biệt đường dẫn vật lý / logic.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "pwd-step-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Chạy pwd kiểm tra vị trí hiện tại",
+              "description": "Xác định đường dẫn thư mục làm việc hiện tại bắt đầu từ gốc `/`.",
+              "runnableCommand": "pwd",
+              "buttonLabel": "Chạy pwd"
+            },
+            {
+              "id": "pwd-step-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Di chuyển và kiểm tra vị trí mới",
+              "description": "Chuyển sang `/home/pete/projects` và chạy `pwd` kết hợp `ls`.",
+              "runnableCommand": "cd /home/pete/projects\npwd\nls -la",
+              "buttonLabel": "Chạy chuyển thư mục"
+            },
+            {
+              "id": "pwd-step-3",
+              "stepNumber": 3,
+              "title": "Bước 3: So sánh đường dẫn logic (-L) và vật lý (-P)",
+              "description": "Di chuyển vào symlink `/tmp/mylogs` và so sánh `pwd -L` với `pwd -P`.",
+              "runnableCommand": "cd /tmp/mylogs\npwd -L\npwd -P",
+              "buttonLabel": "So sánh -L / -P"
+            },
+            {
+              "id": "pwd-step-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Dùng $(pwd) và biến $PWD trong câu lệnh khác",
+              "description": "Chèn trực tiếp kết quả của pwd vào lệnh echo bằng $(pwd).",
+              "runnableCommand": "echo \"Current working dir is: $(pwd)\"",
+              "buttonLabel": "Chạy $(pwd)"
+            }
+          ]
+        },
+        {
+          "id": "nav-lab",
+          "title": "2. Thực hành điều hướng cây thư mục",
+          "description": "Kiểm tra kỹ năng dòng lệnh cơ bản bằng cách di chuyển qua nhiều thư mục khác nhau (/home/pete/Movies, /etc/directory1), củng cố hiểu biết về đường dẫn và cấu trúc cây tệp tin.",
+          "runnableCommand": "cd /home/pete/Movies\npwd\ncd /etc/directory1\npwd\nls",
+          "buttonLabel": "Thực hành điều hướng"
+        },
+        {
+          "id": "cd-preview",
+          "title": "3. Làm quen lệnh chuyển thư mục (cd)",
+          "description": "Học cách điều hướng hệ thống tệp tin hiệu quả bằng câu lệnh cd, nắm vững các kỹ thuật chuyển đổi thư mục và khám phá cấu trúc file.",
+          "runnableCommand": "cd /home/pete\npwd",
+          "buttonLabel": "Thử nghiệm chuyển thư mục"
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh pwd",
+      "takeaways": [
+        { "text": "Nhận biết thư mục gốc (`/`) của cây thư mục." },
+        { "text": "Phân biệt đường dẫn tuyệt đối và đường dẫn tương đối." },
+        { "text": "Giải thích ý nghĩa của `pwd` và kết quả lệnh trả về." },
+        { "text": "Kiểm tra thư mục làm việc hiện tại mà không làm thay đổi vị trí." }
+      ]
+    }
+  ]
+}

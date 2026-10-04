@@ -1623,68 +1623,168 @@ export const TEXT_FU_LABS: LabDefinition[] = [
   {
     id: 201,
     slug: 'stdout-redirect',
-    title: 'stdout (Standard Output)',
+    title: 'I/O Redirection (Redirecting Input and Output in Linux)',
     category: 'Text-Fu',
     difficulty: 'Cơ bản',
-    estimatedTime: '6 phút',
-    summary: 'Redirect standard output to files using > and >> operators.',
-    scenario: 'Trong Linux, mọi tiến trình đều sử dụng các luồng I/O chuẩn. Toán tử `>` ghi đè kết quả ra tệp mới, còn `>>` nối thêm (append) vào cuối tệp hiện có.',
+    estimatedTime: '15 phút',
+    summary: 'Master standard streams (stdin, stdout, stderr) and redirection operators: >, >>, 2>, 2>>, &>, tee, and <.',
+    scenario: 'Trong hệ điều hành Linux, việc kiểm soát luồng dữ liệu là kỹ năng tối quan trọng. Bài thực hành này giúp bạn làm chủ 3 luồng tiêu chuẩn (stdin, stdout, stderr), các toán tử chuyển hướng >, >>, 2>, 2>>, &>, cũng như sử dụng lệnh tee và chuyển hướng đầu vào < theo chuẩn CompTIA Linux+ và LabEx #590840.',
     tasks: [
-      'Ghi chuỗi `"Hello Peanut"` vào tệp `/tmp/hello.txt` bằng lệnh `echo "Hello Peanut" > /tmp/hello.txt`.',
-      'Nối thêm dòng `"Linux Text-Fu"` vào cuối tệp `/tmp/hello.txt` bằng toán tử `>>`.',
+      'Task 1: Tạo tệp `greetings.txt` và chuyển hướng Standard Output với toán tử `>` (`echo "Hello, this is the first line." > greetings.txt`).',
+      'Task 2: Nối thêm dòng thứ 2 vào `greetings.txt` với `>>` và ghi nhật ký thời gian vào `activity.log` (`date >> activity.log`).',
+      'Task 3: Chuyển hướng Standard Error với toán tử `2>` vào `error.txt` (`ls /nonexistent_folder 2> error.txt`).',
+      'Task 4: Chuyển hướng cả stdout và stderr vào một tệp `output.txt` bằng toán tử `&>` (hoặc `> output.txt 2>&1`), đồng thời thử nghiệm hủy output với `/dev/null`.',
+      'Task 5: Tách đôi luồng dữ liệu bằng lệnh `tee` (`ls /etc | tee etc_listing.txt`) và chuyển hướng đầu vào stdin bằng toán tử `<` (`wc -w < greetings.txt`).',
     ],
     hints: [
-      'Chạy: `echo "Hello Peanut" > /tmp/hello.txt`',
-      'Chạy: `echo "Linux Text-Fu" >> /tmp/hello.txt`',
+      'Chạy: echo "Hello, this is the first line." > greetings.txt',
+      'Chạy: echo "This is the second line, appended." >> greetings.txt && date >> activity.log',
+      'Chạy: ls /nonexistent_folder 2> error.txt',
+      'Chạy: ls -d /root /nonexistent_folder &> output.txt',
+      'Chạy: ls /etc | tee etc_listing.txt && wc -w < greetings.txt',
     ],
     usefulCommands: [
-      'echo "text" > file - Ghi đè nội dung vào tệp',
-      'echo "text" >> file - Nối thêm nội dung vào cuối tệp',
-      'cat /tmp/hello.txt - Kiểm tra nội dung tệp vừa ghi',
+      'cmd > file - Chuyển hướng stdout (ghi đè file)',
+      'cmd >> file - Nối thêm stdout vào file',
+      'cmd 2> file - Chuyển hướng stderr ra file',
+      'cmd &> file - Chuyển cả stdout và stderr vào một file',
+      'cmd > /dev/null 2>&1 - Hủy toàn bộ output vào thiết bị rác',
+      'cmd1 | tee file - Vừa in ra màn hình vừa lưu vào file',
+      'cmd < file - Chuyển hướng nội dung file vào stdin của lệnh',
     ],
     checks: [
       {
-        id: 'tf-1',
-        title: 'Tạo tệp /tmp/hello.txt bằng chuyển hướng >',
-        description: 'Tệp /tmp/hello.txt tồn tại và có nội dung',
-        points: 50,
-        hint: 'Chạy: echo "Hello Peanut" > /tmp/hello.txt',
+        id: 'io-1',
+        title: 'Chuyển hướng Standard Output với >',
+        description: 'Đã tạo tệp greetings.txt với nội dung dòng đầu tiên bằng toán tử >',
+        points: 20,
+        hint: 'Chạy: echo "Hello, this is the first line." > greetings.txt',
       },
       {
-        id: 'tf-2',
-        title: 'Nối thêm dòng bằng >>',
-        description: 'Tệp /tmp/hello.txt chứa từ khóa Linux hoặc có từ 2 dòng trở lên',
-        points: 50,
-        hint: 'Chạy: echo "Linux Text-Fu" >> /tmp/hello.txt',
+        id: 'io-2',
+        title: 'Nối thêm dữ liệu với >>',
+        description: 'Tệp greetings.txt có ít nhất 2 dòng và tệp activity.log đã được tạo bằng >>',
+        points: 20,
+        hint: 'Chạy: echo "This is the second line, appended." >> greetings.txt && date >> activity.log',
+      },
+      {
+        id: 'io-3',
+        title: 'Chuyển hướng Standard Error với 2>',
+        description: 'Đã ghi nhận thông báo lỗi vào tệp error.txt bằng toán tử 2>',
+        points: 20,
+        hint: 'Chạy: ls /nonexistent_folder 2> error.txt',
+      },
+      {
+        id: 'io-4',
+        title: 'Chuyển hướng kết hợp cả stdout và stderr',
+        description: 'Đã tạo tệp output.txt chứa cả kết quả thành công và lỗi (hoặc chạy lệnh với &> hay 2>&1)',
+        points: 20,
+        hint: 'Chạy: ls -d /root /nonexistent_folder &> output.txt',
+      },
+      {
+        id: 'io-5',
+        title: 'Sử dụng lệnh tee và chuyển hướng stdin <',
+        description: 'Đã tạo etc_listing.txt bằng lệnh tee và chạy lệnh đọc stdin với < (ví dụ wc -w < greetings.txt)',
+        points: 20,
+        hint: 'Chạy: ls /etc | tee etc_listing.txt && wc -w < greetings.txt',
       },
     ],
     setupState: (kernel: CentOSKernel) => {
-      kernel.vfs.unlink('/tmp/hello.txt');
+      kernel.cwd = '/home/pete';
+      kernel.vfs.unlink('/home/pete/greetings.txt');
+      kernel.vfs.unlink('/home/pete/activity.log');
+      kernel.vfs.unlink('/home/pete/error.txt');
+      kernel.vfs.unlink('/home/pete/output.txt');
+      kernel.vfs.unlink('/home/pete/etc_listing.txt');
     },
     evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
-      const content = kernel.vfs.readFile('/tmp/hello.txt');
-      const exists = content !== null;
-      const lines = (content || '').trim().split('\n').filter(Boolean);
-      const p1 = exists && lines.length >= 1;
-      const p2 = exists && lines.length >= 2;
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+
+      // Check 1: greetings.txt exists and has content
+      const greetings1 =
+        kernel.vfs.readFile(kernel.vfs.resolvePath(kernel.cwd, 'greetings.txt')) ||
+        kernel.vfs.readFile('/home/pete/greetings.txt') ||
+        kernel.vfs.readFile('/root/greetings.txt');
+      const linesGreetings = (greetings1 || '').trim().split('\n').filter(Boolean);
+      const p1 = greetings1 !== null && linesGreetings.length >= 1;
+
+      // Check 2: greetings.txt has >= 2 lines AND activity.log exists
+      const actLog =
+        kernel.vfs.readFile(kernel.vfs.resolvePath(kernel.cwd, 'activity.log')) ||
+        kernel.vfs.readFile('/home/pete/activity.log') ||
+        kernel.vfs.readFile('/root/activity.log');
+      const p2 = p1 && linesGreetings.length >= 2 && actLog !== null;
+
+      // Check 3: error.txt exists and contains error text
+      const errTxt =
+        kernel.vfs.readFile(kernel.vfs.resolvePath(kernel.cwd, 'error.txt')) ||
+        kernel.vfs.readFile('/home/pete/error.txt') ||
+        kernel.vfs.readFile('/root/error.txt');
+      const ranErrRedirect = hist.some((h) => h.includes('2>') && (h.includes('error.txt') || h.includes('error')));
+      const p3 = (errTxt !== null && errTxt.length > 0) || ranErrRedirect;
+
+      // Check 4: output.txt exists or command with &> / 2>&1 ran
+      const outTxt =
+        kernel.vfs.readFile(kernel.vfs.resolvePath(kernel.cwd, 'output.txt')) ||
+        kernel.vfs.readFile('/home/pete/output.txt') ||
+        kernel.vfs.readFile('/root/output.txt');
+      const ranBothRedirect = hist.some((h) => h.includes('&>') || h.includes('2>&1'));
+      const p4 = (outTxt !== null && outTxt.length > 0) || ranBothRedirect;
+
+      // Check 5: etc_listing.txt exists (tee) AND stdin redirect (<) ran
+      const etcList =
+        kernel.vfs.readFile(kernel.vfs.resolvePath(kernel.cwd, 'etc_listing.txt')) ||
+        kernel.vfs.readFile('/home/pete/etc_listing.txt') ||
+        kernel.vfs.readFile('/root/etc_listing.txt');
+      const ranTee = hist.some((h) => h.includes('tee')) || (etcList !== null && etcList.length > 0);
+      const ranInputRedirect = hist.some((h) => h.includes('<'));
+      const p5 = ranTee && ranInputRedirect;
+
       return [
         {
-          id: 'tf-1',
-          title: 'Tạo tệp /tmp/hello.txt bằng chuyển hướng >',
+          id: 'io-1',
+          title: 'Chuyển hướng Standard Output với >',
           passed: p1,
-          pointsEarned: p1 ? 50 : 0,
-          maxPoints: 50,
-          message: p1 ? 'Đã tạo tệp /tmp/hello.txt thành công.' : 'Chưa tạo /tmp/hello.txt.',
-          hint: 'Chạy: echo "Hello Peanut" > /tmp/hello.txt',
+          pointsEarned: p1 ? 20 : 0,
+          maxPoints: 20,
+          message: p1 ? 'Đã tạo tệp greetings.txt thành công.' : 'Chưa tạo tệp greetings.txt bằng toán tử >.',
+          hint: 'Chạy: echo "Hello, this is the first line." > greetings.txt',
         },
         {
-          id: 'tf-2',
-          title: 'Nối thêm dòng bằng >>',
+          id: 'io-2',
+          title: 'Nối thêm dữ liệu với >>',
           passed: p2,
-          pointsEarned: p2 ? 50 : 0,
-          maxPoints: 50,
-          message: p2 ? 'Đã nối thêm dòng thứ 2 vào tệp.' : 'Tệp chưa có dòng thứ 2.',
-          hint: 'Chạy: echo "Linux Text-Fu" >> /tmp/hello.txt',
+          pointsEarned: p2 ? 20 : 0,
+          maxPoints: 20,
+          message: p2 ? 'Đã nối thêm dòng thứ 2 và tạo activity.log thành công.' : 'Tệp greetings.txt chưa có 2 dòng hoặc chưa tạo activity.log.',
+          hint: 'Chạy: echo "This is the second line, appended." >> greetings.txt && date >> activity.log',
+        },
+        {
+          id: 'io-3',
+          title: 'Chuyển hướng Standard Error với 2>',
+          passed: p3,
+          pointsEarned: p3 ? 20 : 0,
+          maxPoints: 20,
+          message: p3 ? 'Đã lưu thông báo lỗi vào error.txt thành công.' : 'Chưa chuyển hướng thông báo lỗi bằng 2> vào error.txt.',
+          hint: 'Chạy: ls /nonexistent_folder 2> error.txt',
+        },
+        {
+          id: 'io-4',
+          title: 'Chuyển hướng kết hợp cả stdout và stderr',
+          passed: p4,
+          pointsEarned: p4 ? 20 : 0,
+          maxPoints: 20,
+          message: p4 ? 'Đã chuyển hướng kết hợp cả stdout và stderr vào output.txt.' : 'Chưa chạy lệnh chuyển hướng &> hoặc 2>&1 vào output.txt.',
+          hint: 'Chạy: ls -d /root /nonexistent_folder &> output.txt',
+        },
+        {
+          id: 'io-5',
+          title: 'Sử dụng lệnh tee và chuyển hướng stdin <',
+          passed: p5,
+          pointsEarned: p5 ? 20 : 0,
+          maxPoints: 20,
+          message: p5 ? 'Đã sử dụng lệnh tee và toán tử chuyển hướng đầu vào <.' : 'Chưa chạy lệnh kết hợp tee hoặc toán tử <.',
+          hint: 'Chạy: ls /etc | tee etc_listing.txt && wc -w < greetings.txt',
         },
       ];
     },

@@ -1,0 +1,231 @@
+{
+  "id": 1,
+  "slug": "the-shell",
+  "category": "Command Line",
+  "lessonNumber": 1,
+  "title": "The Shell (Trình thông dịch lệnh)",
+  "subtitle": "Tìm hiểu Linux shell là gì và cách các câu lệnh được thực thi trong hệ thống.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Linux Shell là gì?",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Chào mừng bạn đến với hành trình học Linux! Bước đầu tiên là hiểu về Linux shell. Shell là một chương trình tiếp nhận các câu lệnh bạn nhập vào, yêu cầu hệ điều hành thực thi chúng và sau đó in kết quả trả về màn hình terminal của bạn."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Phân biệt Terminal và Shell",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu bạn từng quen dùng giao diện đồ họa (GUI), bạn thường nhấp chuột vào các cửa sổ, menu và nút bấm. Nhưng trong giao diện dòng lệnh (command line), bạn sẽ gõ các hướng dẫn chính xác. Các ứng dụng có tên như \"Terminal\", \"Console\" hoặc \"Konsole\" mở ra một phiên làm việc của shell cho bạn."
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Terminal là cửa sổ giao diện để bạn nhập ký tự vào, còn Shell là chương trình thực sự chạy và xử lý lệnh bên trong cửa sổ đó."
+        },
+        {
+          "type": "paragraph",
+          "text": "Shell vô cùng hữu ích vì có tốc độ phản hồi cực nhanh, khả năng viết kịch bản tự động hóa (scriptable) và có mặt trên hầu như tất cả các hệ thống Linux. Khi học được nhiều lệnh hơn, bạn có thể kết hợp chúng lại để kiểm tra tệp tin, quản lý thư mục, tìm kiếm văn bản, cài đặt phần mềm và tự động hóa những công việc lặp đi lặp lại."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "q1",
+        "question": "Câu nào sau đây mô tả chính xác mối quan hệ giữa terminal và shell?",
+        "options": [
+          { "text": "Terminal cung cấp cửa sổ giao diện, còn shell là chương trình xử lý lệnh chạy bên trong." },
+          { "text": "Terminal tiếp nhận các lệnh, còn shell chỉ hiển thị kết quả đầu ra." },
+          { "text": "Terminal và shell là hai tên gọi khác nhau của cùng một chương trình." }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Terminal là cửa sổ giao diện nhập liệu, còn shell là chương trình xử lý lệnh chạy bên trong."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Tương tác với Bash Shell",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong khóa học này, chúng ta sẽ tập trung vào Bash (Bourne Again Shell). Bash là một trong những shell Linux thông dụng nhất và là nền tảng vững chắc ngay cả khi sau này bạn sử dụng zsh, fish hoặc các shell khác."
+        },
+        {
+          "type": "paragraph",
+          "text": "Khi bạn mở một terminal, bạn sẽ được đón chào bởi dấu nhắc lệnh (shell prompt). Hình thức hiển thị của nó có thể thay đổi tùy cấu hình, nhưng thường cho biết username, hostname và thư mục làm việc hiện tại:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "output",
+            "code": "pete@icebox:/home/pete $"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Ký hiệu `$` biểu thị rằng shell đã sẵn sàng tiếp nhận lệnh từ một người dùng bình thường (normal user). Bạn không cần gõ ký hiệu này khi nhập lệnh; nó do shell tự hiển thị. Nếu bạn nhìn thấy ký hiệu `#` thay thế, điều đó có nghĩa là bạn đang làm việc với quyền `root` (quyền quản trị viên cao nhất)."
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "q2",
+        "question": "Ký hiệu `$` ở cuối dấu nhắc lệnh ví dụ biểu thị điều gì?",
+        "options": [
+          { "text": "Shell đang chạy với đặc quyền của người dùng root." },
+          { "text": "Shell đang chờ nhận lệnh từ một người dùng thông thường." },
+          { "text": "Lệnh tiếp theo bắt buộc phải bắt đầu bằng một dấu đô la ($)." }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Ký hiệu `$` biểu thị người dùng bình thường. Người dùng quản trị root sẽ có dấu `#`."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Khuôn mẫu câu lệnh Linux",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Các câu lệnh trong Linux thường tuân theo khuôn mẫu cú pháp chuẩn sau:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "command options arguments"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Ví dụ, trong `echo Hello World`, `echo` là câu lệnh (command) và `Hello World` là đoạn văn bản được truyền vào cho lệnh (arguments)."
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "q3",
+        "question": "Trong câu lệnh `echo Hello World`, phần nào là tên câu lệnh?",
+        "options": [
+          { "text": "Hello", "isCode": true },
+          { "text": "World", "isCode": true },
+          { "text": "echo", "isCode": true }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! \"echo\" là từ đầu tiên chỉ định tên câu lệnh cần thực thi."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Câu lệnh Linux đầu tiên của bạn",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Hãy bắt đầu với một trong những câu lệnh Linux cơ bản nhất: `echo`. Lệnh này sẽ hiển thị đoạn văn bản bạn nhập vào quay trở lại màn hình terminal."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ echo Hello World\nHello World",
+            "runnableCommand": "echo Hello World"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Hãy thử thêm một vài ví dụ nữa:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ echo Linux is fun\nLinux is fun",
+            "runnableCommand": "echo Linux is fun"
+          }
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ echo \"Hello from Bash\"\nHello from Bash",
+            "runnableCommand": "echo \"Hello from Bash\""
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Dấu ngoặc kép rất hữu ích khi bạn muốn shell xử lý nhiều từ như một chuỗi văn bản duy nhất."
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "q4",
+        "question": "Câu lệnh nào giúp shell coi Hello from Bash như một chuỗi văn bản duy nhất trong dấu ngoặc kép?",
+        "options": [
+          { "text": "echo \"Hello from Bash\"", "isCode": true },
+          { "text": "echo Hello from Bash", "isCode": true },
+          { "text": "\"echo Hello from Bash\"", "isCode": true }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Đặt các tham số trong dấu ngoặc kép giúp giữ nguyên khoảng trắng và gộp thành một đối số duy nhất."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "content",
+      "title": "Lời khuyên hữu ích cho người mới bắt đầu",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "Nhấn phím Enter để thực thi câu lệnh.",
+            "Dùng phím mũi tên Lên (Up Arrow) để gọi lại câu lệnh trước đó mà bạn đã gõ.",
+            "Các câu lệnh và tên tệp tin trong Linux có phân biệt chữ hoa / chữ thường (case-sensitive).",
+            "Khoảng trắng có ý nghĩa quan trọng: `echo hello` và `echohello` là hai lệnh hoàn toàn khác nhau.",
+            "Nếu một câu lệnh có vẻ bị treo, tổ hợp phím Ctrl + C thường sẽ hủy và thoát khỏi lệnh đó."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học The Shell",
+      "takeaways": [
+        { "text": "Phân biệt giữa terminal và shell." },
+        { "text": "Nhận biết dấu nhắc lệnh (command prompt) qua ký hiệu `$` và `#`." },
+        { "text": "Thực thi câu lệnh đơn giản với `echo` (ví dụ `echo Hello World`)." }
+      ]
+    }
+  ]
+}

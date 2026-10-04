@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "canva": {
+      "serverUrl": "https://mcp.canva.com/mcp",
+      "httpUrl": "https://mcp.canva.com/mcp",
+      "url": "https://mcp.canva.com/mcp"
+    }
+  }
+}

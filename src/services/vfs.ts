@@ -123,6 +123,7 @@ export class VirtualFileSystem {
   }
 
   public exists(path: string): boolean {
+    if (path === '/dev/null' || path === '/dev/zero') return true;
     return this.getNode(path) !== null;
   }
 
@@ -132,6 +133,7 @@ export class VirtualFileSystem {
   }
 
   public isFile(path: string): boolean {
+    if (path === '/dev/null' || path === '/dev/zero') return true;
     const node = this.getNode(path);
     return node !== null && node.type === 'file';
   }
@@ -210,6 +212,10 @@ export class VirtualFileSystem {
   }
 
   public writeFile(path: string, content: string, options: { append?: boolean; mode?: number; owner?: string; group?: string } = {}): boolean {
+    if (path === '/dev/null' || path === '/dev/zero') {
+      return true;
+    }
+
     const existing = this.getNode(path);
     if (existing) {
       if (existing.type !== 'file') return false;
@@ -248,6 +254,7 @@ export class VirtualFileSystem {
   }
 
   public readFile(path: string): string | null {
+    if (path === '/dev/null') return '';
     const node = this.getNode(path);
     if (!node || node.type !== 'file') return null;
     return node.content ?? '';
@@ -292,6 +299,14 @@ export class VirtualFileSystem {
 
     if (!parentNode || parentNode.type !== 'dir' || !parentNode.children) return false;
     return parentNode.children.delete(name);
+  }
+
+  public createDirectory(path: string): boolean {
+    return this.mkdir(path, { recursive: true });
+  }
+
+  public deleteNode(path: string): boolean {
+    return this.rmRecursive(path);
   }
 
   public copy(sourcePath: string, destPath: string, recursive: boolean = false): boolean {
@@ -588,6 +603,10 @@ export class VirtualFileSystem {
     // Standard symlinks for realistic pwd -L vs pwd -P demonstration
     this.createSymlink('/run', '/var/run');
     this.createSymlink('/var/log', '/tmp/mylogs');
+
+    // Virtual devices
+    this.writeFile('/dev/null', '', { mode: 0o666 });
+    this.writeFile('/dev/zero', '', { mode: 0o666 });
 
     // Lesson 2 directory tree & project files
     this.writeFile('/etc/file3', '# Sample configuration file3\n');

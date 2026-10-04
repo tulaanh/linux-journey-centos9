@@ -1,0 +1,80 @@
+{
+  "id": 4,
+  "slug": "ls",
+  "category": "Command Line",
+  "lessonNumber": 4,
+  "title": "ls (Liệt kê tệp tin và thư mục)",
+  "subtitle": "Tìm hiểu cách sử dụng lệnh ls và các tùy chọn phổ biến để kiểm tra nội dung thư mục trong Linux.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu lệnh ls",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `ls` (viết tắt của List) là một trong những công cụ phổ biến nhất trong Linux, được dùng để liệt kê danh sách tệp tin và thư mục trong thư mục làm việc hiện tại hoặc một thư mục bất kỳ được chỉ định."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "ls [OPTIONS] [FILE/DIRECTORY]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "q1",
+        "question": "Lệnh nào sau đây dùng để hiển thị danh sách các tệp tin trong thư mục hiện tại?",
+        "options": [
+          { "text": "pwd", "isCode": true },
+          { "text": "ls", "isCode": true },
+          { "text": "cd", "isCode": true }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `ls` dùng để liệt kê nội dung thư mục."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "hands_on",
+      "title": "Thực hành tương tác với lệnh ls",
+      "handsOn": [
+        {
+          "id": "ls-lab-1",
+          "title": "1. Thực hành lệnh ls cơ bản",
+          "description": "Chạy lệnh ls và các tùy chọn quan trọng như -l, -a, -lh.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "ls-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Liệt kê nội dung thư mục hiện tại",
+              "description": "Chạy lệnh ls để xem danh sách tệp.",
+              "runnableCommand": "ls",
+              "buttonLabel": "Chạy ls"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh ls",
+      "takeaways": [
+        { "text": "Sử dụng lệnh `ls` để kiểm tra danh sách tệp tin và thư mục." },
+        { "text": "Hiểu ý nghĩa các tùy chọn thông dụng: `-l`, `-a`, `-h`." }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import {
   HelpCircle,
   RotateCw,
   FlaskConical,
+  Flame,
 } from 'lucide-react';
 
 interface CommandLineSyllabusProps {
@@ -23,6 +24,7 @@ interface CommandLineSyllabusProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   onBackToHome: () => void;
+  onNavigateChallenges?: () => void;
   onSelectLab: (lab: LabDefinition) => void;
   onContinueLearning: () => void;
   onResetProgress: () => void;
@@ -38,6 +40,7 @@ export const CommandLineSyllabus: React.FC<CommandLineSyllabusProps> = ({
   theme,
   onToggleTheme,
   onBackToHome,
+  onNavigateChallenges,
   onSelectLab,
   onContinueLearning,
   onResetProgress,
@@ -114,6 +117,21 @@ export const CommandLineSyllabus: React.FC<CommandLineSyllabusProps> = ({
 
           {/* Quick Toolbar */}
           <div className="flex items-center gap-2">
+            {onNavigateChallenges && (
+              <button
+                onClick={onNavigateChallenges}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer mr-1 ${
+                  isDark
+                    ? 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30'
+                    : 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
+                }`}
+                title="Chuyển sang các bài lab Thử thách thực chiến"
+              >
+                <Flame className="w-3.5 h-3.5 fill-rose-400 text-rose-400" />
+                <span className="hidden sm:inline">Challenges</span>
+              </button>
+            )}
+
             <button
               onClick={onOpenFileBrowser}
               className={`p-2 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${

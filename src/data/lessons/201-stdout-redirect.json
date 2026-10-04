@@ -1,0 +1,338 @@
+{
+  "id": 201,
+  "slug": "stdout-redirect",
+  "category": "Text-Fu",
+  "lessonNumber": 1,
+  "title": "I/O Redirection (Redirecting Input and Output in Linux)",
+  "subtitle": "Làm chủ kỹ thuật điều khiển luồng dữ liệu, phân biệt stdin/stdout/stderr và sử dụng thành thạo >, >>, 2>, &>, tee và <.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Tổng quan về 3 luồng dữ liệu chuẩn (Standard Streams)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong hệ điều hành Linux, mọi tiến trình (process) khi được khởi chạy đều tự động gắn kết với ba luồng dữ liệu tiêu chuẩn (Standard Streams). Mỗi luồng được định danh bằng một số nguyên duy nhất gọi là File Descriptor (FD):"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`0` - **Standard Input (`stdin`)**: Nhận dữ liệu đầu vào cho chương trình, mặc định được gán với bàn phím của bạn.",
+            "`1` - **Standard Output (`stdout`)**: Xuất dữ liệu và kết quả xử lý thành công, mặc định hiển thị ra màn hình Terminal.",
+            "`2` - **Standard Error (`stderr`)**: Xuất thông báo lỗi và chẩn đoán sự cố, mặc định cũng hiển thị ra màn hình Terminal nhưng là một kênh hoàn toàn tách biệt với stdout."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Mặc dù cả `stdout` và `stderr` đều xuất hiện trên màn hình terminal của bạn, chúng là hai dòng dữ liệu độc lập. Cơ chế chuyển hướng (Redirection) cho phép bạn bẻ lái bất kỳ luồng nào sang một tệp tin hoặc chuyển tiếp sang một lệnh khác."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "diagram",
+            "code": "                +-------------------------+\n[Keyboard] ---> | stdin (FD 0)            |\n                |        Linux Command    | ---> stdout (FD 1) ---> [Terminal Screen]\n                |                         | ---> stderr (FD 2) ---> [Terminal Screen]\n                +-------------------------+"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "q1",
+        "question": "File descriptor nào trong Linux đại diện cho luồng Standard Error (stderr)?",
+        "options": [
+          { "text": "0", "isCode": true },
+          { "text": "1", "isCode": true },
+          { "text": "2", "isCode": true },
+          { "text": "3", "isCode": true }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! File descriptor 0 là stdin, 1 là stdout, và 2 là stderr."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Bước 1: Chuyển hướng Standard Output với toán tử `>`",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Toán tử `>` (viết gọn của `1>`) được sử dụng để chuyển hướng kết quả của một lệnh từ màn hình terminal vào một tệp tin. Nếu tệp tin chưa tồn tại, shell sẽ tự động tạo mới. Nếu tệp tin đã tồn tại từ trước, **toàn bộ nội dung cũ sẽ bị xóa sạch và ghi đè** bằng kết quả mới."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ echo \"Hello, this is the first line.\" > greetings.txt\n$ cat greetings.txt\nHello, this is the first line.",
+            "runnableCommand": "echo \"Hello, this is the first line.\" > greetings.txt"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "Hãy hết sức cẩn thận với toán tử `>`, vì một sơ suất có thể ghi đè làm mất vĩnh viễn tệp cấu hình quan trọng. Bạn có thể bật cờ bảo vệ `set -o noclobber` trong Bash để ngăn chặn việc ghi đè vô ý."
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Bước 2: Nối thêm dữ liệu với toán tử `>>`",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi bạn muốn ghi thêm dữ liệu mới vào cuối một tệp tin mà không xóa bỏ những gì đang có sẵn, hãy sử dụng toán tử nối thêm `>>` (append operator)."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ echo \"This is the second line, appended.\" >> greetings.txt\n$ cat greetings.txt\nHello, this is the first line.\nThis is the second line, appended.",
+            "runnableCommand": "echo \"This is the second line, appended.\" >> greetings.txt"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Toán tử `>>` đặc biệt thông dụng trong việc ghi log hoạt động của hệ thống, ví dụ ghi mốc thời gian hiện tại vào tệp `activity.log`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ date >> activity.log\n$ cat activity.log",
+            "runnableCommand": "date >> activity.log"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "q2",
+        "question": "Sự khác biệt chính giữa toán tử `>` và `>>` khi chuyển hướng đầu ra là gì?",
+        "options": [
+          { "text": "`>` xóa và ghi đè nội dung tệp cũ, trong khi `>>` nối thêm nội dung vào cuối tệp." },
+          { "text": "`>` chỉ dùng cho tệp văn bản còn `>>` dùng cho tệp nhị phân." },
+          { "text": "`>` chuyển hướng luồng lỗi, còn `>>` chuyển hướng luồng thành công." }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Toán tử `>` ghi đè toàn bộ tệp đích (overwrite), trong khi `>>` nối thêm dữ liệu vào cuối tệp (append) mà không làm mất nội dung cũ."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Bước 3: Chuyển hướng Standard Error với toán tử `2>` và `2>>`",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi một câu lệnh gặp lỗi (chẳng hạn cố gắng đọc thư mục không tồn tại hoặc không đủ quyền), thông báo lỗi sẽ xuất hiện trên luồng `stderr` (FD 2). Toán tử thông thường `>` chỉ bắt luồng `stdout`, nên các dòng lỗi vẫn sẽ trôi ra màn hình."
+        },
+        {
+          "type": "paragraph",
+          "text": "Để tách riêng thông báo lỗi ra tệp lưu trữ chẩn đoán (ví dụ `error.txt`), ta sử dụng toán tử `2>` (hoặc `2>>` để nối thêm):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls /nonexistent_folder 2> error.txt\n$ cat error.txt\nls: cannot access '/nonexistent_folder': No such file or directory",
+            "runnableCommand": "ls /nonexistent_folder 2> error.txt"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "text": "Bạn có thể tách cả kết quả thành công và lỗi ra 2 tệp riêng biệt cùng lúc: `ls /etc /nonexistent_folder > output.txt 2> error.txt`."
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Bước 4: Chuyển hướng cả stdout và stderr & Hố đen `/dev/null`",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi viết bash script tự động hóa hoặc giám sát tác vụ định kỳ qua cron, bạn thường muốn gom toàn bộ nhật ký thực thi (cả thành công lẫn lỗi) vào chung một tệp log duy nhất."
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Cú pháp hiện đại (Bash shorthand)**: `command &> output.txt` (hoặc `&>>` để nối thêm).",
+            "**Cú pháp truyền thống (chuẩn POSIX)**: `command > output.txt 2>&1` (ý nghĩa: chuyển stdout vào tệp, sau đó bảo stderr chuyển hướng theo stdout)."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls -d /root /nonexistent_folder &> output.txt\n$ cat output.txt\nls: cannot access '/nonexistent_folder': No such file or directory\n/root",
+            "runnableCommand": "ls -d /root /nonexistent_folder &> output.txt"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Nếu bạn muốn câu lệnh chạy trong im lặng tuyệt đối và vứt bỏ toàn bộ thông báo (cả output lẫn error), hãy chuyển hướng chúng vào thiết bị ảo `/dev/null` - được xem là \"hố đen\" của Linux:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ command > /dev/null 2>&1",
+            "runnableCommand": "echo \"discard me\" > /dev/null"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Bước 5: Tách luồng với lệnh `tee` & Chuyển hướng đầu vào `<`",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Toán tử `>` đưa toàn bộ output vào tệp, nghĩa là bạn sẽ không thấy gì trên màn hình terminal. Nếu bạn vừa muốn theo dõi kết quả trực tiếp, vừa muốn lưu lại vào tệp, hãy sử dụng lệnh `tee` (giống như cút nối chữ T chia đôi dòng nước):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls /etc | tee etc_listing.txt\n(kết quả vừa hiện trên terminal, vừa được lưu vào etc_listing.txt)",
+            "runnableCommand": "ls /etc | tee etc_listing.txt"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Để nối thêm vào tệp khi dùng `tee`, hãy thêm tùy chọn `-a` (`tee -a filename`)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Cuối cùng, toán tử `<` (Input Redirection) cho phép một lệnh đọc dữ liệu đầu vào (`stdin`) trực tiếp từ một tệp tin thay vì chờ người dùng gõ từ bàn phím:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ wc -w < greetings.txt\n13",
+            "runnableCommand": "wc -w < greetings.txt"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "q3",
+        "question": "Câu lệnh nào sau đây vừa hiển thị kết quả ra màn hình terminal, vừa lưu kết quả vào tệp log.txt?",
+        "options": [
+          { "text": "ls | tee log.txt", "isCode": true },
+          { "text": "ls > log.txt", "isCode": true },
+          { "text": "ls < log.txt", "isCode": true },
+          { "text": "ls 2> log.txt", "isCode": true }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `tee` hoạt động như một cút nối chữ T, nhân đôi luồng dữ liệu để vừa in ra màn hình vừa ghi vào tệp."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành tương tác: 5 bước làm chủ I/O Redirection (LabEx #590840)",
+      "handsOn": [
+        {
+          "id": "lab-io-redirection",
+          "title": "Thực hành điều khiển luồng dữ liệu I/O trên CentOS 9",
+          "description": "Thực hiện lần lượt 5 bài tập thực hành chuyển hướng dữ liệu chuẩn giáo trình CompTIA Linux+ và LabEx.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "io-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Chuyển hướng Standard Output với toán tử >",
+              "description": "Sử dụng lệnh echo và toán tử > để tạo tệp greetings.txt với dòng chào mừng đầu tiên.",
+              "runnableCommand": "echo \"Hello, this is the first line.\" > greetings.txt",
+              "buttonLabel": "Chạy echo ... > greetings.txt"
+            },
+            {
+              "id": "io-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Nối thêm dữ liệu với toán tử >>",
+              "description": "Nối thêm dòng thứ 2 vào greetings.txt và ghi nhận mốc thời gian hệ thống vào activity.log.",
+              "runnableCommand": "echo \"This is the second line, appended.\" >> greetings.txt && date >> activity.log",
+              "buttonLabel": "Chạy echo ... >> & date"
+            },
+            {
+              "id": "io-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Chuyển hướng Standard Error với 2>",
+              "description": "Cố tình truy cập một thư mục không tồn tại và chuyển hướng toàn bộ thông báo lỗi vào error.txt.",
+              "runnableCommand": "ls /nonexistent_folder 2> error.txt",
+              "buttonLabel": "Chạy ls ... 2> error.txt"
+            },
+            {
+              "id": "io-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Chuyển hướng đồng thời cả stdout và stderr",
+              "description": "Sử dụng toán tử &> để chuyển cả kết quả thành công và thông báo lỗi vào chung một tệp output.txt.",
+              "runnableCommand": "ls -d /root /nonexistent_folder &> output.txt",
+              "buttonLabel": "Chạy ls ... &> output.txt"
+            },
+            {
+              "id": "io-task-5",
+              "stepNumber": 5,
+              "title": "Bước 5: Tách luồng với tee và chuyển hướng stdin với <",
+              "description": "Sử dụng lệnh tee để ghi danh sách /etc vào etc_listing.txt, sau đó đếm số từ trong greetings.txt bằng toán tử <.",
+              "runnableCommand": "ls /etc | tee etc_listing.txt && wc -w < greetings.txt",
+              "buttonLabel": "Chạy tee & wc -w <"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Tổng kết bài học: Bảng tra cứu toán tử chuyển hướng I/O",
+      "takeaways": [
+        {
+          "text": "Nắm vững 3 File Descriptor mặc định: `0` (stdin), `1` (stdout), `2` (stderr).",
+          "enText": "Master the 3 standard file descriptors: 0 (stdin), 1 (stdout), 2 (stderr)."
+        },
+        {
+          "text": "Sử dụng `>` để tạo mới/ghi đè và `>>` để nối thêm dữ liệu mà không làm mất nội dung cũ.",
+          "enText": "Use > to overwrite and >> to append output."
+        },
+        {
+          "text": "Sử dụng `2>` và `2>>` để tách biệt thông báo lỗi ra tệp log chẩn đoán chuyên dụng.",
+          "enText": "Use 2> and 2>> to capture error messages separately."
+        },
+        {
+          "text": "Sử dụng `&>` hoặc `> file 2>&1` để gom toàn bộ dữ liệu ra một tệp duy nhất, hoặc hủy bằng `/dev/null`.",
+          "enText": "Use &> to combine streams or redirect to /dev/null to discard output."
+        },
+        {
+          "text": "Sử dụng `tee` để vừa xem trên terminal vừa ghi tệp, và `<` để nạp dữ liệu từ tệp vào lệnh.",
+          "enText": "Use tee to split output and < to redirect standard input."
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ interface LinuxJourneyHomeProps {
   theme: 'dark' | 'light';
   onToggleTheme?: () => void;
   onSelectModule: (module: CourseModule) => void;
+  onNavigateChallenges?: () => void;
   onSelectLabDirectly?: (module: CourseModule, lab: LabDefinition) => void;
   onOpenFileBrowser: () => void;
   onOpenGuide: () => void;
@@ -20,6 +21,7 @@ export const LinuxJourneyHome: React.FC<LinuxJourneyHomeProps> = ({
   completedLabIds,
   theme,
   onSelectModule,
+  onNavigateChallenges,
   onOpenFileBrowser,
   onOpenGuide,
 }) => {
@@ -69,7 +71,7 @@ export const LinuxJourneyHome: React.FC<LinuxJourneyHomeProps> = ({
                 Learn
               </button>
               <button
-                onClick={() => onSelectModule(modules[1] || modules[0])}
+                onClick={onNavigateChallenges}
                 className={`transition-colors cursor-pointer ${
                   isDark
                     ? 'text-slate-300 hover:text-white'

@@ -1,0 +1,345 @@
+{
+  "id": 4,
+  "slug": "ls",
+  "category": "Command Line",
+  "lessonNumber": 4,
+  "title": "ls (Liệt kê tệp tin và thư mục)",
+  "subtitle": "Tìm hiểu cách sử dụng lệnh ls và các tùy chọn để kiểm tra tệp tin, xem tệp ẩn, thông tin chi tiết và sắp xếp danh sách.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Cách sử dụng cơ bản của lệnh ls",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi đã biết cách di chuyển qua lại trong hệ thống tệp tin, làm thế nào để chúng ta biết được có những gì bên trong một thư mục? Lệnh `ls` (viết tắt của List) được dùng để liệt kê danh sách các tệp tin và thư mục, giúp bạn kiểm tra vị trí hiện tại hoặc bất kỳ đường dẫn nào khác."
+        },
+        {
+          "type": "paragraph",
+          "text": "Theo mặc định, lệnh `ls` sẽ liệt kê các tệp tin và thư mục nằm trong thư mục làm việc hiện tại của bạn. Tuy nhiên, bạn cũng có thể chỉ định một đường dẫn cụ thể để xem nội dung của một thư mục khác:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls\n$ ls /home/pete",
+            "runnableCommand": "ls\nls /home/pete"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn cũng có thể chỉ định đường dẫn tới một tệp tin cụ thể để kiểm tra sự tồn tại của tệp đó:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls /etc/hosts\n/etc/hosts",
+            "runnableCommand": "ls /etc/hosts"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "q1",
+        "question": "Câu lệnh nào sau đây liệt kê nội dung của thư mục `/home/pete` mà không cần phải chuyển vị trí đứng vào thư mục đó?",
+        "options": [
+          { "text": "ls /home/pete", "isCode": true },
+          { "text": "cd /home/pete", "isCode": true },
+          { "text": "pwd /home/pete", "isCode": true }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Bạn có thể truyền trực tiếp đường dẫn vào lệnh `ls /home/pete` để xem nội dung mà không cần chuyển thư mục bằng `cd`."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Xem các tệp tin ẩn (Viewing Hidden Files)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Không phải mọi tệp tin trong một thư mục đều hiển thị theo mặc định. Trong Linux, các tệp tin có tên bắt đầu bằng dấu chấm (`.`) được gọi là tệp tin ẩn (dotfiles). Bạn có thể xem chúng bằng tùy chọn `-a` (viết tắt của all):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls -a\n.  ..  .bashrc  Documents  Pictures",
+            "runnableCommand": "ls -a"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Các tệp tin dotfiles luôn bị ẩn theo mặc định và thường được dùng để lưu trữ cấu hình hệ thống hoặc môi trường người dùng, ví dụ như `.bashrc`."
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "q2",
+        "question": "Câu lệnh nào sau đây hiển thị toàn bộ các tệp tin trong thư mục, bao gồm cả các tệp tin ẩn?",
+        "options": [
+          { "text": "ls -l", "isCode": true },
+          { "text": "ls -r", "isCode": true },
+          { "text": "ls -a", "isCode": true }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Tùy chọn `-a` (all) chỉ định lệnh `ls` hiển thị tất cả các tệp tin, kể cả tệp ẩn bắt đầu bằng dấu chấm."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Xem thông tin chi tiết (Long format & Human-readable)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Một tùy chọn quan trọng khác của `ls` là `-l` (long format). Tùy chọn này hiển thị đầy đủ thông tin chi tiết bao gồm: quyền hạn tệp tin (permissions), số liên kết cứng, chủ sở hữu (owner), nhóm sở hữu (group), dung lượng (size), thời gian chỉnh sửa lần cuối (modification time) và tên tệp tin:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "pete@icebox:~$ ls -l\ntotal 80\ndrwxr-x--- 7 pete penguingroup   4096 Nov 20 16:37 Desktop\ndrwxr-x--- 2 pete penguingroup   4096 Oct 19 10:46 Documents\ndrwxr-x--- 4 pete penguingroup   4096 Nov 20 09:30 Downloads\ndrwxr-x--- 2 pete penguingroup   4096 Oct  7 13:13 Music\ndrwxr-x--- 2 pete penguingroup   4096 Sep 21 14:02 Pictures\ndrwxr-x--- 2 pete penguingroup   4096 Jul 27 12:41 Public\ndrwxr-x--- 2 pete penguingroup   4096 Jul 27 12:41 Templates\ndrwxr-x--- 2 pete penguingroup   4096 Jul 27 12:41 Videos",
+            "runnableCommand": "ls -l"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Để dung lượng tệp tin hiển thị trực quan và dễ đọc hơn (dạng `K`, `M`, `G` thay vì số byte dài), hãy thêm tùy chọn `-h` (human-readable):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls -lh",
+            "runnableCommand": "ls -lh"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "q3",
+        "question": "Câu lệnh nào sau đây hiển thị danh sách chi tiết các tệp kèm kích thước ở định dạng dễ đọc (human-readable)?",
+        "options": [
+          { "text": "ls -la", "isCode": true },
+          { "text": "ls -lh", "isCode": true },
+          { "text": "ls -ltr", "isCode": true }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `ls -lh` kết hợp tùy chọn xem chi tiết `-l` và tùy chọn định dạng dung lượng dễ đọc `-h`."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Sắp xếp theo thời gian & Đảo ngược thứ tự",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Đôi khi bạn muốn thay đổi thứ tự sắp xếp danh sách tệp tin. Tùy chọn `-r` (reverse) sẽ đảo ngược thứ tự hiển thị của các tệp tin và thư mục:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls -r",
+            "runnableCommand": "ls -r"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể sắp xếp các tệp theo thời gian sửa đổi gần nhất với tùy chọn `-t`, sau đó kết hợp đảo ngược với `-r` để đưa các tệp vừa sửa đổi mới nhất xuống dưới cùng màn hình (rất tiện quan sát):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls -lt\n$ ls -ltr",
+            "runnableCommand": "ls -lt\nls -ltr"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "q4",
+        "question": "Câu lệnh nào sắp xếp tệp theo thời gian sửa đổi và đặt các mục mới nhất ở cuối danh sách?",
+        "options": [
+          { "text": "ls -ltr", "isCode": true },
+          { "text": "ls -lt", "isCode": true },
+          { "text": "ls -lr", "isCode": true }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `ls -ltr` sắp xếp theo thời gian (`-t`) rồi đảo ngược thứ tự (`-r`), giúp tệp mới nhất xuất hiện ở dòng cuối cùng."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "content",
+      "title": "Kết hợp cờ lệnh & Danh mục tùy chọn phổ biến",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Các câu lệnh Linux có các cờ lệnh (flags / options) để bổ sung chức năng. Bạn có thể kết hợp nhiều cờ lệnh vào cùng một lệnh duy nhất như `ls -la`. Thứ tự các cờ lệnh thường không quan trọng, vì vậy `ls -la` và `ls -al` hoạt động hoàn toàn như nhau:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls -la",
+            "runnableCommand": "ls -la"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Các tổ hợp cờ lệnh thông dụng thường gặp:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls -lh\n$ ls -la\n$ ls -ltr",
+            "runnableCommand": "ls -lh\nls -la\nls -ltr"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bảng tổng hợp các tùy chọn thông dụng của lệnh `ls`:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`-a`: Hiển thị toàn bộ tệp tin, bao gồm cả các tệp tin ẩn.",
+            "`-l`: Sử dụng định dạng danh sách chi tiết (long format).",
+            "`-h`: Hiển thị dung lượng ở định dạng dễ đọc (khi kết hợp với `-l`).",
+            "`-r`: Đảo ngược thứ tự sắp xếp danh sách.",
+            "`-t`: Sắp xếp các tệp theo thời gian sửa đổi gần nhất.",
+            "`-S`: Sắp xếp các tệp theo dung lượng từ lớn đến nhỏ.",
+            "`-d`: Liệt kê chính bản thân thư mục thay vì liệt kê nội dung bên trong nó."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Nhiều hệ thống Linux hiển thị đầu ra lệnh `ls` với các màu sắc khác nhau cho từng loại tệp (ví dụ màu xanh dương cho thư mục, màu xanh lá cho tệp thực thi). Điều này thường do cấu hình alias `ls --color=auto` hoặc biến môi trường quy định."
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "q5",
+        "question": "Câu lệnh nào sau đây liệt kê thông tin của chính thư mục `projects/` thay vì hiển thị nội dung bên trong nó?",
+        "options": [
+          { "text": "ls -d projects/", "isCode": true },
+          { "text": "ls projects/", "isCode": true },
+          { "text": "cd projects/", "isCode": true }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Tùy chọn `-d` thông báo cho lệnh `ls` liệt kê chính bản thân thư mục được chỉ định thay vì đi vào bên trong."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác: Liệt kê nội dung với lệnh ls",
+      "handsOn": [
+        {
+          "id": "ls-lab-1",
+          "title": "1. Thực hành sử dụng lệnh ls trên CentOS 9",
+          "description": "Luyện tập sử dụng lệnh ls để phân tích nội dung thư mục, xem tệp ẩn, định dạng dung lượng chi tiết và các kỹ thuật sắp xếp.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "ls-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Liệt kê nội dung thư mục hiện tại",
+              "description": "Chạy lệnh ls cơ bản để xem danh sách tệp tin và thư mục.",
+              "runnableCommand": "ls",
+              "buttonLabel": "Chạy ls"
+            },
+            {
+              "id": "ls-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Xem toàn bộ tệp tin bao gồm cả tệp ẩn",
+              "description": "Sử dụng tùy chọn -a để xem cả các tệp cấu hình ẩn như .bashrc.",
+              "runnableCommand": "ls -a",
+              "buttonLabel": "Chạy ls -a"
+            },
+            {
+              "id": "ls-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Hiển thị danh sách chi tiết với dung lượng dễ đọc",
+              "description": "Chạy lệnh ls -lh để kiểm tra quyền hạn, owner và kích thước tệp.",
+              "runnableCommand": "ls -lh",
+              "buttonLabel": "Chạy ls -lh"
+            },
+            {
+              "id": "ls-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Sắp xếp danh sách tệp theo thời gian sửa đổi đảo ngược",
+              "description": "Sử dụng tùy chọn kết hợp -ltr để đưa các tệp mới nhất xuống cuối.",
+              "runnableCommand": "ls -ltr",
+              "buttonLabel": "Chạy ls -ltr"
+            },
+            {
+              "id": "ls-task-5",
+              "stepNumber": 5,
+              "title": "Bước 5: Liệt kê bản thân thư mục với tùy chọn -d",
+              "description": "Chạy lệnh ls -ld để kiểm tra thông tin thư mục thay vì nội dung bên trong.",
+              "runnableCommand": "ls -ld /home/pete",
+              "buttonLabel": "Chạy ls -ld"
+            }
+          ]
+        },
+        {
+          "id": "ls-lab-2",
+          "title": "2. Khám phá các thư mục hệ thống /etc và /var",
+          "description": "Luyện tập kiểm tra danh sách tệp tin trong các thư mục hệ thống mà không cần chuyển vùng đứng.",
+          "runnableCommand": "ls /etc\nls -lh /var",
+          "buttonLabel": "Kiểm tra /etc & /var"
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh ls",
+      "takeaways": [
+        { "text": "Liệt kê nội dung của thư mục làm việc hiện tại hoặc một đường dẫn bất kỳ." },
+        { "text": "Hiển thị toàn bộ tệp tin ẩn với tùy chọn `-a`." },
+        { "text": "Xem thông tin chi tiết và dung lượng dễ đọc với tùy chọn `-lh`." },
+        { "text": "Sắp xếp danh sách tệp theo thời gian sửa đổi đảo ngược với `-ltr`." },
+        { "text": "Liệt kê chính bản thân thư mục với tùy chọn `-d`." }
+      ]
+    }
+  ]
+}

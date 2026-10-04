@@ -1,0 +1,335 @@
+{
+  "id": 5,
+  "slug": "touch",
+  "category": "Command Line",
+  "lessonNumber": 5,
+  "title": "touch (Tạo tệp rỗng & Cập nhật mốc thời gian)",
+  "subtitle": "Tìm hiểu cách tạo các tệp tin rỗng và quản lý mốc thời gian (timestamps) của tệp tin với lệnh touch.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Tạo tệp tin rỗng với lệnh touch",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `touch` trong Linux có chức năng chính là thay đổi các mốc thời gian (timestamps) của tệp tin. Ngoài ra, nó cũng thường xuyên được sử dụng như một cách nhanh chóng và đơn giản nhất để tạo ra một hoặc nhiều tệp tin rỗng."
+        },
+        {
+          "type": "paragraph",
+          "text": "Cú pháp cơ bản:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "touch [OPTIONS] FILE..."
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Nếu tệp tin được chỉ định chưa tồn tại, lệnh `touch` sẽ tạo mới tệp tin đó với dung lượng 0 byte (tệp rỗng):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ touch mysuperduperfile",
+            "runnableCommand": "touch mysuperduperfile"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể tạo cùng lúc nhiều tệp tin trong một câu lệnh duy nhất bằng cách liệt kê tên của từng tệp cách nhau bởi khoảng trắng:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ touch file1.txt file2.txt file3.log",
+            "runnableCommand": "touch file1.txt file2.txt file3.log"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Lệnh `touch` rất hữu ích để tạo các tệp giữ chỗ (placeholders). Tuy nhiên, `touch` không thêm nội dung văn bản vào tệp tin. Khi cần tạo tệp có nội dung, hãy sử dụng trình soạn thảo văn bản (như `nano`, `vi`) hoặc các lệnh chuyển hướng dữ liệu."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "q1",
+        "question": "Câu lệnh nào sau đây tạo ra ba tệp tin rỗng có tên lần lượt là `one`, `two`, và `three` nếu chúng chưa tồn tại?",
+        "options": [
+          { "text": "touch \"one two three\"", "isCode": true },
+          { "text": "mkdir one two three", "isCode": true },
+          { "text": "touch one two three", "isCode": true }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh `touch one two three` liệt kê ba tên tệp cách nhau bằng khoảng trắng, tạo ra ba tệp tin riêng biệt."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Cập nhật mốc thời gian của tệp (File Timestamps)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Mỗi tệp tin trong Linux lưu trữ nhiều mốc thời gian khác nhau. Theo mặc định, khi bạn chạy lệnh `touch` trên một tệp tin đã tồn tại từ trước, nó sẽ cập nhật cả thời gian truy cập (access time - atime) và thời gian sửa đổi (modification time - mtime) về thời gian hiện tại của hệ thống. Toàn bộ nội dung bên trong tệp tin được giữ nguyên vẹn."
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể quan sát sự thay đổi của thời gian sửa đổi trước và sau khi chạy lệnh bằng `ls -l`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls -l mysuperduperfile\n$ touch mysuperduperfile\n$ ls -l mysuperduperfile",
+            "runnableCommand": "ls -l mysuperduperfile\ntouch mysuperduperfile\nls -l mysuperduperfile"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Đầu ra của lệnh `ls -l` thông thường hiển thị thời gian sửa đổi (mtime), không phải thời gian truy cập (atime)."
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "q2",
+        "question": "Điều gì sẽ xảy ra khi bạn chạy lệnh `touch report.txt` trong trường hợp tệp `report.txt` đã tồn tại từ trước?",
+        "options": [
+          { "text": "Các mốc thời gian của tệp được cập nhật mà không làm thay đổi nội dung bên trong." },
+          { "text": "Toàn bộ nội dung tệp bị xóa sạch và tệp trở thành tệp rỗng." },
+          { "text": "Lệnh báo lỗi thất bại vì tên tệp đã được sử dụng." }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `touch` chỉ cập nhật mốc thời gian của tệp hiện có mà không làm mất hay thay đổi bất kỳ nội dung nào bên trong."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Kiểm soát mốc thời gian cần cập nhật (-a và -m)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu bạn chỉ muốn cập nhật riêng biệt một mốc thời gian cụ thể thay vì cả hai, hãy sử dụng các tùy chọn sau:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`-a`: Chỉ thay đổi thời gian truy cập (access time).",
+            "`-m`: Chỉ thay đổi thời gian sửa đổi (modification time)."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ touch -a notes.txt\n$ touch -m notes.txt",
+            "runnableCommand": "touch -a notes.txt\ntouch -m notes.txt"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "q3",
+        "question": "Câu lệnh nào sau đây chỉ cập nhật riêng thời gian sửa đổi (modification time) của tệp `notes.txt`?",
+        "options": [
+          { "text": "touch -a notes.txt", "isCode": true },
+          { "text": "touch -m notes.txt", "isCode": true },
+          { "text": "touch -c notes.txt", "isCode": true }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Tùy chọn `-m` (modification) chỉ cập nhật thời gian sửa đổi của tệp."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Thiết lập thời gian cụ thể & Sao chép mốc thời gian",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Tùy chọn `-d` cho phép bạn chỉ định một chuỗi ngày giờ cụ thể thay vì lấy thời gian hiện tại của hệ thống:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ touch -d \"2026-06-23 12:30:00\" mysuperduperfile",
+            "runnableCommand": "touch -d \"2026-06-23 12:30:00\" mysuperduperfile"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Để sao chép mốc thời gian truy cập và sửa đổi từ một tệp tin tham chiếu có sẵn sang tệp tin khác, hãy dùng tùy chọn `-r` (reference):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ touch -r file1.txt file2.txt",
+            "runnableCommand": "touch -r file1.txt file2.txt"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Ở ví dụ trên, `file1.txt` là tệp nguồn cung cấp mốc thời gian, còn `file2.txt` là tệp được áp dụng mốc thời gian đó. Ngoài ra, tùy chọn `-t` cũng là một cách thiết lập thời gian bằng chuỗi số rút gọn (ví dụ: `[[CC]YY]MMDDhhmm[.ss]`)."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "q4",
+        "question": "Câu lệnh nào sau đây sao chép mốc thời gian của tệp `source.txt` và áp dụng sang cho `target.txt`?",
+        "options": [
+          { "text": "touch -r source.txt target.txt", "isCode": true },
+          { "text": "touch -r target.txt source.txt", "isCode": true },
+          { "text": "touch -d source.txt target.txt", "isCode": true }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Cú pháp `touch -r <file_tham_chieu> <file_dich>` lấy mốc thời gian từ `source.txt` gán sang cho `target.txt`."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "content",
+      "title": "Tránh tự động tạo tệp mới với tùy chọn -c",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bình thường, `touch` sẽ tự động tạo một tệp tin mới nếu tệp đó chưa tồn tại. Thêm tùy chọn `-c` (hoặc `--no-create`) khi bạn chỉ muốn cập nhật thời gian nếu tệp đã có sẵn, và tuyệt đối không tạo tệp mới nếu tệp bị thiếu:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ touch -c existing-file.txt",
+            "runnableCommand": "touch -c existing-file.txt"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Nếu `existing-file.txt` chưa có trên hệ thống, câu lệnh trên sẽ bỏ qua và không tạo ra tệp này. Tính năng này đặc biệt hữu dụng trong các kịch bản shell script khi bạn chỉ muốn cập nhật timestamp mà không vô tình tạo ra các tệp rác."
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "q5",
+        "question": "Câu lệnh nào cập nhật mốc thời gian của `status.log` nếu tệp đã tồn tại, nhưng không tạo mới tệp nếu tệp chưa có?",
+        "options": [
+          { "text": "touch -a status.log", "isCode": true },
+          { "text": "touch -m status.log", "isCode": true },
+          { "text": "touch -c status.log", "isCode": true }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Tùy chọn `-c` (no-create) ngăn lệnh `touch` tạo tệp tin mới khi tệp chưa tồn tại."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác với lệnh touch",
+      "handsOn": [
+        {
+          "id": "touch-lab-1",
+          "title": "1. Thực hành tạo tệp và kiểm tra timestamp",
+          "description": "Luyện tập tạo tệp tin rỗng trong các thư mục và kiểm tra mốc thời gian cập nhật.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "touch-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Tạo tệp rỗng server.log trong thư mục /tmp",
+              "description": "Chạy lệnh touch để tạo tệp mới /tmp/server.log.",
+              "runnableCommand": "touch /tmp/server.log",
+              "buttonLabel": "Tạo tệp /tmp/server.log"
+            },
+            {
+              "id": "touch-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tạo tệp deploy.txt và kiểm tra chi tiết",
+              "description": "Tạo tệp deploy.txt và dùng ls -l để xác nhận kích thước 0 byte.",
+              "runnableCommand": "touch deploy.txt\nls -l deploy.txt",
+              "buttonLabel": "Tạo & Kiểm tra"
+            },
+            {
+              "id": "touch-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Cập nhật timestamp của tệp đã có",
+              "description": "Chạy touch lại trên deploy.txt và so sánh thời gian sửa đổi mới.",
+              "runnableCommand": "touch deploy.txt\nls -l deploy.txt",
+              "buttonLabel": "Cập nhật timestamp"
+            },
+            {
+              "id": "touch-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Tạo nhiều tệp tin cùng lúc",
+              "description": "Tạo 3 tệp tin test1.txt, test2.txt, test3.log cùng một lúc.",
+              "runnableCommand": "touch test1.txt test2.txt test3.log\nls -l test*.txt",
+              "buttonLabel": "Tạo nhiều tệp"
+            },
+            {
+              "id": "touch-task-5",
+              "stepNumber": 5,
+              "title": "Bước 5: Thử nghiệm tùy chọn -c (no-create)",
+              "description": "Chạy touch -c trên một tệp không tồn tại và xác nhận nó không được tạo.",
+              "runnableCommand": "touch -c non_existing_file.txt\nls non_existing_file.txt",
+              "buttonLabel": "Thử nghiệm touch -c"
+            }
+          ]
+        },
+        {
+          "id": "touch-lab-2",
+          "title": "2. Thiết lập thời gian và sao chép mốc thời gian",
+          "description": "Luyện tập sử dụng tùy chọn -d để đặt ngày giờ tùy chỉnh và -r để sao chép timestamp giữa hai tệp.",
+          "runnableCommand": "touch -d \"2026-01-01 00:00:00\" archive.log\nls -l archive.log\ntouch -r archive.log backup.log\nls -l backup.log",
+          "buttonLabel": "Thực hành -d & -r"
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh touch",
+      "takeaways": [
+        { "text": "Tạo một hoặc nhiều tệp tin rỗng một cách nhanh chóng." },
+        { "text": "Cập nhật mốc thời gian mà không làm thay đổi nội dung bên trong tệp." },
+        { "text": "Lựa chọn cập nhật riêng thời gian truy cập (`-a`) hoặc thời gian sửa đổi (`-m`)." },
+        { "text": "Thiết lập mốc thời gian tùy ý (`-d`) hoặc sao chép từ tệp tham chiếu (`-r`)." },
+        { "text": "Ngăn chặn việc vô tình tạo tệp mới với tùy chọn `-c`." }
+      ]
+    }
+  ]
+}

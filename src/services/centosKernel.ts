@@ -28,7 +28,7 @@ export class CentOSKernel {
   public firewallServices: Set<string> = new Set(['cockpit', 'dhcpv6-client', 'ssh']);
   public firewallPorts: Set<string> = new Set();
 
-  // Callback to open interactive editor in UI if user types `vi` or `nano`
+  // Callback used by the terminal to start an in-terminal editor session.
   public onOpenEditor?: (filePath: string, content: string) => void;
 
   constructor() {
@@ -322,34 +322,116 @@ export class CentOSKernel {
     return this.executePipelineOrRedirect(line);
   }
 
-  private async executePipelineOrRedirect(line: string): Promise<CommandResult> {
-    // Redirection check: >> or >
-    const appendMatch = line.match(/^(.*?)\s*>>\s*(\S+)\s*$/);
-    if (appendMatch) {
-      const [, cmdPart, targetFile] = appendMatch;
-      const res = await this.executePipeline(cmdPart.trim());
-      const resolvedPath = this.vfs.resolvePath(this.cwd, targetFile);
-      this.vfs.writeFile(resolvedPath, (res.stdout ? res.stdout + '\n' : ''), { append: true });
-      return { stdout: '', stderr: res.stderr, exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
-    }
-
-    const overwriteMatch = line.match(/^(.*?)\s*>\s*(\S+)\s*$/);
-    if (overwriteMatch) {
-      const [, cmdPart, targetFile] = overwriteMatch;
-      const res = await this.executePipeline(cmdPart.trim());
-      const resolvedPath = this.vfs.resolvePath(this.cwd, targetFile);
-      this.vfs.writeFile(resolvedPath, (res.stdout ? res.stdout + '\n' : ''), { append: false });
-      return { stdout: '', stderr: res.stderr, exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
-    }
-
-    return this.executePipeline(line);
+  private writeRedirectOutput(targetFile: string, rawContent: string, append: boolean): void {
+    const resolvedPath = this.vfs.resolvePath(this.cwd, targetFile);
+    const content = rawContent ? (rawContent.endsWith('\n') ? rawContent : rawContent + '\n') : '';
+    this.vfs.writeFile(resolvedPath, content, { append });
   }
 
-  private async executePipeline(line: string): Promise<CommandResult> {
+  private async executePipelineOrRedirect(line: string): Promise<CommandResult> {
+    let initialStdin = '';
+    let cmdWithoutInput = line;
+
+    // 1. Chuyển hướng đầu vào (stdin): `< file`
+    const inputMatch = cmdWithoutInput.match(/(?:^|\s+)<\s*([^\s<>|&]+)/);
+    if (inputMatch) {
+      const sourceFile = inputMatch[1].trim();
+      const resolvedSource = this.vfs.resolvePath(this.cwd, sourceFile);
+      if (!this.vfs.exists(resolvedSource)) {
+        return {
+          stdout: '',
+          stderr: `bash: ${sourceFile}: No such file or directory`,
+          exitCode: 1,
+          cwd: this.cwd,
+          currentUser: this.currentUser,
+        };
+      }
+      initialStdin = this.vfs.readFile(resolvedSource) ?? '';
+      cmdWithoutInput = cmdWithoutInput.replace(inputMatch[0], ' ').trim();
+    }
+
+    // 2. Tách cả stdout và stderr ra 2 file riêng biệt: `cmd > file1 2> file2`
+    const separateMatch = cmdWithoutInput.match(/^(.*?)\s*>\s*(\S+)\s+2>\s*(\S+)\s*$/);
+    if (separateMatch) {
+      const [, subCmd, outTarget, errTarget] = separateMatch;
+      const res = await this.executePipeline(subCmd.trim(), initialStdin);
+      if (res.stdout) this.writeRedirectOutput(outTarget, res.stdout, false);
+      if (res.stderr) this.writeRedirectOutput(errTarget, res.stderr, false);
+      return { stdout: '', stderr: '', exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    // 3. Cú pháp truyền thống chuyển cả 2 luồng: `cmd > file 2>&1` hoặc `cmd >> file 2>&1`
+    const tradCombinedMatch = cmdWithoutInput.match(/^(.*?)\s*(>>|>)\s*(\S+)\s+2>&1\s*$/);
+    if (tradCombinedMatch) {
+      const [, subCmd, op, targetFile] = tradCombinedMatch;
+      const isAppend = op === '>>';
+      const res = await this.executePipeline(subCmd.trim(), initialStdin);
+      const combined = (res.stdout ? res.stdout + '\n' : '') + (res.stderr ? res.stderr + '\n' : '');
+      this.writeRedirectOutput(targetFile, combined, isAppend);
+      return { stdout: '', stderr: '', exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    // 4. Cú pháp hiện đại chuyển cả 2 luồng: `cmd &>> file` hoặc `cmd &> file`
+    const bothAppendMatch = cmdWithoutInput.match(/^(.*?)\s*&>>\s*(\S+)\s*$/);
+    if (bothAppendMatch) {
+      const [, subCmd, targetFile] = bothAppendMatch;
+      const res = await this.executePipeline(subCmd.trim(), initialStdin);
+      const combined = (res.stdout ? res.stdout + '\n' : '') + (res.stderr ? res.stderr + '\n' : '');
+      this.writeRedirectOutput(targetFile, combined, true);
+      return { stdout: '', stderr: '', exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    const bothOverwriteMatch = cmdWithoutInput.match(/^(.*?)\s*&>\s*(\S+)\s*$/);
+    if (bothOverwriteMatch) {
+      const [, subCmd, targetFile] = bothOverwriteMatch;
+      const res = await this.executePipeline(subCmd.trim(), initialStdin);
+      const combined = (res.stdout ? res.stdout + '\n' : '') + (res.stderr ? res.stderr + '\n' : '');
+      this.writeRedirectOutput(targetFile, combined, false);
+      return { stdout: '', stderr: '', exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    // 5. Chuyển hướng stderr: `cmd 2>> file` hoặc `cmd 2> file`
+    const errAppendMatch = cmdWithoutInput.match(/^(.*?)\s*2>>\s*(\S+)\s*$/);
+    if (errAppendMatch) {
+      const [, subCmd, targetFile] = errAppendMatch;
+      const res = await this.executePipeline(subCmd.trim(), initialStdin);
+      if (res.stderr) this.writeRedirectOutput(targetFile, res.stderr, true);
+      return { stdout: res.stdout, stderr: '', exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    const errOverwriteMatch = cmdWithoutInput.match(/^(.*?)\s*2>\s*(\S+)\s*$/);
+    if (errOverwriteMatch) {
+      const [, subCmd, targetFile] = errOverwriteMatch;
+      const res = await this.executePipeline(subCmd.trim(), initialStdin);
+      if (res.stderr) this.writeRedirectOutput(targetFile, res.stderr, false);
+      return { stdout: res.stdout, stderr: '', exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    // 6. Chuyển hướng stdout: `cmd >> file` hoặc `cmd > file`
+    const appendMatch = cmdWithoutInput.match(/^(.*?)\s*>>\s*(\S+)\s*$/);
+    if (appendMatch) {
+      const [, subCmd, targetFile] = appendMatch;
+      const res = await this.executePipeline(subCmd.trim(), initialStdin);
+      if (res.stdout) this.writeRedirectOutput(targetFile, res.stdout, true);
+      return { stdout: '', stderr: res.stderr, exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    const overwriteMatch = cmdWithoutInput.match(/^(.*?)\s*>\s*(\S+)\s*$/);
+    if (overwriteMatch) {
+      const [, subCmd, targetFile] = overwriteMatch;
+      const res = await this.executePipeline(subCmd.trim(), initialStdin);
+      this.writeRedirectOutput(targetFile, res.stdout ? res.stdout : '', false);
+      return { stdout: '', stderr: res.stderr, exitCode: res.exitCode, cwd: this.cwd, currentUser: this.currentUser };
+    }
+
+    return this.executePipeline(cmdWithoutInput, initialStdin);
+  }
+
+  private async executePipeline(line: string, initialStdin: string = ''): Promise<CommandResult> {
     const pipeCommands = line.split('|').map(s => s.trim()).filter(Boolean);
     if (pipeCommands.length === 0) return { stdout: '', stderr: '', exitCode: 0 };
 
-    let currentStdin = '';
+    let currentStdin = initialStdin;
     let lastResult: CommandResult = { stdout: '', stderr: '', exitCode: 0 };
 
     for (let i = 0; i < pipeCommands.length; i++) {
@@ -469,6 +551,7 @@ export class CentOSKernel {
       case 'head': return this.cmdHead(cmdArgs, stdin);
       case 'tail': return this.cmdTail(cmdArgs, stdin);
       case 'wc': return this.cmdWc(cmdArgs, stdin);
+      case 'tee': return this.cmdTee(cmdArgs, stdin);
       case 'grep': return this.cmdGrep(cmdArgs, stdin);
       case 'find': return this.cmdFind(cmdArgs);
       case 'echo': return this.cmdEcho(cmdArgs);
@@ -735,6 +818,7 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
 
     const targetPaths = paths.length > 0 ? paths : [this.cwd];
     let outputLines: string[] = [];
+    let errorLines: string[] = [];
 
     for (let i = 0; i < targetPaths.length; i++) {
       const p = targetPaths[i];
@@ -742,7 +826,7 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
       const node = this.vfs.getNode(resolved);
 
       if (!node) {
-        outputLines.push(`ls: cannot access '${p}': No such file or directory`);
+        errorLines.push(`ls: cannot access '${p}': No such file or directory`);
         continue;
       }
 
@@ -779,7 +863,11 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
       }
     }
 
-    return { stdout: outputLines.join('\n'), stderr: '', exitCode: 0 };
+    return {
+      stdout: outputLines.join('\n'),
+      stderr: errorLines.join('\n'),
+      exitCode: errorLines.length > 0 ? 2 : 0,
+    };
   }
 
   private formatLsLine(node: any, human: boolean): string {
@@ -978,6 +1066,16 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     let out = '';
     for (const f of files) {
       const resolved = this.vfs.resolvePath(this.cwd, f);
+      const node = this.vfs.getNode(resolved);
+      if (!node) {
+        return { stdout: out, stderr: `cat: ${f}: No such file or directory`, exitCode: 1 };
+      }
+
+      const groups = this.getUserGroups(this.currentUser);
+      if (!this.vfs.checkPermission(node, this.currentUser, groups, 'read')) {
+        return { stdout: out, stderr: `cat: ${f}: Permission denied`, exitCode: 1 };
+      }
+
       const content = this.vfs.readFile(resolved);
       if (content === null) {
         return { stdout: out, stderr: `cat: ${f}: No such file or directory`, exitCode: 1 };
@@ -1004,9 +1102,19 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
       }
     }
 
-    const text = files.length > 0
-      ? (this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) || '')
-      : stdin;
+    let text = stdin;
+    if (files.length > 0) {
+      const resolved = this.vfs.resolvePath(this.cwd, files[0]);
+      const node = this.vfs.getNode(resolved);
+      if (!node) {
+        return { stdout: '', stderr: `head: cannot open '${files[0]}' for reading: No such file or directory`, exitCode: 1 };
+      }
+      const groups = this.getUserGroups(this.currentUser);
+      if (!this.vfs.checkPermission(node, this.currentUser, groups, 'read')) {
+        return { stdout: '', stderr: `head: cannot open '${files[0]}' for reading: Permission denied`, exitCode: 1 };
+      }
+      text = this.vfs.readFile(resolved) || '';
+    }
 
     const lines = text.split('\n').slice(0, n);
     return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
@@ -1023,9 +1131,19 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
       }
     }
 
-    const text = files.length > 0
-      ? (this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) || '')
-      : stdin;
+    let text = stdin;
+    if (files.length > 0) {
+      const resolved = this.vfs.resolvePath(this.cwd, files[0]);
+      const node = this.vfs.getNode(resolved);
+      if (!node) {
+        return { stdout: '', stderr: `tail: cannot open '${files[0]}' for reading: No such file or directory`, exitCode: 1 };
+      }
+      const groups = this.getUserGroups(this.currentUser);
+      if (!this.vfs.checkPermission(node, this.currentUser, groups, 'read')) {
+        return { stdout: '', stderr: `tail: cannot open '${files[0]}' for reading: Permission denied`, exitCode: 1 };
+      }
+      text = this.vfs.readFile(resolved) || '';
+    }
 
     const lines = text.split('\n');
     const selected = lines.slice(Math.max(0, lines.length - n));
@@ -1069,6 +1187,28 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     if (files.length > 0) parts.push(files[0]);
 
     return { stdout: parts.join(' '), stderr: '', exitCode: 0 };
+  }
+
+  private cmdTee(args: string[], stdin: string): CommandResult {
+    let append = false;
+    const files: string[] = [];
+
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i];
+      if (a === '-a' || a === '--append') {
+        append = true;
+      } else if (!a.startsWith('-')) {
+        files.push(a);
+      }
+    }
+
+    const contentToWrite = stdin ? (stdin.endsWith('\n') ? stdin : stdin + '\n') : '';
+    for (const f of files) {
+      const resolved = this.vfs.resolvePath(this.cwd, f);
+      this.vfs.writeFile(resolved, contentToWrite, { append });
+    }
+
+    return { stdout: stdin, stderr: '', exitCode: 0 };
   }
 
   private cmdGrep(args: string[], stdin: string): CommandResult {
@@ -2664,7 +2804,7 @@ Swap:       2097148           0     2097148`,
 
     if (this.onOpenEditor) {
       this.onOpenEditor(resolved, content);
-      return { stdout: `[Opened ${filename} in Visual Editor modal]`, stderr: '', exitCode: 0 };
+      return { stdout: '', stderr: '', exitCode: 0 };
     }
 
     return { stdout: `[Editor ${editorName} initialized for ${filename}]`, stderr: '', exitCode: 0 };
