@@ -807,6 +807,10 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     const paths: string[] = [];
 
     for (const arg of args) {
+      if (arg.startsWith('--')) {
+        if (arg === '--all') showAll = true;
+        continue;
+      }
       if (arg.startsWith('-')) {
         if (arg.includes('a')) showAll = true;
         if (arg.includes('l')) longFormat = true;
@@ -1221,6 +1225,14 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
 
     for (let i = 0; i < args.length; i++) {
       const a = args[i];
+      if (a.startsWith('--')) {
+        if (a === '--ignore-case') ignoreCase = true;
+        else if (a === '--invert-match') invertMatch = true;
+        else if (a === '--line-number') showLineNum = true;
+        else if (a === '--count') countOnly = true;
+        // Ignore flags like --color, --color=auto, --color=always
+        continue;
+      }
       if (a.startsWith('-')) {
         if (a.includes('i')) ignoreCase = true;
         if (a.includes('v')) invertMatch = true;
