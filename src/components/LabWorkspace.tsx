@@ -73,9 +73,13 @@ export const LabWorkspace: React.FC<LabWorkspaceProps> = ({
   // Toggle guide visibility (collapse/expand to give full screen to VM)
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(true);
 
+  // Toggle between 8-step interactive guide and Challenge verification panel when both exist
+  const [rightPanelTab, setRightPanelTab] = useState<'steps' | 'challenge'>('steps');
+
   // Trigger VM boot loader when lab changes
   useEffect(() => {
     setIsBooting(true);
+    setRightPanelTab('steps');
   }, [currentLab.id]);
 
   // Handle running command from right panel directly into terminal on the left
@@ -360,25 +364,52 @@ export const LabWorkspace: React.FC<LabWorkspaceProps> = ({
             style={{ width: `${guideWidth}px` }}
             className="h-full flex-shrink-0 p-3 bg-[#0d1017] border-l border-[#202738] overflow-hidden flex flex-col z-10"
           >
-            {currentChallenge ? (
-              <ChallengeGuidePanel
-                challenge={currentChallenge}
-                theme={theme}
-                onCheckChallenge={handleCheckLab}
-                onResetChallenge={handleResetLab}
-                onClosePanel={() => setIsGuideOpen(false)}
-              />
-            ) : (
-              <LabExStepGuide
-                lessonDoc={lessonDoc}
-                labDef={currentLab}
-                theme={theme}
-                onRunCommand={handleRunCommand}
-                onCheckLab={handleCheckLab}
-                onClosePanel={() => setIsGuideOpen(false)}
-                onResetLab={handleResetLab}
-              />
+            {currentChallenge && lessonDoc && (
+              <div className="mb-2.5 p-1 rounded-xl bg-[#131824] border border-[#252d40] grid grid-cols-2 gap-1 flex-shrink-0">
+                <button
+                  onClick={() => setRightPanelTab('steps')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    rightPanelTab === 'steps'
+                      ? 'bg-[#1677ff] text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#1a2130]'
+                  }`}
+                >
+                  <span>📖 8 Phần Thực Hành</span>
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('challenge')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    rightPanelTab === 'challenge'
+                      ? 'bg-orange-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#1a2130]'
+                  }`}
+                >
+                  <span>🔥 Chấm Điểm Challenge</span>
+                </button>
+              </div>
             )}
+
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+              {currentChallenge && (!lessonDoc || rightPanelTab === 'challenge') ? (
+                <ChallengeGuidePanel
+                  challenge={currentChallenge}
+                  theme={theme}
+                  onCheckChallenge={handleCheckLab}
+                  onResetChallenge={handleResetLab}
+                  onClosePanel={() => setIsGuideOpen(false)}
+                />
+              ) : (
+                <LabExStepGuide
+                  lessonDoc={lessonDoc}
+                  labDef={currentLab}
+                  theme={theme}
+                  onRunCommand={handleRunCommand}
+                  onCheckLab={handleCheckLab}
+                  onClosePanel={() => setIsGuideOpen(false)}
+                  onResetLab={handleResetLab}
+                />
+              )}
+            </div>
           </section>
         )}
       </main>

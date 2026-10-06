@@ -735,7 +735,7 @@ export class CentOSKernel {
       case 'systemctl': return this.cmdSystemctl(cmdArgs);
       case 'service': return this.cmdService(cmdArgs);
       case 'ps': return this.cmdPs(cmdArgs);
-      case 'top': return this.cmdTop();
+      case 'top': return this.cmdTop(cmdArgs);
       case 'kill': return this.cmdKill(cmdArgs);
       case 'pkill': return this.cmdPkill(cmdArgs);
       case 'pgrep': return this.cmdPgrep(cmdArgs);
@@ -743,7 +743,7 @@ export class CentOSKernel {
       case 'sleep': return this.cmdSleep(cmdArgs);
       case 'nice': return this.cmdNice(cmdArgs);
       case 'renice': return this.cmdRenice(cmdArgs);
-      case 'jobs': return this.cmdJobs();
+      case 'jobs': return this.cmdJobs(cmdArgs);
       case 'bg': return this.cmdBg(cmdArgs);
       case 'fg': return this.cmdFg(cmdArgs);
       case 'crontab': return this.cmdCrontab(cmdArgs, stdin);
@@ -2249,44 +2249,83 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
       return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
     }
 
-    const full = args.some(a => a.includes('aux') || a.includes('-ef') || a.includes('-e') || a.includes('-f'));
-    const header = full
-      ? 'USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND'
-      : '  PID TTY          TIME CMD';
+    const isPosixFull = args.some(a => a === '-ef' || a === '-f' || a === '-eF');
+    const isBsdFull = args.some(a => a.includes('aux') || a === '-aux' || a === 'ef');
+    const isAll = isPosixFull || isBsdFull || args.some(a => a === '-e' || a === '-A' || a.includes('a'));
 
+    if (!isAll && filterPid === null) {
+      const ptsProcs = procs.filter(p => p.tty === 'pts/0');
+      const lines = ['  PID TTY          TIME CMD'];
+      const hasShell = ptsProcs.some(p => p.command.includes('zsh') || p.command.includes('bash'));
+      if (!hasShell) {
+        lines.push('23882 pts/0    00:00:00 zsh');
+      }
+      for (const p of ptsProcs) {
+        lines.push(`${p.pid.toString().padStart(5)} ${p.tty.padEnd(12)} 00:${p.time.padStart(5, '0')} ${p.command.split(' ')[0]}`);
+      }
+      lines.push('23953 pts/0    00:00:00 ps');
+      return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+    }
+
+    if (isPosixFull) {
+      const lines = ['UID        PID  PPID  C STIME TTY          TIME CMD'];
+      for (const p of procs) {
+        lines.push(
+          `${p.user.padEnd(8)} ${p.pid.toString().padStart(5)} ${p.ppid.toString().padStart(5)}  0 ${p.start.padEnd(5)} ${p.tty.padEnd(12)} 00:${p.time.padStart(5, '0')} ${p.command}`
+        );
+      }
+      return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+    }
+
+    const header = 'USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND';
     const lines = [header];
     for (const p of procs) {
-      if (full) {
-        lines.push(
-          `${p.user.padEnd(8)} ${p.pid.toString().padStart(5)} ${p.cpu.toFixed(1).padStart(4)} ${p.mem.toFixed(1).padStart(4)} ${p.vsz.toString().padStart(6)} ${p.rss.toString().padStart(5)} ${p.tty.padEnd(8)} ${p.stat.padEnd(4)} ${p.start.padEnd(7)} ${p.time.padStart(6)} ${p.command}`
-        );
-      } else {
-        lines.push(`${p.pid.toString().padStart(5)} ${p.tty.padEnd(8)} ${p.time.padStart(8)} ${p.command.split(' ')[0]}`);
-      }
+      lines.push(
+        `${p.user.padEnd(8)} ${p.pid.toString().padStart(5)} ${p.cpu.toFixed(1).padStart(4)} ${p.mem.toFixed(1).padStart(4)} ${p.vsz.toString().padStart(6)} ${p.rss.toString().padStart(5)} ${p.tty.padEnd(8)} ${p.stat.padEnd(4)} ${p.start.padEnd(7)} ${p.time.padStart(6)} ${p.command}`
+      );
     }
 
     return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
   }
 
-  private cmdTop(): CommandResult {
+  public formatTopOutput(sortBy: 'cpu' | 'mem' = 'cpu', scrollOffset = 0): string {
     const uptimeStr = 'up 4:12,  2 users,  load average: 0.08, 0.03, 0.01';
+    const runningCount = this.processes.filter(p => p.stat.startsWith('R')).length || 1;
+    const stoppedCount = this.processes.filter(p => p.stat.startsWith('T')).length;
+    const sleepingCount = Math.max(0, this.processes.length - runningCount - stoppedCount);
     const header = [
       `top - ${new Date().toLocaleTimeString()} ${uptimeStr}`,
-      `Tasks: ${this.processes.length} total,   1 running, ${this.processes.length - 1} sleeping,   0 stopped,   0 zombie`,
+      `Tasks: ${this.processes.length} total,   ${runningCount} running, ${sleepingCount} sleeping,   ${stoppedCount} stopped,   0 zombie`,
       `%Cpu(s):  1.2 us,  0.8 sy,  0.0 ni, 97.9 id,  0.1 wa,  0.0 hi,  0.0 si,  0.0 st`,
-      `KiB Mem :  4044812 total,  2140224 free,   779998 used,  1124580 buff/cache`,
-      `KiB Swap:  2097148 total,  2097148 free,        0 used.  3158912 avail Mem `,
-      '',
-      '  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND',
+      `MiB Mem :   3950.0 total,   2090.1 free,    761.7 used,   1098.2 buff/cache`,
+      `MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   3084.9 avail Mem `,
+      `[Sort: ${sortBy === 'mem' ? '%MEM (Memory)' : '%CPU (Processor)'} | Keys: M = sort Mem, P = sort CPU, Up/Down = scroll, q = quit]`,
+      '  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND',
     ];
 
-    for (const p of this.processes.slice(0, 10)) {
+    const sorted = [...this.processes].sort((a, b) => {
+      const aIsSleep = a.command.includes('sleep') ? 1 : 0;
+      const bIsSleep = b.command.includes('sleep') ? 1 : 0;
+      if (aIsSleep !== bIsSleep) return bIsSleep - aIsSleep;
+      return sortBy === 'mem' ? b.mem - a.mem : b.cpu - a.cpu;
+    });
+
+    const visible = sorted.slice(scrollOffset, scrollOffset + 12);
+    for (const p of visible) {
+      const niVal = p.ni ?? 0;
+      const prVal = 20 + niVal;
+      const statChar = p.stat[0] || 'S';
       header.push(
-        `${p.pid.toString().padStart(5)} ${p.user.padEnd(8)}  20   ${(p.ni ?? 0).toString().padStart(2)}  ${p.vsz.toString().padStart(6)}  ${p.rss.toString().padStart(5)}   1240 S   ${p.cpu.toFixed(1).padStart(4)}  ${p.mem.toFixed(1).padStart(4)}   ${p.time} ${p.command.split(' ')[0]}`
+        `${p.pid.toString().padStart(5)} ${p.user.padEnd(8)} ${prVal.toString().padStart(3)} ${niVal.toString().padStart(3)}  ${p.vsz.toString().padStart(6)} ${p.rss.toString().padStart(6)}   1240 ${statChar}  ${p.cpu.toFixed(1).padStart(4)}  ${p.mem.toFixed(1).padStart(4)}   0:${p.time.padStart(5, '0')} ${p.command}`
       );
     }
 
-    return { stdout: header.join('\n'), stderr: '', exitCode: 0 };
+    return header.join('\n');
+  }
+
+  private cmdTop(args: string[] = []): CommandResult {
+    const sortBy = args.some(a => a.toLowerCase().includes('mem')) ? 'mem' : 'cpu';
+    return { stdout: this.formatTopOutput(sortBy, 0), stderr: '', exitCode: 0 };
   }
 
   private cmdSleep(args: string[]): CommandResult {
@@ -2294,13 +2333,12 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     const sec = args.find(a => !a.startsWith('-') && a !== '&') || '300';
     const pid = 23885;
 
-    // Check if sleep process already running
     const existing = this.processes.find(p => p.command.includes('sleep'));
     if (!existing) {
       this.processes.push({
         pid,
         ppid: 23882,
-        user: this.currentUser === 'root' ? 'labex' : this.currentUser,
+        user: this.currentUser,
         cpu: 0.0,
         mem: 0.0,
         vsz: 7264,
@@ -2312,6 +2350,9 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
         command: `sleep ${sec}`,
         ni: 0,
       });
+    } else {
+      existing.stat = 'S';
+      existing.command = `sleep ${sec}`;
     }
 
     if (isBg) {
@@ -2320,16 +2361,48 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     return { stdout: '', stderr: '', exitCode: 0 };
   }
 
+  public suspendForegroundJob(): string {
+    let sleepProc = this.processes.find(p => p.command.includes('sleep'));
+    if (!sleepProc) {
+      sleepProc = {
+        pid: 23885,
+        ppid: 23882,
+        user: this.currentUser,
+        cpu: 0.0,
+        mem: 0.0,
+        vsz: 7264,
+        rss: 868,
+        tty: 'pts/0',
+        stat: 'T',
+        start: '11:50',
+        time: '0:00',
+        command: 'sleep 300',
+        ni: 0,
+      };
+      this.processes.push(sleepProc);
+    } else {
+      sleepProc.stat = 'T';
+    }
+    this.history.push('ctrl-z');
+    return `[1]+  Stopped                 ${sleepProc.command}`;
+  }
+
   private cmdBg(_args: string[]): CommandResult {
     const sleepProc = this.processes.find(p => p.command.includes('sleep'));
-    if (sleepProc) sleepProc.stat = 'S';
-    return { stdout: '[1]+  394 continued  sleep 300\n', stderr: '', exitCode: 0 };
+    if (sleepProc) {
+      sleepProc.stat = 'S';
+      return { stdout: `[1]+ ${sleepProc.command} &\n`, stderr: '', exitCode: 0 };
+    }
+    return { stdout: '[1]+ sleep 300 &\n', stderr: '', exitCode: 0 };
   }
 
   private cmdFg(_args: string[]): CommandResult {
     const sleepProc = this.processes.find(p => p.command.includes('sleep'));
-    if (sleepProc) sleepProc.stat = 'R';
-    return { stdout: '[1]+  394 running    sleep 300\n', stderr: '', exitCode: 0 };
+    if (sleepProc) {
+      sleepProc.stat = 'R';
+      return { stdout: `${sleepProc.command}\n[Đang chạy ở Foreground — Nhấn tổ hợp phím Ctrl+Z trong terminal để tạm dừng (SIGTSTP)]`, stderr: '', exitCode: 0 };
+    }
+    return { stdout: 'sleep 300\n[Đang chạy ở Foreground — Nhấn tổ hợp phím Ctrl+Z trong terminal để tạm dừng (SIGTSTP)]', stderr: '', exitCode: 0 };
   }
 
   private cmdKill(args: string[]): CommandResult {
@@ -2354,7 +2427,6 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
       return { stdout: '', stderr: '', exitCode: 0 };
     }
 
-    // Handle job specification %1 or %
     if (target.startsWith('%')) {
       const sleepIdx = this.processes.findIndex(p => p.command.includes('sleep'));
       if (sleepIdx !== -1) {
@@ -2362,7 +2434,7 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
         this.processes.splice(sleepIdx, 1);
         return { stdout: `[1]+  Terminated              ${cmdName}\n`, stderr: '', exitCode: 0 };
       }
-      return { stdout: '[1]+  Terminated\n', stderr: '', exitCode: 0 };
+      return { stdout: '[1]+  Terminated              sleep 300\n', stderr: '', exitCode: 0 };
     }
 
     const pid = parseInt(target, 10);
@@ -2374,13 +2446,18 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     if (idx === -1) {
       const sleepIdx = this.processes.findIndex(p => p.command.includes('sleep'));
       if (sleepIdx !== -1) {
+        const cmdName = this.processes[sleepIdx].command;
         this.processes.splice(sleepIdx, 1);
-        return { stdout: '', stderr: '', exitCode: 0 };
+        return { stdout: `[1]+  Terminated              ${cmdName}\n`, stderr: '', exitCode: 0 };
       }
       return { stdout: '', stderr: `bash: kill: (${pid}) - No such process`, exitCode: 1 };
     }
 
+    const removed = this.processes[idx];
     this.processes.splice(idx, 1);
+    if (removed.command.includes('sleep')) {
+      return { stdout: `[1]+  Terminated              ${removed.command}\n`, stderr: '', exitCode: 0 };
+    }
     return { stdout: '', stderr: '', exitCode: 0 };
   }
 
@@ -2420,7 +2497,8 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
 
     const nIdx = args.indexOf('-n');
     if (nIdx !== -1 && args[nIdx + 1]) {
-      newVal = parseInt(args[nIdx + 1], 10) || 10;
+      newVal = parseInt(args[nIdx + 1], 10);
+      if (isNaN(newVal)) newVal = 10;
     } else if (args[0] && !isNaN(parseInt(args[0], 10))) {
       newVal = parseInt(args[0], 10);
     }
@@ -2431,6 +2509,14 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     } else {
       const numArg = args.find((a, i) => i > 0 && !isNaN(parseInt(a, 10)) && i !== nIdx + 1);
       if (numArg) targetPid = parseInt(numArg, 10);
+    }
+
+    if (newVal < 0 && this.currentUser !== 'root') {
+      return {
+        stdout: '',
+        stderr: `renice: failed to set priority for ${targetPid} (process ID): Permission denied`,
+        exitCode: 1,
+      };
     }
 
     const proc = this.processes.find(p => p.pid === targetPid) || this.processes.find(p => p.command.includes('sleep'));
@@ -2447,11 +2533,19 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     };
   }
 
-  private cmdJobs(): CommandResult {
+  private cmdJobs(args: string[] = []): CommandResult {
     const sleepProc = this.processes.find(p => p.command.includes('sleep'));
     if (sleepProc) {
-      const statWord = sleepProc.stat === 'T' ? 'Suspended' : 'Running';
-      return { stdout: `[1]+  ${statWord.padEnd(20)} ${sleepProc.command} &\n`, stderr: '', exitCode: 0 };
+      const isStopped = sleepProc.stat === 'T';
+      const statWord = isStopped ? 'Stopped' : 'Running';
+      const suffix = isStopped ? '' : ' &';
+      if (args.includes('-l')) {
+        return { stdout: `[1]+ ${sleepProc.pid} ${statWord.padEnd(20)} ${sleepProc.command}${suffix}\n`, stderr: '', exitCode: 0 };
+      }
+      if (args.includes('-p')) {
+        return { stdout: `${sleepProc.pid}\n`, stderr: '', exitCode: 0 };
+      }
+      return { stdout: `[1]+  ${statWord.padEnd(20)} ${sleepProc.command}${suffix}\n`, stderr: '', exitCode: 0 };
     }
     return { stdout: '', stderr: '', exitCode: 0 };
   }

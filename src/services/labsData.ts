@@ -3257,15 +3257,49 @@ export const PROCESSES_LABS: LabDefinition[] = [
         hint: 'Chạy: kill %1 && jobs',
       },
     ],
-    setupState: (_kernel: CentOSKernel) => {},
+    setupState: (kernel: CentOSKernel) => {
+      if (!kernel.users.has('labex')) {
+        kernel.users.set('labex', {
+          uid: 1005,
+          username: 'labex',
+          gid: 1005,
+          home: '/home/labex',
+          shell: '/bin/bash',
+        });
+      }
+      if (!kernel.groups.has('labex')) {
+        kernel.groups.set('labex', {
+          gid: 1005,
+          name: 'labex',
+          members: ['labex'],
+        });
+      }
+
+      kernel.vfs.createDirectory('/home/labex');
+      kernel.vfs.createDirectory('/home/labex/project');
+      const projNode = kernel.vfs.getNode('/home/labex/project');
+      if (projNode) {
+        projNode.owner = 'labex';
+        projNode.group = 'labex';
+        projNode.mode = 0o755;
+      }
+
+      kernel.currentUser = 'labex';
+      kernel.cwd = '/home/labex/project';
+      kernel.env.USER = 'labex';
+      kernel.env.HOME = '/home/labex';
+      kernel.history = [];
+      kernel.processes = kernel.processes.filter((p) => !p.command.includes('sleep'));
+    },
     evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
       const hist = kernel.history.map((h) => h.trim().toLowerCase());
       const p1 = hist.some((h) => h.includes('sleep') && h.includes('&')) && hist.some((h) => h.includes('jobs'));
       const p2 = hist.some((h) => h.includes('ps') && h.includes('grep') && h.includes('sleep'));
-      const p3 = hist.some((h) => h.startsWith('top') || h === 'top');
-      const p4 = hist.some((h) => h.startsWith('bg') || h.startsWith('fg') || h.includes('%1'));
+      const p3 = hist.some((h) => h === 'top' || h.startsWith('top '));
+      const p4 = hist.some((h) => h.startsWith('bg') || h.startsWith('fg') || h.includes('%1') || h === 'ctrl-z');
       const p5 = hist.some((h) => h.includes('renice') && (h.includes('10') || h.includes('-n')));
-      const p6 = hist.some((h) => h.includes('kill') && (h.includes('%1') || h.includes('23885') || h.includes('sleep')));
+      const sleepStillAlive = kernel.processes.some((p) => p.command.includes('sleep'));
+      const p6 = hist.some((h) => h.includes('kill') && (h.includes('%1') || h.includes('23885') || h.includes('sleep'))) && !sleepStillAlive;
       return [
         {
           id: 'comptia-1',

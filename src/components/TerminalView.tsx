@@ -581,6 +581,16 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
       setIsExecuting(true);
 
       for (const singleCmd of lines) {
+        if (singleCmd.toLowerCase() === 'ctrl-z' || singleCmd === '^Z') {
+          term.write('^Z\r\n');
+          const msg = kernel.suspendForegroundJob();
+          term.writeln(msg);
+          inputBuffer.current = '';
+          cursorPosition.current = 0;
+          historyIndex.current = -1;
+          showPrompt();
+          continue;
+        }
         term.write(singleCmd + '\r\n');
         const res = await kernel.execute(singleCmd);
         if (res.stdout) term.writeln(res.stdout);
@@ -1125,6 +1135,19 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
         inputBuffer.current = '';
         cursorPosition.current = 0;
         historyIndex.current = -1;
+        showPrompt();
+        return;
+      }
+
+      // Ctrl+Z -> Send SIGTSTP (Suspend foreground process)
+      if (data === '\x1a' || data === '\x1A') {
+        term.writeln('^Z');
+        const msg = kernel.suspendForegroundJob();
+        term.writeln(msg);
+        inputBuffer.current = '';
+        cursorPosition.current = 0;
+        historyIndex.current = -1;
+        if (onKernelUpdate) onKernelUpdate();
         showPrompt();
         return;
       }

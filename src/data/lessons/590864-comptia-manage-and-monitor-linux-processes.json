@@ -316,7 +316,21 @@
         },
         {
           "type": "paragraph",
-          "text": "Khi tác vụ ra tiền cảnh, nó sẽ chiếm giữ terminal. Nếu bạn bấm `Ctrl-Z` để tạm dừng, rồi muốn nó tiếp tục chạy ngầm mà không làm tắc nghẽn terminal, hãy dùng lệnh `bg`:"
+          "text": "Khi tác vụ ra tiền cảnh, nó sẽ chiếm giữ terminal. Hãy nhấn tổ hợp phím `Ctrl+Z` trên bàn phím (hoặc bấm nút **Run** ở khối lệnh bên dưới) để gửi tín hiệu `SIGTSTP` tạm dừng tác vụ:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "Ctrl-Z",
+            "runnableCommand": "Ctrl-Z",
+            "caption": "Gửi tín hiệu SIGTSTP tạm dừng tác vụ đang ở tiền cảnh"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Kiểm tra lại bằng lệnh `jobs`, bạn sẽ thấy tác vụ chuyển sang trạng thái `Stopped`. Để đánh thức tác vụ tiếp tục chạy ngầm trong hậu cảnh, hãy dùng lệnh `bg`:"
         },
         {
           "type": "code",
@@ -404,16 +418,16 @@
         },
         {
           "type": "paragraph",
-          "text": "Trước tiên, hãy kiểm tra các chỉ số `PID`, `NI`, `PRI` và `CMD` của tiến trình `sleep` (PID 23885) bằng lệnh `ps -o`:"
+          "text": "Trước tiên, hãy kiểm tra các chỉ số `PID`, `NI` và `CMD` hiện tại của tiến trình `sleep` (PID 23885) bằng lệnh `ps -o`:"
         },
         {
           "type": "code",
           "codeBlock": {
             "type": "command",
             "language": "bash",
-            "code": "ps -o pid,ni,pri,cmd -p 23885",
-            "runnableCommand": "ps -o pid,ni,pri,cmd -p 23885",
-            "caption": "Kiểm tra giá trị Nice (NI) và Priority (PRI) ban đầu của tiến trình"
+            "code": "ps -o pid,ni,cmd -p 23885",
+            "runnableCommand": "ps -o pid,ni,cmd -p 23885",
+            "caption": "Kiểm tra giá trị Nice (NI = 0) ban đầu của tiến trình"
           }
         },
         {
@@ -432,7 +446,17 @@
         },
         {
           "type": "paragraph",
-          "text": "Hệ thống sẽ xác nhận: `23885 (process ID) old priority 0, new priority 10`. Giá trị Nice mới đã được cập nhật thành công."
+          "text": "Hệ thống sẽ xác nhận: `23885 (process ID) old priority 0, new priority 10`. Hãy kiểm tra lại bằng lệnh `ps -o` để xác minh cột `NI` đã đổi thành `10`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "ps -o pid,ni,cmd -p 23885",
+            "runnableCommand": "ps -o pid,ni,cmd -p 23885",
+            "caption": "Xác nhận giá trị Nice mới (NI = 10)"
+          }
         },
         {
           "type": "callout",

@@ -236,7 +236,7 @@ export const App: React.FC = () => {
         <LabWorkspace
           kernel={kernel}
           currentLab={currentLab}
-          lessonDoc={!currentChallenge && hasLessonDoc(currentLab.id) ? getLessonById(currentLab.id) : undefined}
+          lessonDoc={hasLessonDoc(currentLab.id) ? getLessonById(currentLab.id) : undefined}
           currentChallenge={currentChallenge || undefined}
           currentModule={currentModule}
           theme={theme}

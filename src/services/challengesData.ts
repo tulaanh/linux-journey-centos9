@@ -31,7 +31,250 @@ export interface ChallengeDefinition {
 }
 
 export const LINUX_CHALLENGES: ChallengeDefinition[] = [
-  // 0. File Permissions & Hidden Files (Easy)
+  // Featured #1: CompTIA Linux+ Manage and Monitor Linux Processes (#590864)
+  {
+    id: 590864,
+    slug: 'comptia-manage-and-monitor-linux-processes-590864',
+    title: 'Manage and Monitor Linux Processes (CompTIA Linux+ #590864)',
+    category: 'Process & Storage Triage',
+    difficulty: 'Cơ bản',
+    estimatedTime: '30 phút',
+    xp: 250,
+    summary: 'Làm chủ toàn diện chu trình quản trị và giám sát tiến trình Linux chuẩn CompTIA Linux+ & LabEx: &, jobs, ps, top, fg, bg, Ctrl-Z, renice và kill.',
+    scenario: `Trong bài lab/thử thách thực chiến chuẩn CompTIA Linux+ (LabEx #590864) này, bạn đang đăng nhập với tài khoản người dùng "labex" tại thư mục "/home/labex/project". Bạn cần thực hiện trọn vẹn vòng đời quản lý tiến trình trên hệ điều hành Linux qua 6 nhiệm vụ tuần tự:
+
+1. Start and View a Background Process with '&' and 'jobs': Khởi chạy tiến trình "sleep 300 &" ở chế độ nền và kiểm tra bằng lệnh "jobs".
+2. Inspect Running Processes with 'ps': Chụp ảnh trạng thái tiến trình bằng "ps", sau đó lọc tiến trình bằng cả chuẩn BSD ("ps aux | grep sleep") và POSIX ("ps -ef | grep sleep").
+3. Monitor System Resources with 'top': Mở công cụ giám sát thời gian thực "top" để theo dõi mức sử dụng CPU và RAM.
+4. Manage Job Control with 'fg', 'bg', and Ctrl-Z: Đưa tác vụ lên tiền cảnh ("fg %1"), tạm dừng bằng "Ctrl-Z", và tiếp tục chạy ngầm ("bg %1").
+5. Adjust Process Priority with 'renice': Kiểm tra cột NI bằng "ps -o pid,ni,cmd -p 23885" và tăng giá trị Niceness lên 10 bằng "renice -n 10 -p 23885".
+6. Terminate a Process with 'kill': Kết thúc tiến trình an toàn bằng "kill %1" (hoặc "kill 23885") và xác nhận bằng "jobs" & "ps aux | grep sleep".`,
+    objectives: [
+      {
+        title: "Step 1: Start and View a Background Process with '&' and 'jobs'",
+        description: 'Khởi chạy tiến trình sleep 300 & ở chế độ nền và kiểm tra trạng thái bằng lệnh jobs.',
+      },
+      {
+        title: "Step 2: Inspect Running Processes with 'ps'",
+        description: 'Kiểm tra tiến trình với ps, ps aux | grep sleep và ps -ef | grep sleep.',
+      },
+      {
+        title: "Step 3: Monitor System Resources with 'top'",
+        description: 'Sử dụng tiện ích top để giám sát tài nguyên CPU/RAM thời gian thực.',
+      },
+      {
+        title: "Step 4: Manage Job Control with 'fg', 'bg', and Ctrl-Z",
+        description: 'Thực hành chuyển đổi trạng thái tác vụ với fg %1, Ctrl-Z và bg %1.',
+      },
+      {
+        title: "Step 5: Adjust Process Priority with 'renice'",
+        description: 'Kiểm tra NI bằng ps -o pid,ni,cmd -p 23885 và đổi độ ưu tiên thành 10 với renice -n 10 -p 23885.',
+      },
+      {
+        title: "Step 6: Terminate a Process with 'kill'",
+        description: 'Chấm dứt tiến trình sleep 300 bằng kill %1 và xác nhận tiến trình đã dừng hoàn toàn.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'comptia-1',
+        title: "Step 1: Start and View a Background Process with '&' and 'jobs'",
+        description: 'Chạy lệnh `sleep 300 &` để tạo tiến trình nền (PID 23885) và kiểm tra danh sách tác vụ bằng `jobs`.',
+        points: 40,
+        hint: 'Chạy: sleep 300 & rồi chạy: jobs',
+      },
+      {
+        id: 'comptia-2',
+        title: "Step 2: Inspect Running Processes with 'ps'",
+        description: 'Thực thi `ps`, `ps aux | grep sleep` (chuẩn BSD) và `ps -ef | grep sleep` (chuẩn POSIX có cột PPID).',
+        points: 40,
+        hint: 'Chạy: ps && ps aux | grep sleep && ps -ef | grep sleep',
+      },
+      {
+        id: 'comptia-3',
+        title: "Step 3: Monitor System Resources with 'top'",
+        description: 'Chạy công cụ `top` để giám sát hệ thống thời gian thực.',
+        points: 40,
+        hint: 'Chạy: top',
+      },
+      {
+        id: 'comptia-4',
+        title: "Step 4: Manage Job Control with 'fg', 'bg', and Ctrl-Z",
+        description: 'Đưa tác vụ ra tiền cảnh bằng `fg %1`, tạm dừng bằng `Ctrl-Z`, và cho chạy tiếp dưới nền bằng `bg %1`.',
+        points: 40,
+        hint: 'Chạy: fg %1 -> nhấn Ctrl+Z -> chạy: bg %1 && jobs',
+      },
+      {
+        id: 'comptia-5',
+        title: "Step 5: Adjust Process Priority with 'renice'",
+        description: 'Kiểm tra cột NI bằng `ps -o pid,ni,cmd -p 23885` và tăng giá trị Nice lên 10 bằng `renice -n 10 -p 23885`.',
+        points: 45,
+        hint: 'Chạy: ps -o pid,ni,cmd -p 23885 && renice -n 10 -p 23885',
+      },
+      {
+        id: 'comptia-6',
+        title: "Step 6: Terminate a Process with 'kill'",
+        description: 'Chấm dứt tiến trình an toàn bằng `kill %1` (hoặc `kill 23885`) và xác minh bằng `jobs` & `ps aux | grep sleep`.',
+        points: 45,
+        hint: 'Chạy: kill %1 && jobs && ps aux | grep sleep',
+      },
+    ],
+    hints: [
+      'Step 1 (Background & jobs): Gõ "sleep 300 &" để chạy ngầm (nhận [1] 23885), sau đó gõ "jobs" để kiểm tra.',
+      'Step 2 (Inspect with ps): Gõ "ps", tiếp theo gõ "ps aux | grep sleep" và "ps -ef | grep sleep".',
+      'Step 3 (Monitor with top): Gõ "top" để xem bảng điều khiển tài nguyên CPU/RAM.',
+      'Step 4 (Job Control): Gõ "fg %1", nhấn tổ hợp phím Ctrl+Z trong terminal (hoặc bấm nút Run Ctrl-Z), rồi gõ "bg %1" và "jobs".',
+      'Step 5 (Adjust Priority): Gõ "ps -o pid,ni,cmd -p 23885", sau đó gõ "renice -n 10 -p 23885" và kiểm tra lại.',
+      'Step 6 (Terminate with kill): Gõ "kill %1" để gửi tín hiệu SIGTERM hủy tiến trình sleep, sau đó gõ "jobs" để xác nhận.',
+    ],
+    referenceCommands: [
+      'sleep 300 &',
+      'jobs',
+      'ps',
+      'ps aux | grep sleep',
+      'ps -ef | grep sleep',
+      'top',
+      'fg %1',
+      'Ctrl-Z',
+      'bg %1',
+      'ps -o pid,ni,cmd -p 23885',
+      'renice -n 10 -p 23885',
+      'kill %1',
+      'jobs',
+    ],
+    setupState: (kernel: CentOSKernel) => {
+      if (!kernel.users.has('labex')) {
+        kernel.users.set('labex', {
+          uid: 1005,
+          username: 'labex',
+          gid: 1005,
+          home: '/home/labex',
+          shell: '/bin/bash',
+        });
+      }
+      if (!kernel.groups.has('labex')) {
+        kernel.groups.set('labex', {
+          gid: 1005,
+          name: 'labex',
+          members: ['labex'],
+        });
+      }
+
+      kernel.vfs.createDirectory('/home/labex');
+      kernel.vfs.createDirectory('/home/labex/project');
+      const projNode = kernel.vfs.getNode('/home/labex/project');
+      if (projNode) {
+        projNode.owner = 'labex';
+        projNode.group = 'labex';
+        projNode.mode = 0o755;
+      }
+
+      kernel.currentUser = 'labex';
+      kernel.cwd = '/home/labex/project';
+      kernel.env.USER = 'labex';
+      kernel.env.HOME = '/home/labex';
+      kernel.history = [];
+      kernel.processes = kernel.processes.filter((p) => !p.command.includes('sleep'));
+    },
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const sleepProc = kernel.processes.find((p) => p.command.includes('sleep'));
+
+      const ranSleepBg = hist.some((h) => h.includes('sleep') && h.includes('&')) || Boolean(sleepProc);
+      const ranJobs = hist.some((h) => h === 'jobs' || h.startsWith('jobs ') || h.includes('jobs'));
+      const p1 = ranSleepBg && ranJobs;
+
+      const p2 = hist.some((h) => h.includes('ps') && h.includes('grep') && h.includes('sleep'));
+      const p3 = hist.some((h) => h === 'top' || h.startsWith('top ') || h.includes('top'));
+      const p4 =
+        hist.some((h) => h.startsWith('fg') || h.includes('fg ')) &&
+        hist.some((h) => h.startsWith('bg') || h.includes('bg '));
+
+      const p5 =
+        hist.some((h) => h.includes('renice') && h.includes('10')) ||
+        (sleepProc !== undefined && sleepProc.ni === 10);
+
+      const ranKill = hist.some(
+        (h) =>
+          (h.includes('kill') || h.includes('pkill')) &&
+          (h.includes('%1') || h.includes('23885') || h.includes('sleep'))
+      );
+      const p6 = ranKill && !sleepProc;
+
+      return [
+        {
+          id: 'comptia-1',
+          title: "Step 1: Start and View a Background Process with '&' and 'jobs'",
+          passed: p1,
+          pointsEarned: p1 ? 40 : 0,
+          maxPoints: 40,
+          message: p1
+            ? 'Đã khởi chạy tiến trình nền sleep 300 & và kiểm tra danh sách tác vụ bằng jobs.'
+            : 'Chưa hoàn thành Step 1: Hãy chạy "sleep 300 &" và "jobs".',
+          hint: 'Chạy: sleep 300 & && jobs',
+        },
+        {
+          id: 'comptia-2',
+          title: "Step 2: Inspect Running Processes with 'ps'",
+          passed: p2,
+          pointsEarned: p2 ? 40 : 0,
+          maxPoints: 40,
+          message: p2
+            ? 'Đã sử dụng lệnh ps kết hợp grep để định vị và kiểm tra thông tin tiến trình sleep.'
+            : 'Chưa hoàn thành Step 2: Hãy chạy "ps aux | grep sleep" và "ps -ef | grep sleep".',
+          hint: 'Chạy: ps aux | grep sleep && ps -ef | grep sleep',
+        },
+        {
+          id: 'comptia-3',
+          title: "Step 3: Monitor System Resources with 'top'",
+          passed: p3,
+          pointsEarned: p3 ? 40 : 0,
+          maxPoints: 40,
+          message: p3
+            ? 'Đã mở bảng điều khiển giám sát tài nguyên thời gian thực với top.'
+            : 'Chưa hoàn thành Step 3: Hãy chạy lệnh "top".',
+          hint: 'Chạy: top',
+        },
+        {
+          id: 'comptia-4',
+          title: "Step 4: Manage Job Control with 'fg', 'bg', and Ctrl-Z",
+          passed: p4,
+          pointsEarned: p4 ? 40 : 0,
+          maxPoints: 40,
+          message: p4
+            ? 'Đã thực hành chuyển đổi trạng thái tác vụ với fg %1, Ctrl-Z và bg %1.'
+            : 'Chưa hoàn thành Step 4: Hãy chạy "fg %1", tạm dừng với Ctrl-Z và chạy tiếp với "bg %1".',
+          hint: 'Chạy: fg %1 -> Ctrl-Z -> bg %1',
+        },
+        {
+          id: 'comptia-5',
+          title: "Step 5: Adjust Process Priority with 'renice'",
+          passed: p5,
+          pointsEarned: p5 ? 45 : 0,
+          maxPoints: 45,
+          message: p5
+            ? 'Đã điều chỉnh mức độ ưu tiên Niceness của tiến trình lên 10 bằng lệnh renice.'
+            : 'Chưa hoàn thành Step 5: Hãy chạy "renice -n 10 -p 23885".',
+          hint: 'Chạy: ps -o pid,ni,cmd -p 23885 && renice -n 10 -p 23885',
+        },
+        {
+          id: 'comptia-6',
+          title: "Step 6: Terminate a Process with 'kill'",
+          passed: p6,
+          pointsEarned: p6 ? 45 : 0,
+          maxPoints: 45,
+          message: p6
+            ? 'Đã kết thúc tiến trình sleep 300 an toàn bằng kill và giải phóng hoàn toàn khỏi hệ thống.'
+            : sleepProc
+            ? 'Tiến trình sleep 300 vẫn đang chạy! Hãy dùng "kill %1" hoặc "kill 23885" để kết thúc.'
+            : 'Chưa chạy lệnh "kill %1" để kết thúc tiến trình.',
+          hint: 'Chạy: kill %1 && jobs',
+        },
+      ];
+    },
+  },
+
+  // 1. File Permissions & Hidden Files (Easy)
   {
     id: 1000,
     slug: 'hidden-files-permissions',
@@ -1061,180 +1304,6 @@ Nhiệm vụ của bạn:
             ? 'Tệp master_key.txt đã được khóa quyền 400 (chỉ đọc) an toàn tuyệt đối.'
             : `Quyền hiện tại là 0${(keyFile?.mode ?? 0 & 0o777).toString(8)}, cần là 400.`,
           hint: 'Chạy: chmod 400 /root/master_key.txt',
-        },
-      ];
-    },
-  },
-
-  // 7. Manage and Monitor Linux Processes (CompTIA Linux+)
-  {
-    id: 1007,
-    slug: 'comptia-manage-and-monitor-linux-processes-590864',
-    title: 'Manage and Monitor Linux Processes (CompTIA Linux+)',
-    category: 'Processes',
-    difficulty: 'Cơ bản',
-    estimatedTime: '25 phút',
-    xp: 250,
-    summary: 'Làm chủ toàn diện kỹ năng quản trị và điều phối tiến trình chuẩn CompTIA Linux+ và LabEx #590864.',
-    scenario: `Hệ thống máy chủ CentOS 9 của bạn đang chuẩn bị triển khai các dịch vụ nền quan trọng. Là một quản trị viên Linux, bạn cần nắm vững cách kiểm soát tiến trình chạy ngầm, theo dõi tài nguyên, điều phối qua Job Control, điều chỉnh độ ưu tiên và hủy tiến trình an toàn.
-
-Nhiệm vụ của bạn:
-1. Chạy tiến trình sleep 300 trong nền (&) và kiểm tra danh sách jobs.
-2. Dùng ps aux hoặc ps -ef kết hợp grep để định vị tiến trình.
-3. Mở công cụ top để theo dõi tải hệ thống thời gian thực.
-4. Điều phối tác vụ với fg/bg.
-5. Dùng renice nâng mức ưu tiên nice lên 10.
-6. Kết thúc tiến trình an toàn bằng lệnh kill.`,
-    objectives: [
-      {
-        title: 'Chạy nền và quản lý jobs',
-        description: 'Khởi chạy tiến trình sleep 300 & và kiểm tra bằng jobs.',
-      },
-      {
-        title: 'Chụp snapshot tiến trình',
-        description: 'Lọc thông tin tiến trình bằng ps aux | grep sleep.',
-      },
-      {
-        title: 'Giám sát hệ thống thời gian thực',
-        description: 'Mở tiện ích top theo dõi CPU/RAM.',
-      },
-      {
-        title: 'Điều phối Job Control',
-        description: 'Sử dụng lệnh fg %1 hoặc bg %1.',
-      },
-      {
-        title: 'Điều chỉnh độ ưu tiên niceness',
-        description: 'Thay đổi nice value thành 10 bằng renice -n 10 -p 23885.',
-      },
-      {
-        title: 'Hủy tiến trình an toàn',
-        description: 'Kết thúc tiến trình bằng kill %1 hoặc kill <PID>.',
-      },
-    ],
-    tasks: [
-      {
-        id: 'c1007-1',
-        title: 'Khởi chạy tiến trình nền với & và kiểm tra jobs',
-        description: 'Chạy lệnh sleep 300 & và kiểm tra bằng jobs',
-        points: 40,
-        hint: 'Chạy: sleep 300 & && jobs',
-      },
-      {
-        id: 'c1007-2',
-        title: 'Định vị tiến trình với ps và grep',
-        description: 'Chạy ps aux | grep sleep hoặc ps -ef | grep sleep',
-        points: 40,
-        hint: 'Chạy: ps aux | grep sleep',
-      },
-      {
-        id: 'c1007-3',
-        title: 'Theo dõi tài nguyên thời gian thực với top',
-        description: 'Chạy tiện ích top',
-        points: 40,
-        hint: 'Chạy: top',
-      },
-      {
-        id: 'c1007-4',
-        title: 'Thao tác Job Control với fg/bg',
-        description: 'Đưa tác vụ chạy nền bằng bg %1 hoặc fg %1',
-        points: 40,
-        hint: 'Chạy: bg %1 hoặc fg %1',
-      },
-      {
-        id: 'c1007-5',
-        title: 'Điều chỉnh Niceness lên 10 với renice',
-        description: 'Chạy renice -n 10 -p 23885',
-        points: 45,
-        hint: 'Chạy: renice -n 10 -p 23885',
-      },
-      {
-        id: 'c1007-6',
-        title: 'Chấm dứt tiến trình với kill',
-        description: 'Hủy tiến trình bằng kill %1 hoặc kill <PID>',
-        points: 45,
-        hint: 'Chạy: kill %1 && jobs',
-      },
-    ],
-    hints: [
-      'Khởi chạy lệnh ngầm: sleep 300 & && jobs',
-      'Tìm tiến trình: ps aux | grep sleep',
-      'Mở màn hình top: top (ấn q để thoát)',
-      'Điều khiển job: bg %1',
-      'Đổi nice: renice -n 10 -p 23885',
-      'Hủy job: kill %1 && jobs',
-    ],
-    referenceCommands: [
-      'sleep 300 &',
-      'jobs',
-      'ps aux | grep sleep',
-      'top',
-      'bg %1',
-      'renice -n 10 -p 23885',
-      'kill %1',
-    ],
-    setupState: (_kernel: CentOSKernel) => {},
-    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
-      const hist = kernel.history.map((h) => h.trim().toLowerCase());
-      const p1 = hist.some((h) => h.includes('sleep') && h.includes('&')) && hist.some((h) => h.includes('jobs'));
-      const p2 = hist.some((h) => h.includes('ps') && h.includes('grep') && h.includes('sleep'));
-      const p3 = hist.some((h) => h.startsWith('top') || h === 'top');
-      const p4 = hist.some((h) => h.startsWith('bg') || h.startsWith('fg') || h.includes('%1'));
-      const p5 = hist.some((h) => h.includes('renice') && (h.includes('10') || h.includes('-n')));
-      const p6 = hist.some((h) => h.includes('kill') && (h.includes('%1') || h.includes('23885') || h.includes('sleep')));
-      return [
-        {
-          id: 'c1007-1',
-          title: 'Khởi chạy tiến trình nền với & và kiểm tra jobs',
-          passed: p1,
-          pointsEarned: p1 ? 40 : 0,
-          maxPoints: 40,
-          message: p1 ? 'Đã khởi chạy tiến trình ngầm và kiểm tra jobs.' : 'Chưa chạy sleep 300 & và jobs.',
-          hint: 'Chạy: sleep 300 & && jobs',
-        },
-        {
-          id: 'c1007-2',
-          title: 'Định vị tiến trình với ps và grep',
-          passed: p2,
-          pointsEarned: p2 ? 40 : 0,
-          maxPoints: 40,
-          message: p2 ? 'Đã tìm thấy tiến trình qua ps aux | grep sleep.' : 'Chưa chạy ps aux | grep sleep.',
-          hint: 'Chạy: ps aux | grep sleep',
-        },
-        {
-          id: 'c1007-3',
-          title: 'Theo dõi tài nguyên thời gian thực với top',
-          passed: p3,
-          pointsEarned: p3 ? 40 : 0,
-          maxPoints: 40,
-          message: p3 ? 'Đã mở màn hình giám sát top.' : 'Chưa chạy top.',
-          hint: 'Chạy: top',
-        },
-        {
-          id: 'c1007-4',
-          title: 'Thao tác Job Control với fg/bg',
-          passed: p4,
-          pointsEarned: p4 ? 40 : 0,
-          maxPoints: 40,
-          message: p4 ? 'Đã điều phối tác vụ với Job Control.' : 'Chưa dùng bg %1 hoặc fg %1.',
-          hint: 'Chạy: bg %1 hoặc fg %1',
-        },
-        {
-          id: 'c1007-5',
-          title: 'Điều chỉnh Niceness lên 10 với renice',
-          passed: p5,
-          pointsEarned: p5 ? 45 : 0,
-          maxPoints: 45,
-          message: p5 ? 'Đã thay đổi nice value thành 10.' : 'Chưa chạy renice -n 10 -p 23885.',
-          hint: 'Chạy: renice -n 10 -p 23885',
-        },
-        {
-          id: 'c1007-6',
-          title: 'Chấm dứt tiến trình với kill',
-          passed: p6,
-          pointsEarned: p6 ? 45 : 0,
-          maxPoints: 45,
-          message: p6 ? 'Đã kết thúc tiến trình an toàn.' : 'Chưa chạy kill %1 hoặc kill <PID>.',
-          hint: 'Chạy: kill %1 && jobs',
         },
       ];
     },

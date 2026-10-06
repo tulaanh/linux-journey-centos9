@@ -317,6 +317,22 @@ export const LabExStepGuide: React.FC<LabExStepGuideProps> = ({
     ? evaluationResults.reduce((a, b) => a + b.maxPoints, 0)
     : 100;
 
+  // Map current step to a corresponding verification check (Steps 1..6 in 8-step LabEx labs)
+  const activeStepCheckIndex =
+    lessonDoc && lessonDoc.steps.length === labDef.checks.length + 2
+      ? currentStepIndex - 1
+      : !currentStep.isFinalEvaluation && currentStepIndex < labDef.checks.length
+      ? currentStepIndex
+      : -1;
+  const activeStepCheck =
+    activeStepCheckIndex >= 0 && activeStepCheckIndex < labDef.checks.length
+      ? labDef.checks[activeStepCheckIndex]
+      : null;
+  const activeStepEvalResult =
+    activeStepCheck && evaluationResults
+      ? evaluationResults.find((r) => r.id === activeStepCheck.id) || evaluationResults[activeStepCheckIndex]
+      : null;
+
   return (
     <aside className="w-full h-full flex flex-col justify-between select-none font-sans text-slate-200">
       {/* 1. Main Floating Card (Matching LabEx UI 1:1) */}
@@ -693,6 +709,60 @@ export const LabExStepGuide: React.FC<LabExStepGuideProps> = ({
                 <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-700/60">
                   {currentStep.quiz.explanation}
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Per-Step Verification Card (for Hands-on Steps 1..6) */}
+          {activeStepCheck && (
+            <div
+              className={`p-3.5 rounded-xl border transition-all space-y-2 ${
+                activeStepEvalResult
+                  ? activeStepEvalResult.passed
+                    ? 'border-emerald-500/40 bg-emerald-500/10'
+                    : 'border-rose-500/40 bg-rose-500/10'
+                  : 'border-[#29344b] bg-[#10141f]'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 font-mono font-bold text-[10px] uppercase">
+                    Verification #{activeStepCheckIndex + 1}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-200">
+                    {activeStepCheck.title}
+                  </span>
+                </div>
+                <button
+                  onClick={handleGrade}
+                  disabled={isGrading}
+                  className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0 shadow-sm"
+                >
+                  <Zap className="w-3.5 h-3.5 text-yellow-300" />
+                  <span>{isGrading ? 'Checking...' : 'Verify Step'}</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400">{activeStepCheck.description}</p>
+              {activeStepEvalResult && (
+                <div
+                  className={`pt-1.5 border-t flex items-center justify-between text-xs font-medium ${
+                    activeStepEvalResult.passed
+                      ? 'border-emerald-500/30 text-emerald-300'
+                      : 'border-rose-500/30 text-rose-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    {activeStepEvalResult.passed ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    )}
+                    {activeStepEvalResult.message}
+                  </span>
+                  <span className="font-mono font-bold">
+                    +{activeStepEvalResult.pointsEarned}/{activeStepEvalResult.maxPoints} pts
+                  </span>
+                </div>
               )}
             </div>
           )}
