@@ -1,0 +1,603 @@
+{
+  "id": 590864,
+  "slug": "comptia-manage-and-monitor-linux-processes-590864",
+  "category": "Processes",
+  "lessonNumber": 12,
+  "title": "Manage and Monitor Linux Processes (CompTIA Linux+)",
+  "subtitle": "Làm chủ quy trình quản lý và giám sát tiến trình thực chiến chuẩn CompTIA Linux+: &, jobs, ps, top, fg, bg, Ctrl-Z, renice và kill.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Introduction",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Chào mừng bạn đến với bài thực hành thực chiến **Manage and Monitor Linux Processes** theo chuẩn **CompTIA Linux+** (LabEx #590864). Trên mọi hệ thống Linux doanh nghiệp, khả năng kiểm soát và tối ưu hóa chu trình sống của tiến trình là một trong những năng lực nền tảng quan trọng nhất của người quản trị hệ thống (System Administrator) và kỹ sư DevOps."
+        },
+        {
+          "type": "paragraph",
+          "text": "Trong bài học này, bạn sẽ vừa tiếp thu kiến thức lý thuyết chuyên sâu, vừa trực tiếp tương tác thực hành trên máy ảo **CentOS Stream 9** thông qua 6 kỹ năng then chốt:"
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Mục tiêu bài lab:\n1. Khởi chạy và xem tiến trình nền với '&' và 'jobs'.\n2. Khảo sát tiến trình đang chạy với 'ps' theo chuẩn BSD và POSIX.\n3. Giám sát tài nguyên hệ thống theo thời gian thực với 'top'.\n4. Điều khiển tác vụ linh hoạt bằng 'fg', 'bg' và phím tắt 'Ctrl-Z'.\n5. Tinh chỉnh mức độ ưu tiên CPU bằng 'renice'.\n6. Kết thúc tiến trình an toàn và chuyên nghiệp bằng 'kill'."
+        },
+        {
+          "type": "paragraph",
+          "text": "Cách học tập hiệu quả: Cửa sổ dòng lệnh Terminal CentOS ở bên trái sẵn sàng nhận lệnh. Cột hướng dẫn bên phải cung cấp giải thích chi tiết, nút **Run** nạp lệnh tự động và câu hỏi trắc nghiệm **Quiz** kiểm tra hiểu biết ở từng phần. Hãy nhấn **Continue** bên dưới để bắt đầu phần thực hành đầu tiên!"
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Start and View a Background Process with '&' and 'jobs'",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi bạn thực thi một câu lệnh trong Linux terminal, mặc định nó sẽ chạy ở chế độ **tiền cảnh (foreground)** — nghĩa là tiến trình sẽ chiếm giữ luồng nhập xuất chuẩn và khóa dấu nhắc lệnh của shell cho tới khi công việc hoàn tất."
+        },
+        {
+          "type": "paragraph",
+          "text": "Đối với các tác vụ chạy lâu (như sao lưu hệ thống, nén dữ liệu lớn hoặc dịch vụ nền), bạn có thể chỉ thị cho shell chạy lệnh ở chế độ **hậu cảnh (background)** bằng cách thêm ký tự `&` vào cuối câu lệnh:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "sleep 300 &",
+            "runnableCommand": "sleep 300 &",
+            "caption": "Khởi chạy tiến trình sleep 300 giây ở chế độ nền"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Ngay khi lệnh được gửi đi, shell sẽ phản hồi ngay lập tức một chuỗi thông tin dạng `[1] 23885` và trả lại dấu nhắc lệnh cho bạn:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`[1]`: **Job ID** (mã tác vụ) do phiên shell hiện tại quản lý.",
+            "`23885`: **Process ID (PID)** do Linux Kernel cấp phát duy nhất trên toàn hệ thống."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Để kiểm tra danh sách tất cả các tác vụ đang chạy ngầm trong phiên làm việc hiện tại của bạn, hãy sử dụng lệnh nội vi `jobs`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "jobs",
+            "runnableCommand": "jobs",
+            "caption": "Liệt kê các tác vụ nền trong phiên shell hiện tại"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Shell sẽ in ra dòng trạng thái: `[1]+  Running                 sleep 300 &`. Ký hiệu `+` cho biết đây là tác vụ mặc định hiện tại mà các lệnh như `fg` hoặc `bg` sẽ thao tác nếu bạn không chỉ định rõ số hiệu tác vụ."
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "text": "Mẹo hữu ích: Bạn có thể thêm cờ '-l' (`jobs -l`) để hiển thị đồng thời cả Job ID và mã tiến trình PID của từng tác vụ."
+        }
+      ],
+      "quiz": {
+        "id": "comptia-q1-job-vs-pid",
+        "question": "Trong kết quả trả về `[1] 23885` khi chạy lệnh ngầm, con số `[1]` và `23885` lần lượt đại diện cho thành phần nào?",
+        "options": [
+          {
+            "text": "[1] là Job ID do phiên Shell quản lý; 23885 là Process ID (PID) duy nhất do Linux Kernel cấp phát."
+          },
+          {
+            "text": "[1] là mức ưu tiên CPU (Niceness); 23885 là mã lỗi trả về ($?)."
+          },
+          {
+            "text": "[1] là số giây lệnh đã chạy; 23885 là dung lượng bộ nhớ RAM (KB)."
+          },
+          {
+            "text": "[1] là số luồng CPU (Thread count); 23885 là cổng mạng Socket TCP."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Job ID nằm trong dấu ngoặc vuông '[1]' chỉ có giá trị nội bộ trong phiên làm việc của shell hiện tại, còn PID '23885' là mã định danh tiến trình duy nhất trên toàn hệ điều hành do Linux kernel quản lý."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Inspect Running Processes with 'ps'",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `ps` (Process Status) cung cấp một ảnh chụp tĩnh (snapshot) về trạng thái các tiến trình đang hoạt động trên hệ điều hành. Khác với `jobs` chỉ giới hạn trong phiên shell hiện tại, `ps` có khả năng quan sát mọi tiến trình của tất cả người dùng và dịch vụ hệ thống."
+        },
+        {
+          "type": "paragraph",
+          "text": "Trước hết, hãy chạy lệnh `ps` cơ bản để xem các tiến trình gắn với terminal hiện hành:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "ps",
+            "runnableCommand": "ps",
+            "caption": "Xem các tiến trình gắn với terminal hiện tại"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Trong thực tế quản trị Linux và các bài thi CompTIA Linux+, có hai trường phái cú pháp chính thường được sử dụng:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Cú pháp BSD (`ps aux`)**: Không có dấu gạch ngang. Tuỳ chọn `a` (mọi người dùng), `u` (định dạng chi tiết người dùng, %CPU, %MEM), `x` (bao gồm cả tiến trình không gắn với terminal/daemons).",
+            "**Cú pháp POSIX/UNIX (`ps -ef`)**: Có dấu gạch ngang. Tuỳ chọn `-e` (mọi tiến trình), `-f` (đầy đủ các trường gồm cột `PPID` để theo dõi tiến trình cha)."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Để tìm kiếm tiến trình `sleep` mục tiêu giữa hàng trăm tiến trình hệ thống, hãy kết hợp lệnh `ps` với bộ lọc `grep`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "ps aux | grep sleep",
+            "runnableCommand": "ps aux | grep sleep",
+            "caption": "Lọc tiến trình sleep theo định dạng BSD (kiểm tra %CPU, %MEM)"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bây giờ, hãy thử cú pháp chuẩn POSIX để kiểm tra mối quan hệ tiến trình cha - con (cột PPID):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "ps -ef | grep sleep",
+            "runnableCommand": "ps -ef | grep sleep",
+            "caption": "Lọc tiến trình sleep theo định dạng POSIX (kiểm tra cột PPID)"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Ý nghĩa cột PPID: Cột PPID (Parent Process ID) chỉ định PID của tiến trình cha đã sinh ra tiến trình này. Trong trường hợp lệnh sleep của bạn, PPID chính là PID của tiến trình bash shell đang tương tác."
+        }
+      ],
+      "quiz": {
+        "id": "comptia-q2-ps-options",
+        "question": "Khi điều tra sự cố hệ thống, cú pháp 'ps -ef' có ưu điểm quan trọng nào so với 'ps aux'?",
+        "options": [
+          {
+            "text": "'ps -ef' hiển thị cột PPID (Parent PID), giúp xác định cây tiến trình cha-con để truy vết nguồn gốc tiến trình."
+          },
+          {
+            "text": "'ps -ef' chỉ hiển thị tiến trình của người dùng thường mà không hiển thị tiến trình của root."
+          },
+          {
+            "text": "'ps -ef' tự động kết thúc các tiến trình chiếm dụng nhiều bộ nhớ RAM."
+          },
+          {
+            "text": "'ps -ef' thay đổi độ ưu tiên Nice của tiến trình sang mức cao nhất."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Tuỳ chọn '-f' trong chuẩn POSIX 'ps -ef' cung cấp cột PPID (Parent Process ID), cho phép SysAdmin nhanh chóng nhận diện tiến trình cha sinh ra tiến trình con, rất hữu ích khi truy tìm mã độc hoặc tiến trình zombie."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Monitor System Resources with 'top'",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong khi `ps` chỉ cung cấp ảnh chụp tĩnh tại một thời điểm, tiện ích tương tác `top` hiển thị bảng điều khiển cập nhật liên tục theo thời gian thực về mức độ sử dụng CPU, RAM và hoạt động của từng tiến trình."
+        },
+        {
+          "type": "paragraph",
+          "text": "Hãy khởi chạy công cụ giám sát tài nguyên `top`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "top",
+            "runnableCommand": "top",
+            "caption": "Mở bảng điều khiển giám sát tài nguyên thời gian thực top"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Cấu trúc màn hình `top` bao gồm hai phần chính:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Khu vực tóm tắt hệ thống (Summary Area)**:\n• Dòng 1: Thời gian hoạt động (uptime), số người dùng, chỉ số Load Average (1m, 5m, 15m).\n• Dòng 2: Phân loại tác vụ (Tasks: running, sleeping, stopped, zombie).\n• Dòng 3: Thống kê CPU (%us: người dùng, %sy: kernel hệ thống, %id: nhàn rỗi, %wa: chờ I/O đĩa).\n• Dòng 4-5: Thống kê bộ nhớ RAM vật lý (total, free, used, buff/cache) và bộ nhớ Swap.",
+            "**Danh sách tiến trình (Process Table)**:\n• Hiển thị PID, USER, PR (Priority), NI (Nice), VIRT, RES, %CPU, %MEM, TIME+ và COMMAND."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Các phím tắt tương tác quan trọng khi đang xem `top`:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Phím `M`: Sắp xếp danh sách tiến trình theo mức tiêu thụ Bộ nhớ (%MEM).",
+            "Phím `P`: Sắp xếp danh sách tiến trình theo mức tiêu thụ CPU (%CPU - mặc định).",
+            "Phím `k`: Mở hộp thoại gửi tín hiệu kết thúc (kill) một tiến trình theo PID.",
+            "Phím `r`: Thay đổi mức độ ưu tiên (renice) một tiến trình.",
+            "Phím `q`: Thoát khỏi giao diện top và trở về terminal."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "text": "Mẹo quản trị: Khi máy chủ bị chậm, nhấn 'P' để tìm tiến trình gây quá tải CPU, hoặc nhấn 'M' để phát hiện các tiến trình bị rò rỉ bộ nhớ (memory leak)."
+        }
+      ],
+      "quiz": {
+        "id": "comptia-q3-top-shortcuts",
+        "question": "Trong giao diện tương tác của 'top', bạn cần nhấn phím nào để sắp xếp danh sách tiến trình theo mức độ tiêu thụ RAM (%MEM)?",
+        "options": [
+          {
+            "text": "Phím 'M' (Shift + m)"
+          },
+          {
+            "text": "Phím 'P' (Shift + p)"
+          },
+          {
+            "text": "Phím 'C'"
+          },
+          {
+            "text": "Phím 'q'"
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Phím 'M' (viết tắt của Memory) lập tức sắp xếp bảng tiến trình theo cột %MEM từ cao xuống thấp. Phím 'P' sắp xếp theo CPU, và phím 'q' dùng để thoát."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Manage Job Control with 'fg', 'bg', and Ctrl-Z",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Tính năng **Job Control** (quản lý tác vụ) của Linux Shell cho phép bạn linh hoạt hoán chuyển trạng thái tiến trình giữa tiền cảnh (foreground), tạm đình chỉ (stopped/suspended) và chạy ngầm (background)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Chu trình điều khiển tác vụ diễn ra như sau:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Khi một tiến trình đang chiếm giữ terminal ở chế độ tiền cảnh, nhấn tổ hợp phím `Ctrl-Z` sẽ gửi tín hiệu `SIGTSTP` (Signal 20) tạm dừng tiến trình và trả lại dấu nhắc lệnh.",
+            "Lệnh `bg %<job_id>` gửi tín hiệu `SIGCONT` (Signal 18) đánh thức tiến trình và chuyển sang chạy tiếp ở chế độ nền (Background).",
+            "Lệnh `fg %<job_id>` đưa tiến trình nền quay trở lại tương tác trực tiếp ở chế độ tiền cảnh (Foreground)."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Hãy thực hành đưa tác vụ `sleep 300` (Job ID số 1) từ hậu cảnh ra tiền cảnh bằng lệnh `fg`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "fg %1",
+            "runnableCommand": "fg %1",
+            "caption": "Đưa tác vụ Job 1 ra tiền cảnh (Foreground)"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Khi tác vụ ra tiền cảnh, nó sẽ chiếm giữ terminal. Nếu bạn bấm `Ctrl-Z` để tạm dừng, rồi muốn nó tiếp tục chạy ngầm mà không làm tắc nghẽn terminal, hãy dùng lệnh `bg`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "bg %1",
+            "runnableCommand": "bg %1",
+            "caption": "Đưa tác vụ Job 1 chạy tiếp trong chế độ hậu cảnh (Background)"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Xác nhận lại trạng thái hoạt động của các tác vụ bằng lệnh `jobs`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "jobs",
+            "runnableCommand": "jobs",
+            "caption": "Kiểm tra xác nhận trạng thái Running của tác vụ"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Ký hiệu '%1' chỉ định Job ID số 1. Nếu bạn chỉ gõ 'fg' hoặc 'bg' mà không kèm tham số, shell sẽ tự động áp dụng lên tác vụ mặc định (có dấu '+')."
+        }
+      ],
+      "quiz": {
+        "id": "comptia-q4-ctrl-z-effect",
+        "question": "Khi bạn đang chạy một lệnh chiếm quyền terminal và nhấn 'Ctrl-Z', điều gì thực sự diễn ra phía dưới hệ điều hành?",
+        "options": [
+          {
+            "text": "Shell gửi tín hiệu SIGTSTP tạm dừng tiến trình, đưa nó vào danh sách jobs ở trạng thái Stopped và trả lại quyền điều khiển terminal."
+          },
+          {
+            "text": "Tiến trình bị hủy bỏ hoàn toàn và xóa khỏi bộ nhớ RAM."
+          },
+          {
+            "text": "Tiến trình tự động khởi động lại từ đầu với quyền quản trị viên root."
+          },
+          {
+            "text": "Lệnh được lưu vào tệp lịch sử bash_history và tự động đóng cửa sổ terminal."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Phím tắt 'Ctrl-Z' sinh tín hiệu SIGTSTP (Terminal Stop). Tiến trình không bị hủy mà chỉ bị 'đóng băng' tạm thời. Bạn có thể dùng 'bg' để cho nó tiếp tục chạy ngầm hoặc 'fg' để tiếp tục chạy trên màn hình."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Adjust Process Priority with 'renice'",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bộ lập lịch của nhân Linux (Linux Kernel Scheduler) quyết định thứ tự và thời lượng CPU được cấp phát cho từng tiến trình. Đại lượng đại diện cho mức độ ưu tiên này từ góc nhìn người dùng được gọi là **Niceness (NI)**."
+        },
+        {
+          "type": "paragraph",
+          "text": "Quy tắc thang đo **Niceness** trong Linux:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Giá trị Niceness trải dài từ **`-20`** (mức ưu tiên CPU cao nhất - ít 'nice', ít nhường CPU cho tiến trình khác) đến **`+19`** (mức ưu tiên CPU thấp nhất - rất 'nice', luôn nhường CPU cho tiến trình khác).",
+            "Giá trị Niceness mặc định của tiến trình thông thường là **`0`**.",
+            "Mối liên hệ với chỉ số Priority thực tế của kernel: `PRI = 20 + NI`."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Quy tắc phân quyền an ninh:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Người dùng thông thường**: Chỉ được phép tăng giá trị Nice (tức là chỉ được nhường quyền CPU, làm tiến trình của mình chạy chậm hơn).",
+            "**Quản trị viên (Superuser / Root)**: Có toàn quyền tăng hoặc giảm giá trị Nice bất kỳ trong khoảng `-20` đến `19`."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Trước tiên, hãy kiểm tra các chỉ số `PID`, `NI`, `PRI` và `CMD` của tiến trình `sleep` (PID 23885) bằng lệnh `ps -o`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "ps -o pid,ni,pri,cmd -p 23885",
+            "runnableCommand": "ps -o pid,ni,pri,cmd -p 23885",
+            "caption": "Kiểm tra giá trị Nice (NI) và Priority (PRI) ban đầu của tiến trình"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bây giờ, hãy sử dụng lệnh `renice` để tăng giá trị Nice lên `10`, hạ bớt mức ưu tiên CPU của tiến trình:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "renice -n 10 -p 23885",
+            "runnableCommand": "renice -n 10 -p 23885",
+            "caption": "Thay đổi giá trị Niceness lên 10 (nhường CPU) cho tiến trình PID 23885"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Hệ thống sẽ xác nhận: `23885 (process ID) old priority 0, new priority 10`. Giá trị Nice mới đã được cập nhật thành công."
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "text": "Phân biệt 'nice' và 'renice': Lệnh 'nice' dùng để chỉ định mức ưu tiên KHI KHỞI CHẠY lệnh mới (ví dụ: nice -n 5 my_script.sh), trong khi 'renice' dùng để điều chỉnh mức ưu tiên CỦA TIẾN TRÌNH ĐANG CHẠY."
+        }
+      ],
+      "quiz": {
+        "id": "comptia-q5-renice-rules",
+        "question": "Một người dùng thông thường (không có sudo/root) có thể thực hiện thao tác renice nào sau đây trên tiến trình của chính mình?",
+        "options": [
+          {
+            "text": "Chỉ có thể tăng giá trị Nice (ví dụ từ 0 lên +10), nhường CPU cho tiến trình khác."
+          },
+          {
+            "text": "Có thể giảm giá trị Nice xuống số âm (ví dụ -15) để tăng tốc độ xử lý."
+          },
+          {
+            "text": "Có thể thay đổi giá trị Nice của tiến trình thuộc sở hữu của người dùng khác."
+          },
+          {
+            "text": "Không được phép dùng lệnh renice trong bất kỳ trường hợp nào."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Vì lý do an toàn và công bằng tài nguyên, người dùng thường chỉ được phép 'lịch sự hơn' (tăng nice, giảm ưu tiên CPU). Chỉ có tài khoản root mới có thẩm quyền giảm nice (tăng ưu tiên) hoặc can thiệp vào tiến trình của người khác."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Terminate a Process with 'kill'",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong Linux, lệnh `kill` thực chất là một công cụ gửi tín hiệu (Signals) tới tiến trình chứ không đơn thuần chỉ là kết thúc chương trình. Tùy thuộc vào tín hiệu được gửi, tiến trình sẽ có phản hồi phù hợp."
+        },
+        {
+          "type": "paragraph",
+          "text": "Các tín hiệu quan trọng nhất theo chuẩn CompTIA Linux+:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**`SIGTERM` (Signal 15 - Mặc định)**: Yêu cầu kết thúc lịch sự. Tiến trình nhận tín hiệu này sẽ chủ động dọn dẹp bộ nhớ đệm, đóng tệp mở và ngắt kết nối an toàn trước khi thoát.",
+            "**`SIGKILL` (Signal 9)**: Chấm dứt cưỡng bức bởi kernel. Tiến trình bị hủy ngay lập tức mà không thể can thiệp hoặc dọn dẹp. Chỉ sử dụng khi tiến trình bị treo cứng không phản hồi `SIGTERM`.",
+            "**`SIGHUP` (Signal 1)**: Ngắt kết nối terminal (Hangup) hoặc yêu cầu dịch vụ daemon nạp lại file cấu hình."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể gửi tín hiệu theo **Job ID** (dùng tiền tố `%`) hoặc theo **PID**. Hãy gửi tín hiệu mặc định `SIGTERM` đến Job 1 bằng lệnh `kill %1`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "kill %1",
+            "runnableCommand": "kill %1",
+            "caption": "Gửi tín hiệu SIGTERM an toàn kết thúc tác vụ Job 1"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Sau khi gửi tín hiệu, hãy kiểm tra lại bằng lệnh `jobs`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "jobs",
+            "runnableCommand": "jobs",
+            "caption": "Kiểm tra trạng thái Terminated trong danh sách tác vụ"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Shell sẽ thông báo `[1]+ Terminated sleep 300 &`. Cuối cùng, hãy kiểm tra lại toàn hệ thống bằng `ps` và `grep` để đảm bảo tiến trình đã giải phóng tài nguyên:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "language": "bash",
+            "code": "ps aux | grep sleep",
+            "runnableCommand": "ps aux | grep sleep",
+            "caption": "Xác nhận tiến trình sleep đã giải phóng hoàn toàn"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "Quy tắc vàng: Luôn bắt đầu bằng SIGTERM (kill <PID>). Chỉ khi tiến trình không phản hồi mới dùng đến SIGKILL (kill -9 <PID>) để tránh nguy cơ làm corrupt cơ sở dữ liệu hoặc mất mát dữ liệu chưa kịp ghi vào đĩa."
+        }
+      ],
+      "quiz": {
+        "id": "comptia-q6-kill-tradeoff",
+        "question": "Vì sao trong môi trường máy chủ sản xuất (Production), người quản trị luôn ưu tiên gửi SIGTERM (15) trước khi dùng đến SIGKILL (9)?",
+        "options": [
+          {
+            "text": "SIGTERM cho phép tiến trình dọn dẹp, lưu dữ liệu đệm và đóng kết nối an toàn; còn SIGKILL chấm dứt cưỡng bức dễ làm mất hoặc hỏng dữ liệu."
+          },
+          {
+            "text": "SIGKILL chỉ thực thi được trên kiến trúc ARM mà không hỗ trợ x86_64."
+          },
+          {
+            "text": "SIGTERM tiêu tốn ít năng lượng CPU hơn so với SIGKILL."
+          },
+          {
+            "text": "Lệnh kill không hỗ trợ gửi tín hiệu SIGKILL."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! SIGTERM (Signal 15) cho ứng dụng cơ hội lưu trạng thái, đóng file descriptors và kết nối socket một cách có trật tự (graceful shutdown). SIGKILL (Signal 9) cắt ngang tiến trình ngay lập tức nên có thể làm corrupt dữ liệu."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "summary",
+      "title": "Summary",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Xin chúc mừng! Bạn đã hoàn thành xuất sắc toàn bộ 6 kỹ năng cốt lõi của bài lab **Manage and Monitor Linux Processes** theo chuẩn **CompTIA Linux+** (LabEx #590864)."
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "text": "Bảng tra cứu nhanh lệnh quản lý tiến trình Linux (Cheat Sheet):\n• <cmd> & : Khởi chạy chương trình ở chế độ nền (Background).\n• jobs -l : Liệt kê tác vụ ngầm cùng PID trong phiên shell hiện tại.\n• ps aux : Chụp ảnh tiến trình theo chuẩn BSD (%CPU, %MEM).\n• ps -ef : Chụp ảnh tiến trình theo chuẩn POSIX (phân cấp PPID).\n• top : Bảng điều khiển thời gian thực ('M' sort RAM, 'P' sort CPU, 'q' quit).\n• Ctrl-Z : Tạm dừng (Stop) tiến trình tiền cảnh bằng SIGTSTP.\n• bg %<job> / fg %<job> : Tiếp tục chạy tác vụ ở chế độ hậu cảnh hoặc tiền cảnh.\n• renice -n <nice> -p <pid> : Điều chỉnh độ ưu tiên CPU (-20 đến 19).\n• kill <pid> : Gửi tín hiệu SIGTERM (15) kết thúc an toàn.\n• kill -9 <pid> : Cưỡng bức chấm dứt tiến trình ngay lập tức (SIGKILL)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Bây giờ bạn đã sẵn sàng để chấm điểm! Hãy nhấn nút **Check Lab (Chấm điểm)** ở góc dưới bên phải để hệ thống tự động kiểm tra toàn bộ 6 tiêu chí đánh giá và xác nhận hoàn thành bài lab."
+        }
+      ],
+      "takeaways": [
+        {
+          "text": "Toán tử '&' chạy ngầm tác vụ; lệnh 'jobs' theo dõi danh sách tác vụ thuộc phiên shell hiện tại.",
+          "enText": "Background execution with '&' and job tracking via 'jobs'."
+        },
+        {
+          "text": "'ps aux' (BSD) cung cấp chi tiết %CPU/%MEM; 'ps -ef' (POSIX) thể hiện rõ ràng cây phân cấp cha-con qua cột PPID.",
+          "enText": "Process inspection via BSD (ps aux) and POSIX (ps -ef with PPID)."
+        },
+        {
+          "text": "'top' là công cụ giám sát trực quan thời gian thực với các phím tắt tương tác nhanh 'M', 'P', 'k', 'q'.",
+          "enText": "Real-time resource monitoring with top interactive keys."
+        },
+        {
+          "text": "Tính năng Job Control ('fg', 'bg', 'Ctrl-Z') giúp linh hoạt chuyển đổi luồng thực thi tiến trình.",
+          "enText": "Job control transitions using fg, bg, and SIGTSTP (Ctrl-Z)."
+        },
+        {
+          "text": "Mức ưu tiên Niceness chạy từ -20 đến +19; lệnh 'renice' thay đổi độ ưu tiên của tiến trình đang chạy.",
+          "enText": "CPU scheduling priority tuning with renice within [-20, 19]."
+        },
+        {
+          "text": "Quy tắc kết thúc tiến trình an toàn: Luôn luôn thử SIGTERM (15) trước khi dùng đến SIGKILL (9).",
+          "enText": "Graceful process termination hierarchy with SIGTERM before SIGKILL."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,286 @@
+{
+  "id": 17,
+  "slug": "whatis",
+  "category": "Command Line",
+  "lessonNumber": 17,
+  "title": "whatis (Mô tả nhanh câu lệnh)",
+  "subtitle": "Tìm hiểu cách tra cứu mô tả tóm tắt một dòng từ cơ sở dữ liệu sổ tay và phân biệt các phân mục tài liệu.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu lệnh whatis",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi bạn nhớ tên của một câu lệnh nhưng quên mất mục đích cụ thể của nó, `whatis` cung cấp một lời nhắc tóm tắt ngắn gọn gồm đúng một dòng được trích xuất từ cơ sở dữ liệu của sổ tay man page."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Tra cứu theo tên chính xác",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Truyền một hoặc nhiều tên lệnh chính xác cho `whatis`. Mỗi kết quả được trích xuất từ phần `NAME` của trang man tương ứng:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ whatis cat\ncat (1)              - concatenate files and print on the standard output",
+            "runnableCommand": "whatis cat"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Kết quả trả về chỉ là phần giải thích mục đích, không phải danh sách cờ lệnh hay ví dụ. Nếu cần thông tin chi tiết, hãy dùng `man cat` hoặc `cat --help`."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "describe-known-command",
+        "question": "Bạn đã biết tên lệnh `cat` và muốn xem phần mô tả tóm gọn một dòng về mục đích của nó từ cơ sở dữ liệu manual. Bạn nên chạy lệnh nào?",
+        "options": [
+          {
+            "text": "man cat",
+            "isCode": true
+          },
+          {
+            "text": "apropos cat",
+            "isCode": true
+          },
+          {
+            "text": "whatis cat",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh `whatis cat` tra cứu chính xác tên lệnh và in ra bản tóm tắt một dòng ngắn gọn."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Ý nghĩa của số phân mục trong ngoặc đơn",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu cùng một chủ đề có mặt trong nhiều phân mục sổ tay, `whatis` sẽ hiển thị nhiều dòng kết quả kèm số phân mục trong dấu ngoặc đơn:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ whatis passwd\npasswd (1)           - change user password\npasswd (5)           - the password file",
+            "runnableCommand": "whatis passwd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Tại đây, `passwd (1)` là câu lệnh người dùng để đổi mật khẩu, còn `passwd (5)` là định dạng tệp tin lưu trữ tài khoản người dùng."
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "interpret-whatis-section",
+        "question": "Trong kết quả `passwd (5) - the password file`, con số `(5)` biểu thị điều gì?",
+        "options": [
+          {
+            "text": "Tùy chọn thứ năm mà lệnh passwd hỗ trợ."
+          },
+          {
+            "text": "Phân mục sổ tay chứa tài liệu về định dạng tệp tin (File format)."
+          },
+          {
+            "text": "Tổng số lượng 5 trang sổ tay có tên là passwd."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Phân mục 5 trong hệ thống sổ tay Linux dành riêng cho cấu trúc và định dạng tệp tin."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Phân biệt whatis, man và apropos",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "`whatis NAME`: Xem mô tả tóm tắt một dòng cho một tên lệnh chính xác.",
+            "`man NAME`: Mở toàn bộ trang sổ tay hướng dẫn chi tiết.",
+            "`apropos KEYWORD`: Tìm kiếm trong toàn bộ cơ sở dữ liệu các lệnh có mô tả chứa từ khóa chỉ định."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ apropos password",
+            "runnableCommand": "apropos password"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Dùng `apropos` khi bạn biết công việc cần làm nhưng chưa biết tên lệnh. Dùng `whatis` khi bạn đã biết tên lệnh nhưng cần gợi nhớ nhanh mục đích."
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "search-by-purpose",
+        "question": "Bạn chưa biết tên của câu lệnh, nhưng muốn tìm kiếm trong tất cả mô tả man page các lệnh liên quan đến từ khóa `password`. Câu lệnh nào phù hợp?",
+        "options": [
+          {
+            "text": "apropos password",
+            "isCode": true
+          },
+          {
+            "text": "whatis password",
+            "isCode": true
+          },
+          {
+            "text": "man password",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `apropos` tìm kiếm từ khóa trong tất cả các tiêu đề và mô tả của cơ sở dữ liệu man page."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Khi whatis không tìm thấy mô tả",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu `whatis` thông báo `nothing appropriate`, điều đó có thể do lệnh đó chưa cài trang man hoặc cơ sở dữ liệu chưa được cập nhật (bằng lệnh `mandb`). Điều này không có nghĩa là lệnh đó không tồn tại. Hãy dùng `type NAME` để kiểm tra phân giải trong Bash:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ type deploy",
+            "runnableCommand": "type bash"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "whatis-versus-type",
+        "question": "Lệnh `whatis deploy` không tìm thấy mô tả nào. Câu lệnh nào kiểm tra xem `deploy` là alias, function, builtin hay tệp thực thi?",
+        "options": [
+          {
+            "text": "whatis -r deploy",
+            "isCode": true
+          },
+          {
+            "text": "man 5 deploy",
+            "isCode": true
+          },
+          {
+            "text": "type deploy",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh `type` của Bash kiểm tra trực tiếp trạng thái môi trường hiện tại xem tên đó được phân giải như thế nào."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh whatis trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-whatis",
+          "title": "1. Thực hành tra cứu mô tả nhanh câu lệnh",
+          "description": "Thực hành sử dụng whatis để xem tóm tắt các lệnh cơ bản ls, cat, bash và dùng apropos.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "whatis-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Tra cứu mô tả nhanh của lệnh ls",
+              "description": "Xem mô tả một dòng của lệnh liệt kê thư mục ls.",
+              "runnableCommand": "whatis ls",
+              "buttonLabel": "Chạy whatis ls"
+            },
+            {
+              "id": "whatis-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tra cứu mô tả của lệnh cat",
+              "description": "Xem mô tả mục đích của lệnh cat bằng whatis cat.",
+              "runnableCommand": "whatis cat",
+              "buttonLabel": "Chạy whatis cat"
+            },
+            {
+              "id": "whatis-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Tra cứu mô tả của shell bash",
+              "description": "Xem định nghĩa của GNU Bourne-Again SHell qua whatis bash.",
+              "runnableCommand": "whatis bash",
+              "buttonLabel": "Chạy whatis bash"
+            },
+            {
+              "id": "whatis-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Tìm kiếm theo từ khóa với apropos",
+              "description": "Tìm kiếm các câu lệnh liên quan đến timezone hoặc date bằng apropos.",
+              "runnableCommand": "apropos date",
+              "buttonLabel": "Chạy apropos date"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh whatis",
+      "takeaways": [
+        {
+          "text": "Tra cứu mô tả ngắn gọn một dòng theo tên lệnh chính xác với `whatis`."
+        },
+        {
+          "text": "Đọc và hiểu số phân mục sổ tay đặt trong dấu ngoặc đơn."
+        },
+        {
+          "text": "Chuyển sang `man` khi cần tài liệu đầy đủ hoặc `apropos` khi tìm theo từ khóa."
+        },
+        {
+          "text": "Kết hợp với `type` khi cần kiểm tra bản chất thực thi của câu lệnh trong shell."
+        }
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { CentOSKernel } from '../services/centosKernel';
+import { COMMAND_NAMES } from '../services/commandDocs';
 import {
   RotateCcw,
   Terminal as TerminalIcon,
@@ -432,18 +433,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
       const lastWord = words[words.length - 1] || '';
 
       if (words.length === 1 && !lastWord.includes('/')) {
-        const commonCommands = [
-          'ls', 'cd', 'pwd', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'cat', 'head', 'tail',
-          'wc', 'grep', 'find', 'echo', 'chmod', 'chown', 'chgrp', 'useradd', 'userdel',
-          'groupadd', 'groupdel', 'usermod', 'passwd', 'id', 'whoami', 'su', 'sudo',
-          'systemctl', 'service', 'ps', 'top', 'kill', 'pkill', 'crontab', 'dnf', 'yum',
-          'rpm', 'hostnamectl', 'hostname', 'ip', 'ifconfig', 'ping', 'curl', 'wget',
-          'nmcli', 'journalctl', 'firewall-cmd', 'sestatus', 'getenforce', 'setenforce',
-          'tree', 'lscpu', 'lsblk', 'tar', 'gzip', 'gunzip', 'export', 'env',
-          'netstat', 'ss', 'df', 'free', 'uname', 'uptime', 'date', 'clear', 'history',
-          'which', 'whereis', 'whatis', 'alias', 'unalias', 'vi', 'nano', 'help'
-        ];
-        const matches = commonCommands.filter((c) => c.startsWith(lastWord));
+        const matches = COMMAND_NAMES.filter((c) => c.startsWith(lastWord));
         if (matches.length === 1) {
           const completion = matches[0].slice(lastWord.length) + ' ';
           inputBuffer.current += completion;

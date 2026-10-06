@@ -1,0 +1,336 @@
+{
+  "id": 18,
+  "slug": "alias",
+  "category": "Command Line",
+  "lessonNumber": 18,
+  "title": "alias (Bí danh và phím tắt dòng lệnh)",
+  "subtitle": "Tìm hiểu cách tạo, kiểm tra, lưu trữ vĩnh viễn, tạm thời bỏ qua và hủy bỏ các alias trong Bash.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu tính năng Alias trong Bash",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Tính năng `alias` (bí danh) yêu cầu shell tương tác thay thế một từ lệnh bằng một chuỗi lệnh khác trước khi thực thi. Điều này giúp bạn rút ngắn các câu lệnh thường dùng hoặc tự động gán các tùy chọn mặc định mong muốn."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Tạo alias trong phiên làm việc hiện tại",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong Bash, định nghĩa một alias bằng cú pháp `alias NAME='REPLACEMENT'`. **Tuyệt đối không để khoảng trắng xung quanh dấu bằng (`=`):**"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ alias ll='ls -la'",
+            "runnableCommand": "alias syscheck=\"uptime\""
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Sau khi định nghĩa, gõ lệnh `ll` sẽ tự động mở rộng thành `ls -la`. Cặp dấu ngoặc kép hoặc ngoặc đơn giúp gom toàn bộ chuỗi lệnh có chứa khoảng trắng lại thành một giá trị gán duy nhất."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "define-ll-alias",
+        "question": "Câu lệnh Bash nào định nghĩa chính xác `ll` làm alias cho lệnh `ls -la` trong phiên shell hiện tại?",
+        "options": [
+          {
+            "text": "alias ll = 'ls -la'",
+            "isCode": true
+          },
+          {
+            "text": "alias ll='ls -la'",
+            "isCode": true
+          },
+          {
+            "text": "unalias ll='ls -la'",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Cú pháp gán alias bắt buộc viết liền `NAME=REPLACEMENT` không có khoảng trắng quanh dấu `=`."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Lưu alias vĩnh viễn cho các phiên sau",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Alias được tạo trực tiếp trên dòng lệnh chỉ tồn tại trong phiên shell hiện tại và sẽ biến mất khi bạn đóng terminal. Để lưu vĩnh viễn, hãy thêm dòng định nghĩa đó vào tệp cấu hình khởi động cá nhân `~/.bashrc`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "# Thêm vào cuối ~/.bashrc:\nalias ll='ls -la'",
+            "runnableCommand": "echo \"alias ll='ls -la'\" >> ~/.bashrc"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Để áp dụng ngay các thay đổi vừa thêm vào tệp cấu hình mà không cần khởi động lại terminal, hãy chạy lệnh `source`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ source ~/.bashrc",
+            "runnableCommand": "source ~/.bashrc"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "persist-bash-alias",
+        "question": "Nơi thông thường và chuẩn xác nhất để định nghĩa các alias cá nhân trong Bash để mọi phiên tương tác sau này tự động nạp là tệp nào?",
+        "options": [
+          {
+            "text": "Trong tệp ~/.bashrc của người dùng."
+          },
+          {
+            "text": "Chỉnh sửa trực tiếp tệp nhị phân thực thi của lệnh."
+          },
+          {
+            "text": "Lưu trong lịch sử cuộn trang của terminal."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Tệp `~/.bashrc` được Bash tự động đọc và thực thi mỗi khi một phiên shell tương tác non-login mới được mở."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Kiểm tra danh sách alias và phân giải lệnh",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Chạy lệnh `alias` không có tham số để xem tất cả các bí danh hiện có trên hệ thống:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ alias\nalias ll='ls -la'\nalias grep='grep --color=auto'",
+            "runnableCommand": "alias"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Dùng `type <tên_lệnh>` để xem Bash đang phân giải lệnh đó như thế nào:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ type ll\nll is aliased to 'ls -la'",
+            "runnableCommand": "type ll"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "inspect-command-alias",
+        "question": "Câu lệnh nào kiểm tra xem `ll` hiện đang được Bash phân giải là alias, hàm, builtin hay tệp thực thi?",
+        "options": [
+          {
+            "text": "file ll",
+            "isCode": true
+          },
+          {
+            "text": "type ll",
+            "isCode": true
+          },
+          {
+            "text": "whatis ll",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `type ll` sẽ báo cáo chi tiết liệu `ll` có phải là alias đang trỏ đến `ls -la` hay không."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Bỏ qua tạm thời và xóa bỏ alias",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Để tạm thời bỏ qua alias trong một lần chạy duy nhất và dùng lệnh nguyên bản, thêm dấu gạch chéo ngược `\\` ở đầu lệnh hoặc dùng `command`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ \\ls\n$ command ls",
+            "runnableCommand": "command ls"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Để xóa một alias khỏi phiên hiện tại, sử dụng lệnh `unalias`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ unalias ll",
+            "runnableCommand": "unalias syscheck"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "bypass-ls-alias",
+        "question": "Phiên Bash hiện tại có một alias tên là `ls`. Câu lệnh nào bỏ qua alias đó cho một lần gọi duy nhất để chạy lệnh `ls` gốc?",
+        "options": [
+          {
+            "text": "alias ls",
+            "isCode": true
+          },
+          {
+            "text": "command ls",
+            "isCode": true
+          },
+          {
+            "text": "source ls",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `command ls` (hoặc `\\ls`) bỏ qua việc mở rộng alias và gọi chương trình `ls` tiêu chuẩn."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "remove-current-alias",
+        "question": "Câu lệnh nào xóa bỏ alias `ll` khỏi phiên làm việc Bash hiện tại?",
+        "options": [
+          {
+            "text": "unalias ll",
+            "isCode": true
+          },
+          {
+            "text": "alias ll=''",
+            "isCode": true
+          },
+          {
+            "text": "command ll",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `unalias ll` loại bỏ bí danh `ll` khỏi bảng alias trong bộ nhớ shell."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh alias trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-alias",
+          "title": "1. Thực hành tạo, chạy thử và xóa alias",
+          "description": "Thực hành xem danh sách alias có sẵn trên CentOS Stream 9, tạo alias mới cho uptime và hủy bỏ với unalias.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "alias-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Xem tất cả các alias hiện có",
+              "description": "Gõ lệnh alias để xem danh sách các bí danh đang được cấu hình sẵn.",
+              "runnableCommand": "alias",
+              "buttonLabel": "Chạy alias"
+            },
+            {
+              "id": "alias-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tạo alias mới syscheck cho lệnh uptime",
+              "description": "Định nghĩa alias syscheck=\"uptime\" trong phiên hiện tại.",
+              "runnableCommand": "alias syscheck=\"uptime\"",
+              "buttonLabel": "Tạo alias syscheck"
+            },
+            {
+              "id": "alias-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Chạy thử alias vừa tạo",
+              "description": "Gõ syscheck trên terminal để kiểm tra kết quả mở rộng lệnh.",
+              "runnableCommand": "syscheck",
+              "buttonLabel": "Chạy syscheck"
+            },
+            {
+              "id": "alias-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Hủy bỏ alias bằng unalias",
+              "description": "Xóa bí danh syscheck khỏi bộ nhớ với lệnh unalias syscheck.",
+              "runnableCommand": "unalias syscheck",
+              "buttonLabel": "Chạy unalias syscheck"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh alias",
+      "takeaways": [
+        {
+          "text": "Định nghĩa alias tạm thời với cú pháp `alias NAME='REPLACEMENT'`."
+        },
+        {
+          "text": "Lưu trữ alias vĩnh viễn trong tệp `~/.bashrc`."
+        },
+        {
+          "text": "Kiểm tra danh sách alias với `alias` và phân giải với `type`."
+        },
+        {
+          "text": "Tạm thời bỏ qua alias bằng dấu gạch chéo ngược `\\` hoặc `command`."
+        },
+        {
+          "text": "Hủy bỏ alias đã tạo bằng lệnh `unalias`."
+        }
+      ]
+    }
+  ]
+}

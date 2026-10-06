@@ -1,0 +1,380 @@
+{
+  "id": 10,
+  "slug": "cp",
+  "category": "Command Line",
+  "lessonNumber": 10,
+  "title": "cp (Sao chép tệp tin và thư mục)",
+  "subtitle": "Tìm hiểu cách sao chép tệp tin và cây thư mục, kiểm soát ghi đè và bảo toàn thuộc tính với lệnh cp.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Sao chép một tệp tin với cp",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `cp` (copy) sao chép tệp tin và thư mục mà vẫn giữ nguyên tệp gốc ban đầu. Cú pháp cơ bản:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "cp [OPTIONS] SOURCE DESTINATION"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn đặt đường dẫn nguồn (source) ở vị trí đầu tiên và đường dẫn đích (destination) ở vị trí thứ hai:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cp mycoolfile /home/pete/Documents/cooldocs",
+            "runnableCommand": "cp /etc/hosts /tmp/hosts.backup"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Nếu `/home/pete/Documents/cooldocs` là một thư mục đã tồn tại, bản sao sẽ được đặt bên trong đó với cùng tên `mycoolfile`. Bạn cũng có thể đặt tên tệp đích mới:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cp mycoolfile /home/pete/Documents/mycoolfile_backup",
+            "runnableCommand": "cp /etc/hostname /tmp/my_host"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "copy-file-under-new-name",
+        "question": "Câu lệnh nào sao chép tệp `draft.txt` sang một tệp mới có tên `final.txt` trong khi vẫn giữ nguyên tệp `draft.txt`?",
+        "options": [
+          {
+            "text": "mv draft.txt final.txt",
+            "isCode": true
+          },
+          {
+            "text": "cp final.txt draft.txt",
+            "isCode": true
+          },
+          {
+            "text": "cp draft.txt final.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Cú pháp `cp SOURCE DESTINATION` đọc từ `draft.txt` và tạo ra bản sao `final.txt`, giữ nguyên tệp gốc."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Sao chép nhiều tệp tin vào một thư mục",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể liệt kê nhiều tệp nguồn ở đầu câu lệnh và đặt thư mục đích ở vị trí cuối cùng:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cp report.txt notes.txt summary.txt /home/pete/Documents/",
+            "runnableCommand": "cp /etc/hosts /etc/issue /tmp/"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Khi bạn cung cấp nhiều hơn một tệp nguồn, đối số cuối cùng bắt buộc phải là một thư mục đã tồn tại."
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "copy-multiple-files",
+        "question": "Câu lệnh nào sao chép cả hai tệp `a.txt` và `b.txt` vào thư mục đã tồn tại `archive/`?",
+        "options": [
+          {
+            "text": "cp archive/ a.txt b.txt",
+            "isCode": true
+          },
+          {
+            "text": "cp a.txt b.txt archive/",
+            "isCode": true
+          },
+          {
+            "text": "cp a.txt archive/ b.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Với nhiều nguồn sao chép, thư mục đích luôn được đặt ở vị trí đối số cuối cùng."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Sao chép bằng ký tự đại diện (Wildcards)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Shell hỗ trợ mở rộng các mẫu ký tự đại diện để chọn hàng loạt tệp:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`*`: Khớp với bất kỳ chuỗi ký tự nào.",
+            "`?`: Khớp với chính xác một ký tự bất kỳ.",
+            "`[]`: Khớp với một trong các ký tự nằm trong cặp ngoặc vuông."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Ví dụ: sao chép tất cả các tệp có đuôi `.jpg` sang thư mục `Pictures`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cp *.jpg /home/pete/Pictures",
+            "runnableCommand": "ls *.conf"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Nên dùng `ls` để xem trước danh sách tệp được khớp trước khi thực hiện thao tác sao chép hàng loạt:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls *.jpg\nbeach.jpg  lunch.jpg  profile.jpg\n$ cp *.jpg /home/pete/Pictures",
+            "runnableCommand": "ls /etc/*.conf"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "preview-copy-pattern",
+        "question": "Trước khi sao chép `*.jpg`, câu lệnh nào cho phép xem trước danh sách tệp không ẩn mà mẫu này sẽ khớp?",
+        "options": [
+          {
+            "text": "cp *.jpg",
+            "isCode": true
+          },
+          {
+            "text": "ls *.jpg",
+            "isCode": true
+          },
+          {
+            "text": "file '*.jpg'",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `ls *.jpg` hiển thị danh sách các tệp được mở rộng bởi shell trước khi bạn thực hiện sao chép."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Sao chép cây thư mục đệ quy với -r và -a",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Để sao chép một thư mục cùng toàn bộ nội dung bên trong nó, bạn phải sử dụng tùy chọn đệ quy `-r` (hoặc `-R`):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cp -r Pumpkin/ /home/pete/Documents",
+            "runnableCommand": "cp -r /etc/default /tmp/default_backup"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Chế độ lưu trữ `-a` (archive mode) đặc biệt thích hợp cho sao lưu dự phòng: nó sao chép đệ quy, đồng thời bảo toàn các liên kết tượng trưng (symlinks) và hầu hết các thuộc tính như quyền hạn, thời gian:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cp -a project/ project-backup/",
+            "runnableCommand": "cp -a /etc/default /tmp/default_archive"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "archive-directory-tree",
+        "question": "Bạn muốn sao chép đệ quy thư mục `project/` để sao lưu, đồng thời bảo toàn liên kết và các thuộc tính tệp. Câu lệnh nào phù hợp nhất?",
+        "options": [
+          {
+            "text": "cp -p project/ project-backup/",
+            "isCode": true
+          },
+          {
+            "text": "cp -u project/ project-backup/",
+            "isCode": true
+          },
+          {
+            "text": "cp -a project/ project-backup/",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Chế độ lưu trữ `-a` (archive) bao gồm sao chép đệ quy và bảo toàn quyền hạn, timestamp cũng như symlinks."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "content",
+      "title": "Kiểm soát ghi đè và bảo toàn thuộc tính",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Theo mặc định, `cp` có thể ghi đè lên tệp đích đã tồn tại mà không thông báo. Các tùy chọn bảo vệ hữu ích:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`-i`: Hỏi xác nhận tương tác trước khi ghi đè lên bất kỳ tệp nào.",
+            "`-n`: Chế độ không ghi đè (no-clobber), tự động bỏ qua nếu tệp đích đã tồn tại.",
+            "`-p`: Bảo toàn thuộc tính của tệp nguồn (quyền hạn, người sở hữu, timestamps).",
+            "`-u`: Chỉ sao chép khi tệp đích chưa có hoặc tệp nguồn mới hơn tệp đích (update)."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cp -i mycoolfile /home/pete/Pictures\n$ cp -n report.txt backup/",
+            "runnableCommand": "cp -p /etc/passwd /tmp/passwd.bak"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "skip-existing-destination",
+        "question": "Câu lệnh nào sao chép `report.txt` vào thư mục `backup/` nhưng tự động bỏ qua nếu đã tồn tại tệp cùng tên ở đích đến?",
+        "options": [
+          {
+            "text": "cp -n report.txt backup/",
+            "isCode": true
+          },
+          {
+            "text": "cp -i report.txt backup/",
+            "isCode": true
+          },
+          {
+            "text": "cp -f report.txt backup/",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Tùy chọn `-n` (no-clobber) ngăn `cp` ghi đè lên tệp đã tồn tại."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh cp trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-cp",
+          "title": "1. Thực hành sao chép tệp tin và thư mục",
+          "description": "Thực hành sao chép tệp đơn, sao chép thư mục đệ quy và bảo toàn thuộc tính tệp với lệnh cp.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "cp-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Sao chép file cấu hình hệ thống",
+              "description": "Sao chép /etc/hosts sang vị trí mới /tmp/hosts.backup.",
+              "runnableCommand": "cp /etc/hosts /tmp/hosts.backup",
+              "buttonLabel": "Chạy cp /etc/hosts"
+            },
+            {
+              "id": "cp-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Sao chép thư mục đệ quy với cờ -r",
+              "description": "Sao chép toàn bộ thư mục /etc/default sang /tmp/default_backup.",
+              "runnableCommand": "cp -r /etc/default /tmp/default_backup",
+              "buttonLabel": "Chạy cp -r"
+            },
+            {
+              "id": "cp-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Sao chép bảo toàn thuộc tính với cờ -p",
+              "description": "Sao chép /etc/passwd sang /tmp/passwd.bak và giữ nguyên mốc thời gian, quyền hạn.",
+              "runnableCommand": "cp -p /etc/passwd /tmp/passwd.bak",
+              "buttonLabel": "Chạy cp -p"
+            },
+            {
+              "id": "cp-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Kiểm tra các tệp vừa sao chép trong /tmp",
+              "description": "Dùng ls -la để xem danh sách các bản sao đã tạo thành công trong /tmp.",
+              "runnableCommand": "ls -la /tmp",
+              "buttonLabel": "Chạy ls -la /tmp"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh cp",
+      "takeaways": [
+        {
+          "text": "Đặt các tệp nguồn trước và đường dẫn đích ở cuối cùng."
+        },
+        {
+          "text": "Xem trước kết quả của ký tự đại diện bằng `ls` trước khi sao chép hàng loạt."
+        },
+        {
+          "text": "Sao chép cây thư mục đệ quy bằng `-r` hoặc chế độ lưu trữ toàn diện `-a`."
+        },
+        {
+          "text": "Chủ động kiểm soát việc ghi đè bằng `-i` (hỏi xác nhận) hoặc `-n` (bỏ qua)."
+        },
+        {
+          "text": "Bảo toàn quyền hạn và thời gian với `-p` hoặc chỉ cập nhật tệp mới với `-u`."
+        }
+      ]
+    }
+  ]
+}

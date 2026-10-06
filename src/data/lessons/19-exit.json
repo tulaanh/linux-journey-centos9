@@ -1,0 +1,285 @@
+{
+  "id": 19,
+  "slug": "exit",
+  "category": "Command Line",
+  "lessonNumber": 19,
+  "title": "exit (Thoát phiên shell & Mã trạng thái)",
+  "subtitle": "Tìm hiểu cách rời khỏi phiên shell hiện tại và hiểu rõ các mã trạng thái thoát (exit status) được trả về.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu phiên làm việc Shell lồng nhau",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Các phiên shell trong Linux có thể lồng vào nhau (nested shells): mở terminal tạo một shell, kết nối SSH tạo một shell từ xa, chuyển người dùng bằng `su` tạo một subshell. Khi bạn rời khỏi một shell, quyền điều khiển sẽ được trả về cho tiến trình cha đã khởi chạy shell đó."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Rời khỏi shell hiện tại với exit",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `exit` yêu cầu phiên shell hiện tại kết thúc hoạt động:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ exit",
+            "runnableCommand": "exit"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Nếu shell đó là tiến trình duy nhất trong cửa sổ terminal, cửa sổ hoặc tab đó sẽ đóng lại. Nếu bạn đang ở trong phiên SSH, bạn sẽ quay lại máy cục bộ. Nếu bạn đang ở trong shell con (subshell), bạn sẽ quay trở lại shell cha."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "leave-current-shell",
+        "question": "Bạn đã mở một phiên Bash lồng bên trong một shell khác và muốn quay trở lại shell cha ban đầu. Bạn nên chạy lệnh nào trong phiên con đó?",
+        "options": [
+          {
+            "text": "clear",
+            "isCode": true
+          },
+          {
+            "text": "exit",
+            "isCode": true
+          },
+          {
+            "text": "history -c",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `exit` kết thúc tiến trình shell hiện tại và nhường lại quyền điều khiển cho shell cha."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Trả về mã trạng thái thoát (Exit Status)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể truyền một con số nguyên tùy chọn để thông báo mã trạng thái kết thúc cho tiến trình cha:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ exit 0",
+            "runnableCommand": "echo $?"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Theo quy ước quốc tế trong hệ điều hành Linux/Unix:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`0`: Biểu thị lệnh hoặc phiên làm việc đã hoàn thành **thành công** (success).",
+            "Các số khác `0` (1 - 255): Biểu thị có lỗi phát sinh hoặc điều kiện thất bại (failure).",
+            "Nếu bạn gõ `exit` trần không kèm số, Bash sẽ tự động trả về mã trạng thái của câu lệnh vừa thực thi gần nhất trước đó."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Bạn luôn có thể kiểm tra mã trạng thái của câu lệnh vừa chạy gần nhất bằng biến đặc biệt `echo $?`."
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "return-success-status",
+        "question": "Câu lệnh nào kết thúc phiên shell hiện tại và tường minh trả về mã trạng thái thành công cho tiến trình gọi nó?",
+        "options": [
+          {
+            "text": "exit 0",
+            "isCode": true
+          },
+          {
+            "text": "exit 1",
+            "isCode": true
+          },
+          {
+            "text": "logout 0",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Trạng thái `0` theo quy chuẩn đại diện cho việc hoàn thành công việc thành công."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "exit-without-number",
+        "question": "Trong Bash, khi bạn chỉ gõ lệnh `exit` mà không truyền kèm số nào, trạng thái thoát trả về sẽ là gì?",
+        "options": [
+          {
+            "text": "Luôn luôn là trạng thái thành công 0."
+          },
+          {
+            "text": "Luôn luôn là trạng thái thất bại 1."
+          },
+          {
+            "text": "Trạng thái thoát của câu lệnh vừa thực thi gần nhất."
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Khi không có tham số số học, Bash sử dụng mã trạng thái của câu lệnh vừa chạy trước đó."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Phân biệt lệnh logout trong Login Shell",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `logout` của Bash được thiết kế dành riêng để đăng xuất khỏi một **login shell** (phiên đăng nhập đầu tiên như SSH hoặc console vật lý):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ logout",
+            "runnableCommand": "logout"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Nếu bạn gõ `logout` trong một non-login shell (ví dụ mở terminal trong GUI), Bash sẽ báo lỗi `not login shell: use 'exit'`. Khi đó bạn bắt buộc phải dùng `exit`."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "leave-login-shell",
+        "question": "Lệnh tích hợp sẵn nào của Bash được thiết kế chuyên biệt để đăng xuất khỏi một login shell?",
+        "options": [
+          {
+            "text": "logout",
+            "isCode": true
+          },
+          {
+            "text": "unalias",
+            "isCode": true
+          },
+          {
+            "text": "source",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `logout` là lệnh dành riêng để đăng xuất khỏi các phiên login shell."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "content",
+      "title": "Phím tắt Ctrl + D (End-Of-File)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi đang ở dòng nhắc lệnh trống, nhấn tổ hợp phím `Ctrl + D` sẽ gửi ký tự kết thúc tệp (EOF). Bash thông thường sẽ hiểu đây là yêu cầu thoát phiên tương tự lệnh `exit`."
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Luôn ưu tiên gõ lệnh `exit` có trật tự để các tiến trình con được đóng an toàn trước khi đóng cửa sổ terminal."
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh exit trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-exit",
+          "title": "1. Thực hành chuyển user và thoát phiên shell",
+          "description": "Thực hành chuyển đổi người dùng bằng su, thoát subshell bằng exit và kiểm tra biến trạng thái $?.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "exit-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Chuyển sang người dùng centos bằng su",
+              "description": "Khởi tạo một subshell mới với quyền của người dùng centos.",
+              "runnableCommand": "su centos",
+              "buttonLabel": "Chạy su centos"
+            },
+            {
+              "id": "exit-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Thoát subshell bằng exit",
+              "description": "Rời khỏi phiên người dùng centos và quay lại quyền root ban đầu.",
+              "runnableCommand": "exit",
+              "buttonLabel": "Chạy exit"
+            },
+            {
+              "id": "exit-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Kiểm tra mã trạng thái với echo $?",
+              "description": "In ra mã trạng thái kết thúc của lệnh vừa thực thi gần nhất.",
+              "runnableCommand": "echo $?",
+              "buttonLabel": "Kiểm tra echo $?"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh exit",
+      "takeaways": [
+        {
+          "text": "Dùng `exit` để kết thúc phiên shell hiện tại và trả về tiến trình cha."
+        },
+        {
+          "text": "Cung cấp mã `0` cho thành công hoặc số khác `0` khi có lỗi."
+        },
+        {
+          "text": "Kiểm tra mã trạng thái của lệnh vừa chạy bằng biến `$?`."
+        },
+        {
+          "text": "Phân biệt lệnh `logout` (chỉ dùng cho login shell) với lệnh `exit`."
+        },
+        {
+          "text": "Hiểu ý nghĩa của tổ hợp phím `Ctrl + D` như một ký hiệu kết thúc tệp (EOF)."
+        }
+      ]
+    }
+  ]
+}

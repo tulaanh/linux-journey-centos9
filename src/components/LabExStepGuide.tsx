@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { LabDefinition, LabCheckResult } from '../types/linux';
-import type { LessonDocument } from '../types/lessonDoc';
+import type { LessonDocument, LessonContentBlock, LessonSummaryTakeaway } from '../types/lessonDoc';
 import {
   List,
   Sparkles,
@@ -35,6 +35,8 @@ interface NormalizedStep {
   badge: string;
   title: string;
   description: string;
+  blocks?: LessonContentBlock[];
+  takeaways?: LessonSummaryTakeaway[];
   codeSnippet?: {
     language: string;
     code: string;
@@ -80,11 +82,13 @@ export const LabExStepGuide: React.FC<LabExStepGuideProps> = ({
             if (b.type === 'paragraph' && b.text) {
               mainDesc += (mainDesc ? '\n\n' : '') + b.text;
             } else if (b.type === 'code' && b.codeBlock) {
-              codeSnippet = {
-                language: b.codeBlock.language || (b.codeBlock.type === 'command' ? 'bash' : 'plaintext'),
-                code: b.codeBlock.code,
-                runnableCommand: b.codeBlock.runnableCommand,
-              };
+              if (!codeSnippet) {
+                codeSnippet = {
+                  language: b.codeBlock.language || (b.codeBlock.type === 'command' ? 'bash' : 'plaintext'),
+                  code: b.codeBlock.code,
+                  runnableCommand: b.codeBlock.runnableCommand,
+                };
+              }
             } else if (b.type === 'callout' && b.text) {
               callout = {
                 variant: b.variant || 'info',
@@ -109,22 +113,43 @@ export const LabExStepGuide: React.FC<LabExStepGuideProps> = ({
           }
         }
 
+        // Collect all runnable commands in this step for smart syntax analysis
+        const allCmds: string[] = [];
+        if (s.blocks) {
+          s.blocks.forEach(b => {
+            if (b.type === 'code' && b.codeBlock?.runnableCommand) {
+              allCmds.push(b.codeBlock.runnableCommand);
+            }
+          });
+        }
+        if (codeSnippet?.runnableCommand) allCmds.push(codeSnippet.runnableCommand);
+        const joinedCmds = allCmds.join(' ');
+
         // Build automatic syntax explanation for Linux commands
-        if (codeSnippet?.runnableCommand) {
-          const cmd = codeSnippet.runnableCommand;
-          if (cmd.includes('>>')) {
-            explanation = `Toán tử >> (Append Output): Ghi thêm dữ liệu vào cuối tệp chỉ định mà không xóa bỏ nội dung đã có. An toàn khi cập nhật file log hoặc bổ sung thông tin.`;
-          } else if (cmd.includes('2>')) {
-            explanation = `Toán tử 2> (Redirect Standard Error): Chuyển hướng luồng lỗi (File Descriptor 2) vào tệp lưu trữ riêng, giúp tách biệt các thông báo sự cố khỏi màn hình hoặc kết quả thành công.`;
-          } else if (cmd.includes('&>')) {
-            explanation = `Toán tử &> (Combined Redirection): Chuyển hướng đồng thời cả Standard Output (FD 1) và Standard Error (FD 2) vào chung một tệp log duy nhất.`;
-          } else if (cmd.includes('|') && cmd.includes('tee')) {
-            explanation = `Lệnh tee (T-Splitter): Vừa in kết quả ra màn hình terminal để người học theo dõi trực tiếp, vừa nhân đôi luồng dữ liệu để ghi vào tệp tin.`;
-          } else if (cmd.includes('<')) {
-            explanation = `Toán tử < (Redirect Standard Input): Đưa nội dung của một tệp tin vào làm dữ liệu đầu vào cho lệnh thay vì chờ nhập từ bàn phím.`;
-          } else if (cmd.includes('>')) {
-            explanation = `Toán tử > (Redirect Standard Output): Tạo tệp mới hoặc xóa trắng (ghi đè) toàn bộ tệp cũ để lưu kết quả xuất chuẩn của lệnh.`;
-          }
+        if (joinedCmds.includes('sleep') && joinedCmds.includes('&')) {
+          explanation = `Ký tự '&' đặt ở cuối câu lệnh chỉ thị cho Shell thực thi tiến trình trong chế độ chạy ngầm (background mode). Shell sẽ giải phóng dấu nhắc terminal để bạn tiếp tục nhập lệnh khác và trả về [Job_ID] PID (ví dụ [1] 23885). Lệnh 'jobs' liệt kê các tiến trình nền đang hoạt động trong phiên làm việc.`;
+        } else if (joinedCmds.includes('ps aux') || joinedCmds.includes('ps -ef') || joinedCmds.includes('ps -o')) {
+          explanation = `Phân biệt cú pháp lệnh ps:\n• 'ps aux' (BSD style): 'a' (tất cả người dùng), 'u' (chi tiết %CPU, %MEM), 'x' (tiến trình nền không có terminal TTY).\n• 'ps -ef' (POSIX/UNIX style): '-e' (mọi tiến trình), '-f' (hiển thị đầy đủ gồm cột PPID - Parent PID).\n• 'ps -o pid,ni,pri,cmd -p <PID>': Xuất theo cột tùy biến gồm Nice value và Priority.`;
+        } else if (joinedCmds.includes('top')) {
+          explanation = `Tiện ích 'top' giám sát tài nguyên tương tác thời gian thực:\n• Phím 'M': Sắp xếp danh sách tiến trình theo mức tiêu thụ RAM (%MEM).\n• Phím 'P': Sắp xếp danh sách tiến trình theo mức tiêu thụ CPU (%CPU).\n• Phím 'q': Thoát khỏi tiện ích top an toàn.`;
+        } else if (joinedCmds.includes('fg') || joinedCmds.includes('bg')) {
+          explanation = `Quản lý tác vụ Shell (Job Control):\n• Ctrl+Z: Gửi tín hiệu SIGTSTP tạm dừng tiến trình foreground và chuyển vào nền ở trạng thái Stopped.\n• 'bg %<job_id>': Gửi tín hiệu SIGCONT đánh thức tiến trình chạy tiếp trong background.\n• 'fg %<job_id>': Đưa tiến trình nền trở lại tương tác trực tiếp ở tiền cảnh (Foreground).`;
+        } else if (joinedCmds.includes('renice')) {
+          explanation = `Lệnh 'renice -n <giá_trị> -p <PID>': Điều chỉnh mức độ ưu tiên lập lịch CPU (Niceness).\n• Thang đo Niceness: Từ -20 (ưu tiên cao nhất) đến +19 (ưu tiên thấp nhất, nhường CPU).\n• Người dùng thông thường chỉ được phép tăng giá trị nice (nhường quyền CPU), chỉ có quyền root/sudo mới được giảm nice (tăng ưu tiên).`;
+        } else if (joinedCmds.includes('kill')) {
+          explanation = `Lệnh 'kill': Gửi tín hiệu điều khiển tới tiến trình.\n• 'kill %<job_id>' hoặc 'kill <PID>': Mặc định gửi tín hiệu SIGTERM (15), cho phép tiến trình dọn dẹp tài nguyên và kết thúc an toàn.\n• 'kill -9 <PID>' (SIGKILL): Buộc kernel chấm dứt tiến trình ngay lập tức, không thể bị chặn hoặc bỏ qua.`;
+        } else if (joinedCmds.includes('>>')) {
+          explanation = `Toán tử >> (Append Output): Ghi thêm dữ liệu vào cuối tệp chỉ định mà không xóa bỏ nội dung đã có. An toàn khi cập nhật file log hoặc bổ sung thông tin.`;
+        } else if (joinedCmds.includes('2>')) {
+          explanation = `Toán tử 2> (Redirect Standard Error): Chuyển hướng luồng lỗi (File Descriptor 2) vào tệp lưu trữ riêng, giúp tách biệt các thông báo sự cố khỏi màn hình hoặc kết quả thành công.`;
+        } else if (joinedCmds.includes('&>')) {
+          explanation = `Toán tử &> (Combined Redirection): Chuyển hướng đồng thời cả Standard Output (FD 1) và Standard Error (FD 2) vào chung một tệp log duy nhất.`;
+        } else if (joinedCmds.includes('|') && joinedCmds.includes('tee')) {
+          explanation = `Lệnh tee (T-Splitter): Vừa in kết quả ra màn hình terminal để người học theo dõi trực tiếp, vừa nhân đôi luồng dữ liệu để ghi vào tệp tin.`;
+        } else if (joinedCmds.includes('<')) {
+          explanation = `Toán tử < (Redirect Standard Input): Đưa nội dung của một tệp tin vào làm dữ liệu đầu vào cho lệnh thay vì chờ nhập từ bàn phím.`;
+        } else if (joinedCmds.includes('>')) {
+          explanation = `Toán tử > (Redirect Standard Output): Tạo tệp mới hoặc xóa trắng (ghi đè) toàn bộ tệp cũ để lưu kết quả xuất chuẩn của lệnh.`;
         }
 
         return {
@@ -133,6 +158,8 @@ export const LabExStepGuide: React.FC<LabExStepGuideProps> = ({
           badge: `Step ${idx + 1}/${lessonDoc.steps.length}`,
           title: s.title || `Bước ${idx + 1}`,
           description: mainDesc || lessonDoc.subtitle,
+          blocks: s.blocks,
+          takeaways: s.takeaways,
           codeSnippet,
           explanation,
           quiz: s.quiz,
@@ -197,7 +224,7 @@ export const LabExStepGuide: React.FC<LabExStepGuideProps> = ({
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [showStepMenu, setShowStepMenu] = useState<boolean>(false);
   const [isExplainOpen, setIsExplainOpen] = useState<boolean>(false);
-  const [copiedCode, setCopiedCode] = useState<boolean>(false);
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
   const [selectedQuizAnswers, setSelectedQuizAnswers] = useState<Record<string, number>>({});
   const [evaluationResults, setEvaluationResults] = useState<LabCheckResult[] | null>(null);
   const [isGrading, setIsGrading] = useState<boolean>(false);
@@ -227,10 +254,10 @@ export const LabExStepGuide: React.FC<LabExStepGuideProps> = ({
     setIsExplainOpen(false);
   };
 
-  const handleCopy = (text: string) => {
+  const handleCopy = (text: string, id: string = 'default') => {
     navigator.clipboard.writeText(text);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
+    setCopiedCodeId(id);
+    setTimeout(() => setCopiedCodeId(null), 2000);
   };
 
   const handleRun = (cmd: string) => {
@@ -406,65 +433,193 @@ export const LabExStepGuide: React.FC<LabExStepGuideProps> = ({
             </h2>
           </div>
 
-          {/* Step Description / Main Instructions */}
-          <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-2 whitespace-pre-line">
-            {renderFormattedDescription(currentStep.description)}
-          </div>
+          {/* Step Content: Rich Blocks OR Single Description */}
+          {currentStep.blocks && currentStep.blocks.length > 0 ? (
+            <div className="space-y-3.5">
+              {currentStep.blocks.map((block, bIdx) => {
+                if (block.type === 'paragraph' && block.text) {
+                  return (
+                    <div
+                      key={bIdx}
+                      className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-2 whitespace-pre-line"
+                    >
+                      {renderFormattedDescription(block.text)}
+                    </div>
+                  );
+                }
+                if (block.type === 'callout' && block.text) {
+                  return (
+                    <div
+                      key={bIdx}
+                      className={`p-3 rounded-xl border text-xs leading-relaxed ${
+                        block.variant === 'warning'
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                          : block.variant === 'tip'
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                          : 'bg-blue-500/10 border-blue-500/30 text-blue-200'
+                      }`}
+                    >
+                      {renderFormattedDescription(block.text)}
+                    </div>
+                  );
+                }
+                if (block.type === 'list' && block.items) {
+                  return (
+                    <ul key={bIdx} className="space-y-1.5 text-xs sm:text-sm text-slate-300 pl-1">
+                      {block.items.map((item, itIdx) => (
+                        <li key={itIdx} className="flex items-start gap-2">
+                          <span className="text-sky-400 mt-0.5 font-bold">•</span>
+                          <span>{renderFormattedDescription(item)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                }
+                if (block.type === 'code' && block.codeBlock) {
+                  const cb = block.codeBlock;
+                  const snippetId = `snippet-${currentStepIndex}-${bIdx}`;
+                  const isCopied = copiedCodeId === snippetId;
+                  return (
+                    <div
+                      key={bIdx}
+                      className="rounded-xl border border-[#242c3d] bg-[#0c0f17] overflow-hidden shadow-inner my-2"
+                    >
+                      {/* Header Bar: language label / caption + Run icon + Copy icon */}
+                      <div className="px-3 py-1.5 bg-[#141824] border-b border-[#202738] flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-slate-400 lowercase">
+                            {cb.language || (cb.type === 'command' ? 'bash' : 'plaintext')}
+                          </span>
+                          {cb.caption && (
+                            <span className="text-[10px] text-slate-400 font-sans italic hidden sm:inline">
+                              — {cb.caption}
+                            </span>
+                          )}
+                        </div>
 
-          {/* Optional Callout Info / Warning */}
-          {currentStep.callout && (
-            <div
-              className={`p-3 rounded-xl border text-xs leading-relaxed ${
-                currentStep.callout.variant === 'warning'
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
-                  : currentStep.callout.variant === 'tip'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
-                  : 'bg-blue-500/10 border-blue-500/30 text-blue-200'
-              }`}
-            >
-              {currentStep.callout.text}
+                        <div className="flex items-center gap-1">
+                          {cb.runnableCommand && (
+                            <button
+                              onClick={() => handleRun(cb.runnableCommand!)}
+                              className="p-1 rounded text-slate-400 hover:text-sky-300 hover:bg-[#202738] transition-colors cursor-pointer flex items-center gap-1"
+                              title="Nạp và chạy lệnh trong Terminal"
+                            >
+                              <CornerDownLeft className="w-3.5 h-3.5 text-sky-400" />
+                              <span className="text-[10px] hidden sm:inline text-sky-400">Run</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleCopy(cb.code, snippetId)}
+                            className="p-1 rounded text-slate-400 hover:text-white hover:bg-[#202738] transition-colors cursor-pointer"
+                            title="Sao chép câu lệnh"
+                          >
+                            {isCopied ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Code content */}
+                      <div className="p-3 font-mono text-xs text-slate-200 whitespace-pre-wrap overflow-x-auto leading-relaxed">
+                        {cb.code}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
+          ) : (
+            <>
+              {/* Step Description / Main Instructions */}
+              <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-2 whitespace-pre-line">
+                {renderFormattedDescription(currentStep.description)}
+              </div>
+
+              {/* Optional Callout Info / Warning */}
+              {currentStep.callout && (
+                <div
+                  className={`p-3 rounded-xl border text-xs leading-relaxed ${
+                    currentStep.callout.variant === 'warning'
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                      : currentStep.callout.variant === 'tip'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                      : 'bg-blue-500/10 border-blue-500/30 text-blue-200'
+                  }`}
+                >
+                  {currentStep.callout.text}
+                </div>
+              )}
+
+              {/* Code Snippet Box (Matching LabEx UI 1:1) */}
+              {currentStep.codeSnippet && (
+                <div className="rounded-xl border border-[#242c3d] bg-[#0c0f17] overflow-hidden shadow-inner">
+                  {/* Header Bar: language label + Run icon + Copy icon */}
+                  <div className="px-3 py-1.5 bg-[#141824] border-b border-[#202738] flex items-center justify-between text-[11px]">
+                    <span className="font-mono text-slate-400 lowercase">
+                      {currentStep.codeSnippet.language}
+                    </span>
+
+                    <div className="flex items-center gap-1">
+                      {currentStep.codeSnippet.runnableCommand && (
+                        <button
+                          onClick={() => handleRun(currentStep.codeSnippet!.runnableCommand!)}
+                          className="p-1 rounded text-slate-400 hover:text-sky-300 hover:bg-[#202738] transition-colors cursor-pointer flex items-center gap-1"
+                          title="Nạp và chạy lệnh trong Terminal"
+                        >
+                          <CornerDownLeft className="w-3.5 h-3.5 text-sky-400" />
+                          <span className="text-[10px] hidden sm:inline text-sky-400">Run</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleCopy(currentStep.codeSnippet!.code, 'fallback-snippet')}
+                        className="p-1 rounded text-slate-400 hover:text-white hover:bg-[#202738] transition-colors cursor-pointer"
+                        title="Sao chép câu lệnh"
+                      >
+                        {copiedCodeId === 'fallback-snippet' ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Code content */}
+                  <div className="p-3 font-mono text-xs text-slate-200 whitespace-pre-wrap overflow-x-auto leading-relaxed">
+                    {currentStep.codeSnippet.code}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Code Snippet Box (Matching LabEx UI 1:1) */}
-          {currentStep.codeSnippet && (
-            <div className="rounded-xl border border-[#242c3d] bg-[#0c0f17] overflow-hidden shadow-inner">
-              {/* Header Bar: language label + Run icon + Copy icon */}
-              <div className="px-3 py-1.5 bg-[#141824] border-b border-[#202738] flex items-center justify-between text-[11px]">
-                <span className="font-mono text-slate-400 lowercase">
-                  {currentStep.codeSnippet.language}
-                </span>
-
-                <div className="flex items-center gap-1">
-                  {currentStep.codeSnippet.runnableCommand && (
-                    <button
-                      onClick={() => handleRun(currentStep.codeSnippet!.runnableCommand!)}
-                      className="p-1 rounded text-slate-400 hover:text-sky-300 hover:bg-[#202738] transition-colors cursor-pointer flex items-center gap-1"
-                      title="Nạp và chạy lệnh trong Terminal"
-                    >
-                      <CornerDownLeft className="w-3.5 h-3.5 text-sky-400" />
-                      <span className="text-[10px] hidden sm:inline text-sky-400">Run</span>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => handleCopy(currentStep.codeSnippet!.code)}
-                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-[#202738] transition-colors cursor-pointer"
-                    title="Sao chép câu lệnh"
-                  >
-                    {copiedCode ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Code content */}
-              <div className="p-3 font-mono text-xs text-slate-200 whitespace-pre-wrap overflow-x-auto leading-relaxed">
-                {currentStep.codeSnippet.code}
-              </div>
+          {/* Key Takeaways Section (if present) */}
+          {currentStep.takeaways && currentStep.takeaways.length > 0 && (
+            <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-2">
+              <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
+                Tổng kết kiến thức cốt lõi (Key Takeaways):
+              </span>
+              <ul className="space-y-2 text-xs text-slate-200">
+                {currentStep.takeaways.map((item, tIdx) => (
+                  <li key={tIdx} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium">{renderFormattedDescription(item.text)}</span>
+                      {item.enText && (
+                        <div className="text-[11px] text-slate-400 italic mt-0.5">
+                          {item.enText}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

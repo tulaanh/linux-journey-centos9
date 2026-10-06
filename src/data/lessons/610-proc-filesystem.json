@@ -1,0 +1,292 @@
+{
+  "id": 610,
+  "slug": "proc-filesystem",
+  "category": "Processes",
+  "lessonNumber": 10,
+  "title": "/proc Filesystem (Hệ thống tệp ảo /proc)",
+  "subtitle": "Khám phá cách nhân Linux hiển thị thông tin tiến trình và cấu hình hạt nhân theo thời gian thực dưới dạng hệ thống tệp ảo /proc.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Bản chất của hệ thống tệp ảo procfs",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Linux gắn kết (mount) hệ thống tệp đặc biệt `procfs` tại thư mục `/proc`. Đây là một **hệ thống tệp ảo** (pseudo-filesystem) được nhân Linux tạo ra và quản lý trực tiếp trong bộ nhớ RAM; các tệp và thư mục trong `/proc` không hề tồn tại thực tế trên ổ đĩa cứng."
+        },
+        {
+          "type": "paragraph",
+          "text": "Nó đóng vai trò như một bảng điều khiển mở (dashboard) cung cấp cửa sổ theo dõi trạng thái tiến trình cũng như các tham số hoạt động toàn hệ thống của kernel."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Cấu trúc thư mục tiến trình trong /proc",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể kiểm tra mount point và danh sách các mục cấp cao nhất của `/proc`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ findmnt /proc\n$ ls /proc",
+            "runnableCommand": "ls -d /proc/[0-9]* | head -n 10"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Mỗi thư mục có tên là **chữ số** (ví dụ `/proc/1`, `/proc/12345`) đại diện cho một tiến trình đang hoạt động có PID tương ứng. Ngoài ra còn có các liên kết tượng trưng đặc biệt:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`/proc/self`: Liên kết tượng trưng trỏ trực tiếp tới thư mục tiến trình của chính câu lệnh/tiến trình đang quan sát.",
+            "`/proc/thread-self`: Liên kết tượng trưng trỏ tới luồng (thread) hiện tại."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "proc-filesystem-numeric-directory",
+        "question": "Thư mục có tên dạng số như `/proc/12345` thông thường đại diện cho điều gì?",
+        "options": [
+          {
+            "text": "Khối dữ liệu trên đĩa (disk block) mang số hiệu 12345."
+          },
+          {
+            "text": "Tiến trình hiện đang hoạt động và có số PID là 12345."
+          },
+          {
+            "text": "Tài khoản người dùng có UID là 12345."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Dữ liệu cho từng tiến trình trong `procfs` được gom nhóm bên dưới thư mục mang tên theo số PID hiển thị của nó."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Đọc thông tin chi tiết của tiến trình qua /proc/PID/",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bên trong mỗi thư mục `/proc/[PID]/`, bạn có thể đọc các tệp trạng thái để tìm hiểu sâu về tiến trình:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cat /proc/1/status | head -n 15",
+            "runnableCommand": "cat /proc/1/status | head -n 15"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Các tệp hữu ích hàng đầu bên trong thư mục tiến trình bao gồm:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`/proc/[PID]/status`: Bản tóm tắt dễ đọc gồm tên tiến trình, trạng thái, UID/GID, mức tiêu thụ bộ nhớ (VmSize, VmRSS), capabilities và signal masks.",
+            "`/proc/[PID]/cmdline`: Toàn bộ đối số dòng lệnh lúc khởi chạy, phân tách bởi các ký tự null (`\\0`).",
+            "`/proc/[PID]/environ`: Toàn bộ các biến môi trường của tiến trình.",
+            "`/proc/[PID]/fd/`: Thư mục chứa các liên kết tượng trưng trỏ tới các mô tả tệp (file descriptors) đang mở.",
+            "`/proc/[PID]/cwd`: Liên kết tượng trưng trỏ tới thư mục làm việc hiện tại của tiến trình."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "proc-filesystem-status-file",
+        "question": "Đường dẫn nào chứa bản tóm tắt có cấu trúc dễ đọc về thông tin và trạng thái của tiến trình PID 12345?",
+        "options": [
+          {
+            "text": "/proc/status/12345",
+            "isCode": true
+          },
+          {
+            "text": "/proc/12345/status",
+            "isCode": true
+          },
+          {
+            "text": "/proc/cpuinfo/12345",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Tệp `status` nằm bên trong thư mục mang tên PID của tiến trình: `/proc/12345/status`."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Các giao diện thông tin toàn hệ thống trong /proc",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Không phải mọi tệp trong `/proc` đều thuộc về một tiến trình cụ thể. Rất nhiều tệp cung cấp số liệu thống kê toàn cục về phần cứng và nhân hệ điều hành:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`/proc/cpuinfo`: Chi tiết kiến trúc, nhà sản xuất và model của CPU.",
+            "`/proc/meminfo`: Số liệu chi tiết về dung lượng RAM tổng, RAM trống, cached và buffer.",
+            "`/proc/loadavg`: Mức tải trung bình của hệ thống (load average) trong 1, 5 và 15 phút.",
+            "`/proc/mounts`: Danh sách các hệ thống tệp hiện đang được gắn kết (mount).",
+            "`/proc/sys/`: Thư mục chứa các tham số cấu hình runtime của kernel (có thể ghi để tinh chỉnh trực tiếp kernel parameters qua lệnh sysctl)."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "proc-filesystem-system-interface",
+        "question": "Mục nào sau đây cung cấp thông tin bộ nhớ toàn hệ thống thay vì trạng thái của một tiến trình riêng lẻ?",
+        "options": [
+          {
+            "text": "/proc/self/status",
+            "isCode": true
+          },
+          {
+            "text": "/proc/meminfo",
+            "isCode": true
+          },
+          {
+            "text": "/proc/1/fd",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! `/proc/meminfo` là giao diện báo cáo thông số thống kê bộ nhớ RAM của toàn bộ hệ thống Linux."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Dữ liệu thời gian thực và hiện tượng biến mất của thư mục PID",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Các tiện ích quen thuộc như `ps`, `top`, `free`, `uptime` thực chất hoạt động bằng cách đọc dữ liệu thô từ các tệp trong `/proc`, sau đó tính toán và định dạng lại cho người dùng."
+        },
+        {
+          "type": "paragraph",
+          "text": "Vì `/proc` phản ánh trạng thái sống động trong thời gian thực, một thư mục `/proc/[PID]` có thể đột ngột biến mất giữa hai câu lệnh kiểm tra nếu tiến trình đó kết thúc. Các tập lệnh tự động hóa đọc `/proc` luôn phải xử lý trường hợp lỗi không tìm thấy tệp (race condition) này."
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "proc-filesystem-live-data",
+        "question": "Tại sao một thư mục `/proc/PID` có thể biến mất giữa hai câu lệnh kiểm tra liên tiếp?",
+        "options": [
+          {
+            "text": "Mỗi tệp trong procfs tự động được đổi tên định kỳ 1 giây một lần."
+          },
+          {
+            "text": "Việc đọc tệp status sẽ tự động xóa luôn thư mục của tiến trình."
+          },
+          {
+            "text": "Tiến trình có thể đã kết thúc và thoát trong lúc bạn đang quan sát."
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Procfs phản ánh trực tiếp trạng thái sống, do đó kernel sẽ xóa thư mục tiến trình ngay khi tiến trình đó không còn tồn tại."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành khám phá hệ thống tệp /proc trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-proc-practice",
+          "title": "1. Khám phá các tệp ảo trong /proc",
+          "description": "Thực hành xem thông tin tiến trình init và thống kê hệ thống toàn cục thông qua procfs.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "proc-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Kiểm tra thư mục tiến trình PID 1",
+              "description": "Xem tệp trạng thái status của tiến trình PID 1 (systemd/init).",
+              "runnableCommand": "cat /proc/1/status | head -n 10",
+              "buttonLabel": "Đọc /proc/1/status"
+            },
+            {
+              "id": "proc-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Xem dòng lệnh khởi chạy của PID 1",
+              "description": "Đọc tệp cmdline của PID 1.",
+              "runnableCommand": "cat /proc/1/cmdline",
+              "buttonLabel": "Đọc /proc/1/cmdline"
+            },
+            {
+              "id": "proc-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Đọc thống kê tải hệ thống qua /proc/loadavg",
+              "description": "Xem tải trung bình hệ thống và số lượng tiến trình đang chạy.",
+              "runnableCommand": "cat /proc/loadavg",
+              "buttonLabel": "Đọc /proc/loadavg"
+            },
+            {
+              "id": "proc-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Xem thời gian hoạt động hệ thống qua /proc/uptime",
+              "description": "Đọc thời gian uptime tính bằng giây từ kernel.",
+              "runnableCommand": "cat /proc/uptime",
+              "buttonLabel": "Đọc /proc/uptime"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học /proc Filesystem",
+      "takeaways": [
+        {
+          "text": "Hiểu rằng `/proc` là hệ thống tệp ảo trong RAM, phản ánh thông tin kernel và tiến trình thời gian thực."
+        },
+        {
+          "text": "Biết cách tra cứu thông tin tiến trình qua `/proc/[PID]/status`, `/proc/[PID]/cmdline`, `/proc/[PID]/fd`."
+        },
+        {
+          "text": "Nhận biết các tệp dữ liệu toàn hệ thống quan trọng: `/proc/cpuinfo`, `/proc/meminfo`, `/proc/loadavg`, `/proc/uptime`."
+        },
+        {
+          "text": "Nắm được nguyên lý hoạt động của các lệnh `ps`, `top`, `free` vốn được xây dựng trên dữ liệu từ `/proc`."
+        }
+      ]
+    }
+  ]
+}

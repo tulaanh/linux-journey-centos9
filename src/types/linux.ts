@@ -41,6 +41,7 @@ export interface SystemProcess {
   start: string;
   time: string;
   command: string;
+  ni?: number;
 }
 
 export interface SystemdService {

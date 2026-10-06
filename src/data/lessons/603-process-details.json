@@ -1,0 +1,242 @@
+{
+  "id": 603,
+  "slug": "process-details",
+  "category": "Processes",
+  "lessonNumber": 3,
+  "title": "Process Details (Cấu trúc và chi tiết tiến trình)",
+  "subtitle": "Tìm hiểu các trạng thái, không gian địa chỉ bộ nhớ và tài nguyên phân biệt tiến trình đang chạy với tệp chương trình trên đĩa.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Phân biệt Chương trình (Program) và Tiến trình (Process)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "**Chương trình** (Program) là các đoạn mã thực thi nhị phân và dữ liệu thụ động được lưu trữ trong một tệp tin trên ổ cứng (như `/bin/bash`, `/usr/bin/cat`)."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Tiến trình** (Process) là một thực thể sống đang thực thi trong bộ nhớ: bao gồm không gian địa chỉ ảo, quyền hạn xác thực, bảng mô tả tệp mở (file descriptors), trạng thái tín hiệu và một hoặc nhiều luồng xử lý (threads)."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ pgrep -a cat\n18420 cat\n18457 cat",
+            "runnableCommand": "ps -C bash"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Một chương trình duy nhất trên đĩa có thể được kích hoạt thành nhiều tiến trình độc lập cùng lúc, mỗi tiến trình sở hữu một PID và không gian bộ nhớ riêng."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-details-program-versus-process",
+        "question": "Điều gì phân biệt hai thực thể đang chạy đồng thời của cùng một chương trình?",
+        "options": [
+          {
+            "text": "Tệp chương trình trên đĩa phải được sao chép thành hai bản riêng biệt."
+          },
+          {
+            "text": "Mỗi thực thể sở hữu ngữ cảnh tiến trình, không gian bộ nhớ và PID độc lập."
+          },
+          {
+            "text": "Chỉ có một thực thể duy nhất được phép mở tệp tin."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Mỗi lần kích hoạt chương trình, kernel tạo ra một ngữ cảnh tiến trình hoàn toàn độc lập với PID riêng."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Thông tin trạng thái do Nhân Linux quản lý",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nhân Linux duy trì cấu trúc dữ liệu `task_struct` để quản lý và điều phối từng tiến trình:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Định danh**: PID (Process ID) và PPID (Parent Process ID).",
+            "**Quyền hạn**: UID (User ID thực và hiệu dụng) và GID (Group ID).",
+            "**Bộ nhớ ảo**: Bản đồ các vùng bộ nhớ ánh xạ (mã chương trình, heap, stack).",
+            "**Tệp tin**: Bảng các bộ mô tả tệp mở (`fd 0`, `fd 1`, `fd 2`) và thư mục làm việc hiện tại (`cwd`).",
+            "**Tín hiệu**: Bảng cấu hình bộ xử lý tín hiệu và các tín hiệu đang chờ (pending).",
+            "**Lập lịch**: Chính sách lập lịch, độ ưu tiên (priority), giá trị nice và mức tiêu thụ CPU."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-details-kernel-state",
+        "question": "Thành phần nào chịu trách nhiệm lưu trữ và quản lý thông tin lập lịch, bộ nhớ và quyền hạn của các tiến trình Linux?",
+        "options": [
+          {
+            "text": "Nhân Linux (Kernel)."
+          },
+          {
+            "text": "Thư mục chứa tệp tin thực thi."
+          },
+          {
+            "text": "Ứng dụng trình giả lập terminal."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Kernel Linux là thành phần cốt lõi quản lý trạng thái, cấp phát bộ nhớ và lập lịch cho mọi tiến trình."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Lập lịch CPU và Bộ nhớ ảo",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bộ lập lịch của Linux (Scheduler) liên tục lựa chọn các luồng đang ở trạng thái sẵn sàng (runnable) để gán cho các nhân CPU xử lý dựa trên chính sách (CFS - Completely Fair Scheduler), độ ưu tiên và mức tải hệ thống."
+        },
+        {
+          "type": "paragraph",
+          "text": "Mỗi tiến trình nhìn thấy một không gian địa chỉ bộ nhớ ảo liên tục. Bộ vi xử lý và nhân Linux sẽ ánh xạ các trang nhớ ảo sang RAM vật lý thực tế. Nhờ vậy, một trang bộ nhớ mã nguồn có thể được chia sẻ an toàn giữa nhiều tiến trình mà không làm tốn thêm RAM."
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-details-scheduler-role",
+        "question": "Bộ lập lịch (Scheduler) của Linux đảm nhận vai trò chính nào sau đây?",
+        "options": [
+          {
+            "text": "Quyết định luồng sẵn sàng nào sẽ được cấp phát thời gian chạy trên CPU có sẵn."
+          },
+          {
+            "text": "Ghi nhận ai là chủ sở hữu khi định dạng ổ đĩa."
+          },
+          {
+            "text": "Kiểm tra cú pháp dòng lệnh người dùng nhập vào terminal."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Bộ lập lịch phân phối thời gian thực thi của CPU cho các luồng và tiến trình đang sẵn sàng chạy."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Tiến trình kết thúc và Thu dọn tài nguyên",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi một tiến trình hoàn thành hoặc bị dừng, nhân Linux sẽ giải phóng bộ nhớ, đóng các bộ mô tả tệp mở nhưng vẫn giữ lại một bản ghi nhỏ trong bảng tiến trình chứa **mã thoát** (exit status)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tiến trình ở giai đoạn chuyển tiếp này gọi là **Zombie** (thây ma). Nó tồn tại cho đến khi tiến trình cha thực hiện thao tác gọi lệnh `wait()` để đọc mã thoát. Sau đó, bản ghi mới chính thức biến mất hoàn toàn."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-details-exit-status",
+        "question": "Tại sao một tiến trình sau khi kết thúc có thể tồn tại ngắn ngủi ở trạng thái Zombie?",
+        "options": [
+          {
+            "text": "Vì nó vẫn đang tiếp tục chạy mã lệnh ngầm và chiếm dụng toàn bộ RAM."
+          },
+          {
+            "text": "Vì tiến trình cha của nó chưa thực hiện thao tác thu hoạch (wait) để đọc mã thoát."
+          },
+          {
+            "text": "Vì tệp tin nhị phân của nó bị khóa vĩnh viễn trên đĩa cứng."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Kernel giữ lại thông tin tối thiểu về mã kết thúc cho đến khi tiến trình cha thực hiện thao tác `wait`."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "hands_on",
+      "title": "Thực hành tương tác chi tiết tiến trình trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-details",
+          "title": "1. Khám phá PID, PPID và tài nguyên tiến trình",
+          "description": "Thực hành xem PID của shell hiện tại, xem các tiến trình bash đang chạy và tài nguyên bộ nhớ.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "details-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Xem PID và PPID của shell hiện tại",
+              "description": "Dùng biến đặc biệt $$ và $PPID để xem định danh phiên làm việc.",
+              "runnableCommand": "echo \"PID: $$, PPID: $PPID\"",
+              "buttonLabel": "Xem PID & PPID"
+            },
+            {
+              "id": "details-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tìm các tiến trình bash đang chạy",
+              "description": "Dùng ps để xem tất cả các phiên bash đang hoạt động trên máy ảo.",
+              "runnableCommand": "ps -C bash -o pid,ppid,user,stat,cmd",
+              "buttonLabel": "Xem tiến trình bash"
+            },
+            {
+              "id": "details-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Kiểm tra bộ nhớ khả dụng của hệ thống",
+              "description": "Dùng lệnh free -h để xem dung lượng RAM vật lý và Swap.",
+              "runnableCommand": "free -h",
+              "buttonLabel": "Chạy free -h"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học Process Details",
+      "takeaways": [
+        {
+          "text": "Phân biệt tệp chương trình tĩnh trên đĩa với tiến trình sống trong bộ nhớ."
+        },
+        {
+          "text": "Nhận biết các siêu dữ liệu nhân Linux quản lý (PID, credentials, memory, fds)."
+        },
+        {
+          "text": "Hiểu cách bộ lập lịch phân bổ thời gian CPU cho các luồng runnable."
+        },
+        {
+          "text": "Giải thích được cơ chế lưu giữ mã thoát và trạng thái zombie trước khi thu hoạch."
+        }
+      ]
+    }
+  ]
+}

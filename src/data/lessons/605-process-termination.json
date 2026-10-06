@@ -1,0 +1,246 @@
+{
+  "id": 605,
+  "slug": "process-termination",
+  "category": "Processes",
+  "lessonNumber": 5,
+  "title": "Process Termination (Kết thúc tiến trình, Zombie & Orphan)",
+  "subtitle": "Tìm hiểu vòng đời kết thúc của tiến trình: mã thoát exit status, lệnh gọi wait(), tiến trình zombie và tiến trình mồ côi.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Mã thoát (Exit Status)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi một tiến trình kết thúc (gọi hàm `exit()` hoặc hoàn tất hàm `main()`), nó trả về một số nguyên cho tiến trình cha gọi là **Exit Status** (Mã thoát)."
+        },
+        {
+          "type": "list",
+          "items": [
+            "`0`: Theo quy ước chuẩn Unix, đại diện cho việc thực thi **thành công** (success).",
+            "`1 - 255`: Đại diện cho trạng thái thất bại hoặc mã lỗi tương ứng do chương trình quy định."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls /root\n$ echo $?\n0\n$ ls /nonexistent\nls: cannot access '/nonexistent': No such file or directory\n$ echo $?\n2",
+            "runnableCommand": "echo $?"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-termination-success-status",
+        "question": "Theo quy ước chuẩn của hệ điều hành Unix và Linux, mã thoát (exit status) nào biểu thị một lệnh hoàn thành thành công?",
+        "options": [
+          {
+            "text": "0",
+            "isCode": true
+          },
+          {
+            "text": "1",
+            "isCode": true
+          },
+          {
+            "text": "255",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Trạng thái `0` luôn biểu thị thành công, mọi số khác 0 đều biểu thị điều kiện lỗi hoặc ngoại lệ."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Chờ đợi và Thu hoạch (Waiting and Reaping)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Một tiến trình cha có trách nhiệm đồng bộ và thu thập kết quả của các con do mình sinh ra thông qua các lệnh gọi hệ thống `wait()` hoặc `waitpid()`."
+        },
+        {
+          "type": "paragraph",
+          "text": "Thao tác chờ này giúp tiến trình cha đọc được mã thoát của con (thành công hay thất bại, bị dừng bởi tín hiệu nào). Khi cha đã đọc xong, nhân hệ điều hành mới chính thức dọn sạch hoàn toàn dấu vết của tiến trình con khỏi bảng tiến trình."
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-termination-wait-purpose",
+        "question": "Lệnh gọi hệ thống wait() cho phép tiến trình cha thu thập thông tin gì từ tiến trình con đã hoàn tất?",
+        "options": [
+          {
+            "text": "Thông tin trạng thái kết thúc (termination / exit status) của tiến trình con."
+          },
+          {
+            "text": "Đổi lại mật khẩu đăng nhập của tiến trình con."
+          },
+          {
+            "text": "Khôi phục lại dữ liệu bộ nhớ đã bị giải phóng."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Thao tác `wait()` giúp cha đọc mã thoát và cho phép kernel thu dọn bản ghi tiến trình."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Tiến trình thây ma (Zombie Processes)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu tiến trình con đã kết thúc và giải phóng toàn bộ RAM, nhưng tiến trình cha lại chưa gọi `wait()` để đọc mã thoát, tiến trình con sẽ trở thành **Zombie** (ký hiệu trạng thái `Z` hoặc `<defunct>`)."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps aux | grep -i defunct\n1000     24102  0.0  0.0      0     0 pts/0    Z+   09:00   0:00 [app] <defunct>",
+            "runnableCommand": "ps aux | grep Z"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "Tiến trình zombie không tiêu thụ CPU hay RAM vì mã lệnh của nó đã chết. Tuy nhiên, nó vẫn chiếm giữ một vị trí trong bảng PID. Nếu có quá nhiều zombie, hệ thống có thể bị cạn kiệt bảng cấp phát PID."
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-termination-zombie-definition",
+        "question": "Mô tả nào sau đây định nghĩa chính xác nhất về một tiến trình Zombie trong Linux?",
+        "options": [
+          {
+            "text": "Một tiến trình đã hoàn tất thực thi nhưng bản ghi vẫn tồn tại trong bảng tiến trình vì cha chưa thu hoạch."
+          },
+          {
+            "text": "Một tiến trình chạy nền sử dụng 100% dung lượng CPU."
+          },
+          {
+            "text": "Một tiến trình đang bị đóng băng bởi quản trị viên hệ thống."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Zombie là tiến trình đã chết (không còn dùng CPU/RAM) nhưng slot bảng tiến trình chưa được giải phóng vì cha chưa gọi `wait`."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Tiến trình mồ côi (Orphans) và Chuyển giao cha (Reparenting)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Ngược lại với Zombie: nếu tiến trình cha chết trước khi tiến trình con kết thúc, tiến trình con đó sẽ trở thành **tiến trình mồ côi** (orphan process)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Linux không để bất kỳ tiến trình nào bơ vơ. Kernel sẽ tự động chuyển quyền làm cha (**reparent**) cho tiến trình gốc `systemd` (PID 1) hoặc một subreaper đủ điều kiện. Khi tiến trình con này kết thúc sau đó, PID 1 sẽ tự động gọi `wait()` để thu dọn sạch sẽ, ngăn ngừa việc sinh ra zombie vĩnh viễn."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-termination-orphan-definition",
+        "question": "Điều gì xảy ra khi một tiến trình tiếp tục sống sót sau khi tiến trình cha ban đầu của nó đã kết thúc?",
+        "options": [
+          {
+            "text": "Nó bị kernel tiêu diệt ngay lập tức."
+          },
+          {
+            "text": "Nó được chuyển giao cha (reparented) cho tiến trình PID 1 hoặc subreaper phù hợp."
+          },
+          {
+            "text": "Nó mất hoàn toàn mã định danh PID và trở thành tiến trình vô danh."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Tiến trình mồ côi được tự động chuyển quyền cha sang tiến trình gốc PID 1 (systemd)."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "hands_on",
+      "title": "Thực hành tương tác mã thoát và zombie trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-termination",
+          "title": "1. Thực hành kiểm tra mã thoát và rà soát Zombie",
+          "description": "Thực hành kiểm tra biến $?, so sánh mã thoát thành công và thất bại, kiểm tra danh sách defunct.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "term-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Chạy lệnh thành công và kiểm tra $?",
+              "description": "Thực thi lệnh pwd và in ra mã trạng thái kết thúc bằng echo $?.",
+              "runnableCommand": "pwd && echo \"Exit code: $?\"",
+              "buttonLabel": "Kiểm tra exit 0"
+            },
+            {
+              "id": "term-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tạo lệnh lỗi và quan sát mã trạng thái",
+              "description": "Thử truy cập tệp không tồn tại và in ra mã lỗi khác 0.",
+              "runnableCommand": "ls /nonexistent_file; echo \"Exit code: $?\"",
+              "buttonLabel": "Kiểm tra exit != 0"
+            },
+            {
+              "id": "term-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Rà soát các tiến trình zombie trên hệ thống",
+              "description": "Dùng ps aux để tìm kiếm xem có tiến trình defunct nào không.",
+              "runnableCommand": "ps aux | grep defunct",
+              "buttonLabel": "Tìm zombie"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học Process Termination",
+      "takeaways": [
+        {
+          "text": "Nhận biết quy ước mã thoát `0` (thành công) và khác `0` (thất bại) qua biến `$?`."
+        },
+        {
+          "text": "Hiểu trách nhiệm của tiến trình cha trong việc gọi `wait()` để thu hoạch mã thoát."
+        },
+        {
+          "text": "Định nghĩa chính xác tiến trình Zombie và rủi ro cạn kiệt bảng PID."
+        },
+        {
+          "text": "Hiểu cơ chế bảo vệ của kernel khi nhận nuôi (reparent) các tiến trình mồ côi."
+        }
+      ]
+    }
+  ]
+}

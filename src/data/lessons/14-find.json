@@ -1,0 +1,309 @@
+{
+  "id": 14,
+  "slug": "find",
+  "category": "Command Line",
+  "lessonNumber": 14,
+  "title": "find (Tìm kiếm tệp tin và thư mục)",
+  "subtitle": "Tìm hiểu cách tìm kiếm trong cây thư mục theo tên, định dạng, kích thước, thời gian và thực thi hành động với find.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu lệnh find",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `find` duyệt qua cây thư mục và kiểm tra từng đối tượng theo các tiêu chí như tên gọi, định dạng, kích thước hoặc thời gian chỉnh sửa."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "find [PATH] [EXPRESSION]"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Đường dẫn `[PATH]` xác định vị trí bắt đầu tìm kiếm, và biểu thức `[EXPRESSION]` xác định điều kiện lọc hoặc hành động cần thực hiện. Mặc định `find` luôn tìm kiếm đệ quy xuống các thư mục con."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "search-current-tree",
+        "question": "Câu lệnh nào tìm kiếm trong thư mục hiện tại và tất cả các thư mục con các đối tượng có tên `notes.txt`?",
+        "options": [
+          {
+            "text": "find . -name notes.txt",
+            "isCode": true
+          },
+          {
+            "text": "find / -name notes.txt",
+            "isCode": true
+          },
+          {
+            "text": "find notes.txt .",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Dấu chấm `.` chọn thư mục hiện tại làm điểm bắt đầu, và `-name` kiểm tra tên tệp."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Lọc theo tên và định dạng tệp tin",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Tiêu chí `-name` chấp nhận tên chính xác hoặc mẫu ký tự đại diện. Luôn đặt mẫu trong dấu ngoặc kép để shell không mở rộng trước khi truyền cho `find`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ find . -name \"*.txt\"",
+            "runnableCommand": "find /etc -name \"*.conf\""
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Dùng `-iname` khi muốn tìm kiếm không phân biệt chữ hoa / chữ thường. Thêm `-type f` để chỉ tìm tệp thông thường (file) hoặc `-type d` để chỉ tìm thư mục (directory):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ find /home -type d -name MyFolder",
+            "runnableCommand": "find /var -type d"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "find-text-regular-files",
+        "question": "Câu lệnh nào tìm kiếm các tệp thông thường có tên kết thúc bằng đuôi `.txt` bên dưới thư mục hiện tại?",
+        "options": [
+          {
+            "text": "find . -type f -name \"*.txt\"",
+            "isCode": true
+          },
+          {
+            "text": "find . -type d -name \"*.txt\"",
+            "isCode": true
+          },
+          {
+            "text": "find . -type f -name *.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `-type f` chỉ lọc tệp thông thường và `\"*.txt\"` được bọc ngoặc kép để `find` tự xử lý mẫu ký tự đại diện."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Lọc theo dung lượng và thời gian sửa đổi",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sử dụng `-size` với dấu `+` (lớn hơn) hoặc `-` (nhỏ hơn đơn vị chỉ định). Ví dụ `k` là kilobyte, `M` là megabyte, `G` là gigabyte:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ find . -type f -size +10M\n$ find . -type f -size -1k",
+            "runnableCommand": "find /var/log -type f -size +100k"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Sử dụng `-mtime` để kiểm tra thời gian sửa đổi tệp theo chu kỳ 24 giờ:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ find . -type f -mtime -7\n$ find . -type f -mtime +30",
+            "runnableCommand": "find /etc -type f -mtime -30"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "`-mtime -7` tìm các tệp được sửa đổi trong vòng dưới 7 ngày qua; `-mtime +30` tìm các tệp đã sửa đổi cách đây hơn 30 ngày."
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "find-recent-regular-files",
+        "question": "Câu lệnh nào tìm các tệp thông thường bên dưới thư mục `.` có thời gian sửa đổi cách đây chưa đầy 7 ngày?",
+        "options": [
+          {
+            "text": "find . -type f -mtime -7",
+            "isCode": true
+          },
+          {
+            "text": "find . -type f -mtime +7",
+            "isCode": true
+          },
+          {
+            "text": "find . -type d -mtime -7",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `-type f` lọc tệp thông thường và `-mtime -7` lọc các tệp có thời gian sửa đổi gần đây dưới 7 ngày."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "In kết quả và thực thi hành động với -exec",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu không chỉ định hành động nào, `find` sẽ mặc định in ra các đường dẫn tìm thấy (`-print`). Bạn có thể dùng `-exec` để chạy lệnh trên từng kết quả tìm được:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ find . -name \"*.log\" -exec ls -l {} \\;",
+            "runnableCommand": "find /etc -name \"*.conf\" -exec ls -l {} \\;"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Trong cú pháp `-exec`, cặp dấu ngoặc nhọn `{}` là chỗ trống đại diện cho từng đường dẫn tìm được. Dấu chấm phẩy `\\;` kết thúc biểu thức `-exec` và phải được thoát bằng dấu gạch chéo ngược."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "verify-before-delete",
+        "question": "Bạn đang phát triển lệnh `find` để sau đó xóa các tệp log cũ. Bạn nên làm gì trước tiên?",
+        "options": [
+          {
+            "text": "Thêm ngay cờ -delete và xem tệp nào biến mất."
+          },
+          {
+            "text": "Chạy biểu thức với -print để kiểm tra kỹ danh sách kết quả trước."
+          },
+          {
+            "text": "Tìm kiếm từ thư mục gốc / để không bỏ sót tệp nào."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Luôn in danh sách kết quả ra màn hình để kiểm tra trước khi thực hiện hành động xóa hoặc sửa đổi."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "run-ls-for-each-match",
+        "question": "Trong câu lệnh `find . -name \"*.log\" -exec ls -l {} \\;`, cặp dấu ngoặc nhọn `{}` biểu thị điều gì?",
+        "options": [
+          {
+            "text": "Đường dẫn của từng tệp tìm thấy được truyền cho lệnh ls -l."
+          },
+          {
+            "text": "Thư mục bắt đầu nơi lệnh find được kích hoạt."
+          },
+          {
+            "text": "Dấu chấm phẩy kết thúc biểu thức -exec."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `{}` là ký hiệu đại diện (placeholder) cho từng kết quả khớp được `find` tìm thấy."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh find trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-find",
+          "title": "1. Thực hành tìm kiếm tệp tin và thư mục",
+          "description": "Thực hành tìm kiếm các tệp cấu hình hệ thống .conf trong /etc và lọc thư mục trong /var.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "find-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Tìm tất cả tệp cấu hình .conf trong /etc",
+              "description": "Tìm kiếm các file có phần mở rộng .conf trong thư mục /etc.",
+              "runnableCommand": "find /etc -name \"*.conf\"",
+              "buttonLabel": "Tìm *.conf trong /etc"
+            },
+            {
+              "id": "find-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tìm tất cả các thư mục con bên trong /var",
+              "description": "Dùng cờ -type d để chỉ hiển thị các thư mục.",
+              "runnableCommand": "find /var -type d",
+              "buttonLabel": "Tìm thư mục trong /var"
+            },
+            {
+              "id": "find-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Tìm các tệp lớn hơn 100k trong /var/log",
+              "description": "Lọc theo dung lượng tệp với tùy chọn -size +100k.",
+              "runnableCommand": "find /var/log -type f -size +100k",
+              "buttonLabel": "Tìm tệp lớn >100k"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh find",
+      "takeaways": [
+        {
+          "text": "Chọn vị trí bắt đầu tìm kiếm hẹp và chính xác nhất có thể."
+        },
+        {
+          "text": "Bọc ngoặc kép quanh mẫu tên tệp và kết hợp với `-type f` hoặc `-type d`."
+        },
+        {
+          "text": "Lọc theo kích thước (`-size`) hoặc chu kỳ 24 giờ (`-mtime`)."
+        },
+        {
+          "text": "Sử dụng `-maxdepth` khi cần giới hạn độ sâu đệ quy."
+        },
+        {
+          "text": "Luôn in ra xem trước kết quả trước khi dùng `-delete` hoặc `-exec`."
+        }
+      ]
+    }
+  ]
+}

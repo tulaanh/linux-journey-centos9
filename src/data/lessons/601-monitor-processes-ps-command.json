@@ -1,0 +1,301 @@
+{
+  "id": 601,
+  "slug": "monitor-processes-ps-command",
+  "category": "Processes",
+  "lessonNumber": 1,
+  "title": "ps (Giám sát tiến trình với ps & top)",
+  "subtitle": "Tìm hiểu cách chụp ảnh nhanh trạng thái tiến trình với lệnh ps và theo dõi tài nguyên hệ thống theo thời gian thực với top.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu tiến trình trong Linux",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Mỗi chương trình, dịch vụ nền hoặc câu lệnh bạn thực thi trong Linux đều chạy dưới dạng một **tiến trình** (process). Nhân hệ điều hành Linux cấp phát cho mỗi tiến trình một mã định danh duy nhất gọi là **PID** (Process ID), không gian bộ nhớ ảo, quyền hạn bảo mật và phân bổ thời gian thực thi trên CPU."
+        },
+        {
+          "type": "paragraph",
+          "text": "Khác với các công cụ giám sát liên tục, lệnh `ps` (viết tắt của *process status*) chụp một bức ảnh tĩnh tại thời điểm tức thì về các tiến trình đang hoạt động."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Chụp ảnh trạng thái cơ bản với ps",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi chạy `ps` không kèm tùy chọn nào, lệnh chỉ hiển thị các tiến trình thuộc về phiên terminal hiện tại của bạn:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps\n  PID TTY          TIME CMD\n18420 pts/0    00:00:00 bash\n18512 pts/0    00:00:00 ps",
+            "runnableCommand": "ps"
+          }
+        },
+        {
+          "type": "list",
+          "items": [
+            "`PID`: Số định danh duy nhất của tiến trình.",
+            "`TTY`: Thiết bị đầu cuối điều khiển nơi tiến trình được khởi chạy (`pts/0` là pseudo-terminal).",
+            "`TIME`: Tổng thời gian xử lý tích lũy của CPU dành cho tiến trình đó.",
+            "`CMD`: Tên câu lệnh hoặc chương trình thực thi."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "ps-command-pid-meaning",
+        "question": "Cột PID trong kết quả đầu ra của lệnh ps biểu thị thông tin gì?",
+        "options": [
+          {
+            "text": "Số thứ tự dòng của tiến trình trong tệp cấu hình."
+          },
+          {
+            "text": "Mã định danh duy nhất của tiến trình do nhân hệ điều hành cấp phát."
+          },
+          {
+            "text": "Tỷ lệ phần trăm CPU mà tiến trình đang tiêu thụ."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! PID (Process ID) là mã số định danh duy nhất của từng tiến trình trong toàn bộ hệ thống Linux."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Liệt kê tiến trình theo phong cách BSD với ps aux",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Một trong những cách sử dụng phổ biến nhất của các quản trị viên hệ thống là `ps aux` (phong cách BSD, không có dấu gạch ngang phía trước):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps aux | head -n 5\nUSER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot         1  0.0  0.4 172324  5216 ?        Ss   08:12   0:01 /usr/lib/systemd/systemd\nroot         2  0.0  0.0      0     0 ?        S    08:12   0:00 [kthreadd]",
+            "runnableCommand": "ps aux"
+          }
+        },
+        {
+          "type": "list",
+          "items": [
+            "`a`: Hiển thị tiến trình của tất cả người dùng gắn với một terminal.",
+            "`u`: Định dạng hướng người dùng (User-oriented), bổ sung thông tin tài nguyên như `%CPU`, `%MEM`, `VSZ`, `RSS`.",
+            "`x`: Hiển thị cả các tiến trình không gắn với bất kỳ terminal nào (ví dụ các dịch vụ nền systemd, daemon)."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "ps-command-aux-user-format",
+        "question": "Trong cú pháp ps aux, tùy chọn nào yêu cầu định dạng hiển thị chi tiết hướng người dùng (USER, %CPU, %MEM)?",
+        "options": [
+          {
+            "text": "a",
+            "isCode": true
+          },
+          {
+            "text": "u",
+            "isCode": true
+          },
+          {
+            "text": "x",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Ký tự `u` yêu cầu định dạng user-oriented hiển thị người sở hữu, tài nguyên CPU và RAM tiêu thụ."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Sử dụng tùy chọn chuẩn UNIX / POSIX với ps -ef",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Phong cách chuẩn UNIX/POSIX sử dụng các tùy chọn có tiền tố dấu gạch ngang `-`. Lệnh `ps -ef` là cách kiểm tra toàn diện và xem mối quan hệ cha-con:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps -ef | head -n 5\nUID        PID  PPID  C STIME TTY          TIME CMD\nroot         1     0  0 08:12 ?        00:00:01 /usr/lib/systemd/systemd\nroot         2     0  0 08:12 ?        00:00:00 [kthreadd]",
+            "runnableCommand": "ps -ef"
+          }
+        },
+        {
+          "type": "list",
+          "items": [
+            "`-e`: Chọn toàn bộ tất cả các tiến trình trên hệ thống (tương đương `-A`).",
+            "`-f`: Định dạng hiển thị đầy đủ (Full-format), đặc biệt bao gồm cột `PPID` (Parent Process ID - PID của tiến trình cha)."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "ps-command-ef-selection",
+        "question": "Tùy chọn -e trong câu lệnh ps -ef mang ý nghĩa gì?",
+        "options": [
+          {
+            "text": "Chỉ hiển thị các tiến trình vừa mới kết thúc."
+          },
+          {
+            "text": "Liệt kê toàn bộ tất cả các tiến trình trên hệ thống."
+          },
+          {
+            "text": "Bật chế độ chỉnh sửa biến môi trường của tiến trình."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Tùy chọn `-e` (every / all) yêu cầu hiển thị tất cả các tiến trình đang có mặt trên hệ thống."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Giám sát tài nguyên theo thời gian thực với top",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong khi `ps` chỉ chụp ảnh tại một thời điểm, lệnh `top` mở một màn hình động tương tác tự động làm mới định kỳ (mặc định mỗi 3 giây). Lệnh này hiển thị tóm tắt tải CPU, bộ nhớ RAM, swap và danh sách các tiến trình tiêu tốn tài nguyên hàng đầu:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ top\ntop - 14:30:15 up  4:12,  2 users,  load average: 0.08, 0.03, 0.01\nTasks: 145 total,   1 running, 144 sleeping,   0 stopped,   0 zombie\n%Cpu(s):  1.2 us,  0.8 sy,  0.0 ni, 97.9 id,  0.1 wa,  0.0 hi,  0.0 si",
+            "runnableCommand": "top"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Trong giao diện của `top`, nhấn phím `q` để thoát trở lại terminal. Bạn cũng có thể dùng lệnh `uptime` để xem nhanh mức tải trung bình (load average)."
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "ps-command-snapshot-versus-top",
+        "question": "Công cụ nào được giới thiệu giúp cập nhật và làm mới màn hình hiển thị tiến trình liên tục theo thời gian thực?",
+        "options": [
+          {
+            "text": "ps",
+            "isCode": true
+          },
+          {
+            "text": "top",
+            "isCode": true
+          },
+          {
+            "text": "file",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `top` là trình giám sát tài nguyên tương tác, tự động cập nhật thông tin tiến trình liên tục."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh ps và top trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-ps",
+          "title": "1. Khám phá và giám sát tiến trình hệ thống",
+          "description": "Thực hành chụp ảnh tiến trình hiện tại, duyệt danh sách toàn hệ thống và kiểm tra tải CPU.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "ps-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Chụp ảnh tiến trình terminal hiện tại",
+              "description": "Chạy lệnh ps không cờ để xem các tiến trình gắn với phiên shell của bạn.",
+              "runnableCommand": "ps",
+              "buttonLabel": "Chạy ps"
+            },
+            {
+              "id": "ps-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Xem toàn bộ tiến trình hệ thống với ps aux",
+              "description": "Dùng ps aux để kiểm tra tỷ lệ %CPU và %MEM của các tiến trình hệ thống.",
+              "runnableCommand": "ps aux",
+              "buttonLabel": "Chạy ps aux"
+            },
+            {
+              "id": "ps-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Kiểm tra quan hệ cha con PPID với ps -ef",
+              "description": "Chạy ps -ef để xem cột PPID và tiến trình systemd (PID 1).",
+              "runnableCommand": "ps -ef",
+              "buttonLabel": "Chạy ps -ef"
+            },
+            {
+              "id": "ps-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Kiểm tra mức tải hệ thống với uptime",
+              "description": "Xem thời gian hoạt động của máy chủ và 3 chỉ số tải trung bình (load average).",
+              "runnableCommand": "uptime",
+              "buttonLabel": "Chạy uptime"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh ps",
+      "takeaways": [
+        {
+          "text": "Hiểu khái niệm tiến trình và mã định danh duy nhất PID."
+        },
+        {
+          "text": "Chụp ảnh trạng thái nhanh với lệnh cơ bản `ps`."
+        },
+        {
+          "text": "Liệt kê chi tiết toàn bộ tiến trình và tài nguyên theo kiểu BSD bằng `ps aux`."
+        },
+        {
+          "text": "Xem mối quan hệ tiến trình cha con (PPID) bằng `ps -ef`."
+        },
+        {
+          "text": "Theo dõi tiến trình và tải CPU theo thời gian thực bằng công cụ `top`."
+        }
+      ]
+    }
+  ]
+}

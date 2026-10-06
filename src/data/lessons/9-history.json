@@ -1,0 +1,326 @@
+{
+  "id": 9,
+  "slug": "history",
+  "category": "Command Line",
+  "lessonNumber": 9,
+  "title": "history (Lịch sử câu lệnh Bash)",
+  "subtitle": "Tìm hiểu cách kiểm tra, tìm kiếm, tái sử dụng và quản lý lịch sử dòng lệnh trong Bash.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Xem danh sách lịch sử lệnh",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Các shell tương tác lưu lại lịch sử các câu lệnh mà bạn đã từng nhập. Trong Bash, lệnh tích hợp sẵn (builtin) `history` giúp hiển thị và quản lý danh sách đó."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ history\n  101  pwd\n  102  ls -la\n  103  cat notes.txt",
+            "runnableCommand": "history"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Mỗi dòng bao gồm số thứ tự lịch sử (history number) theo sau bởi nội dung câu lệnh tương ứng."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "show-command-history",
+        "question": "Câu lệnh Bash nào hiển thị danh sách các lệnh đã gõ kèm số thứ tự trong phiên làm việc hiện tại?",
+        "options": [
+          {
+            "text": "clear",
+            "isCode": true
+          },
+          {
+            "text": "history -w",
+            "isCode": true
+          },
+          {
+            "text": "history",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh builtin `history` in ra toàn bộ danh sách câu lệnh trong lịch sử kèm số thứ tự."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Tái sử dụng các câu lệnh đã chạy",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bash cung cấp nhiều phím tắt và cú pháp mở rộng lịch sử (history expansion) để chạy lại lệnh nhanh chóng:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Mũi tên Lên (Up Arrow)**: Gọi lại các lệnh vừa gõ để xem lại hoặc sửa đổi.",
+            "**`!!`**: Mở rộng và thực thi ngay lập tức câu lệnh gần nhất (bang bang).",
+            "**Chạy theo số thứ tự**: `!102` chạy lại lệnh có số thứ tự 102 trong danh sách `history`.",
+            "**Chạy theo tiền tố**: `!cat` chạy lại câu lệnh gần nhất bắt đầu bằng chữ `cat`."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "Các cú pháp mở rộng bắt đầu bằng dấu chấm than `!` sẽ chạy lệnh ngay sau khi bạn nhấn Enter. Hãy cẩn thận khi kết hợp với quyền root hoặc khi thao tác với tệp quan trọng."
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "repeat-most-recent-command",
+        "question": "Cú pháp mở rộng lịch sử nào trong Bash chạy lại ngay lập tức câu lệnh vừa thực thi gần nhất?",
+        "options": [
+          {
+            "text": "!102",
+            "isCode": true
+          },
+          {
+            "text": "!cat",
+            "isCode": true
+          },
+          {
+            "text": "!!",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Ký hiệu `!!` mở rộng thành câu lệnh trước đó và thực thi ngay lập tức."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Tìm kiếm lịch sử tương tác với Ctrl + R",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nhấn tổ hợp phím `Ctrl + R` để bắt đầu tìm kiếm tịnh tiến ngược (reverse incremental search), sau đó gõ một vài ký tự trong câu lệnh bạn nhớ. Nhấn tiếp `Ctrl + R` để chuyển đến kết quả cũ hơn."
+        },
+        {
+          "type": "paragraph",
+          "text": "Nhấn `Enter` để thực thi ngay lệnh vừa tìm thấy. Nếu muốn chỉnh sửa lệnh trước khi chạy, hãy nhấn phím mũi tên Trái hoặc Phải để đưa câu lệnh lên dòng soạn thảo."
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "search-before-executing",
+        "question": "Bạn nhớ một phần của câu lệnh đã gõ trước đó và muốn tìm kiếm nó tương tác. Bạn nên nhấn tổ hợp phím nào trước tiên?",
+        "options": [
+          {
+            "text": "Ctrl + D",
+            "isCode": true
+          },
+          {
+            "text": "Ctrl + C",
+            "isCode": true
+          },
+          {
+            "text": "Ctrl + R",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Phím tắt `Ctrl + R` khởi động chế độ tìm kiếm ngược (reverse-i-search) trong lịch sử lệnh Bash."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Quản lý và lưu danh sách lịch sử",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `history` có các tùy chọn giúp chỉnh sửa hoặc lưu trữ danh sách:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`history -c`: Xóa sạch danh sách lịch sử hiện có trong bộ nhớ RAM của phiên hiện tại.",
+            "`history -w`: Ghi danh sách lịch sử hiện tại ra tệp lưu trữ (mặc định là `~/.bash_history`).",
+            "`history -d <vị_trí>`: Xóa một dòng lệnh cụ thể tại số thứ tự chỉ định."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ history -d 101\n$ history -w",
+            "runnableCommand": "history 10"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "save-current-history-list",
+        "question": "Câu lệnh nào ghi danh sách lịch sử lệnh trong bộ nhớ ra tệp lưu trữ lịch sử được cấu hình?",
+        "options": [
+          {
+            "text": "history -c",
+            "isCode": true
+          },
+          {
+            "text": "history -d 101",
+            "isCode": true
+          },
+          {
+            "text": "history -w",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Cờ `-w` (write) ghi danh sách lịch sử hiện tại ra tệp (thường là `~/.bash_history`)."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "content",
+      "title": "Xóa màn hình và phân biệt với xóa lịch sử",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Dùng lệnh `clear` khi bạn muốn làm sạch vùng hiển thị của terminal để dễ nhìn hơn:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ clear",
+            "runnableCommand": "clear"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Lệnh `clear` chỉ làm mới giao diện hiển thị, hoàn toàn KHÔNG xóa các câu lệnh đã lưu trong danh sách lịch sử `history`. Bạn vẫn có thể nhấn phím mũi tên Lên để gọi lại các lệnh cũ."
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "distinguish-clear-from-history-clear",
+        "question": "Bạn muốn làm mới vùng hiển thị màn hình terminal nhưng không muốn xóa lịch sử lệnh trong bộ nhớ. Bạn nên chạy lệnh nào?",
+        "options": [
+          {
+            "text": "clear",
+            "isCode": true
+          },
+          {
+            "text": "history -c",
+            "isCode": true
+          },
+          {
+            "text": "history -d 1",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `clear` chỉ làm sạch màn hình hiển thị, giữ nguyên vẹn danh sách lệnh trong `history`."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh history trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-history",
+          "title": "1. Khám phá và tái sử dụng lịch sử câu lệnh",
+          "description": "Thực hành kiểm tra lịch sử lệnh, chạy một số lệnh hệ thống và làm mới màn hình terminal.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "history-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Liệt kê các lệnh đã gõ bằng history",
+              "description": "Xem danh sách các lệnh bạn đã chạy từ khi bắt đầu phiên làm việc.",
+              "runnableCommand": "history",
+              "buttonLabel": "Chạy history"
+            },
+            {
+              "id": "history-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Chạy các lệnh kiểm tra thông tin hệ thống",
+              "description": "Thực thi lệnh date và whoami để bổ sung thêm vào lịch sử.",
+              "runnableCommand": "date\nwhoami",
+              "buttonLabel": "Chạy date & whoami"
+            },
+            {
+              "id": "history-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Kiểm tra lại lịch sử cập nhật",
+              "description": "Chạy lại history để thấy các lệnh mới vừa thực hiện được bổ sung.",
+              "runnableCommand": "history",
+              "buttonLabel": "Chạy history lần nữa"
+            },
+            {
+              "id": "history-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Làm sạch màn hình terminal",
+              "description": "Dùng lệnh clear để làm mới màn hình mà không làm mất lịch sử.",
+              "runnableCommand": "clear",
+              "buttonLabel": "Chạy clear"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh history",
+      "takeaways": [
+        {
+          "text": "Xem danh sách các câu lệnh kèm số thứ tự bằng lệnh `history`."
+        },
+        {
+          "text": "Gọi lại hoặc mở rộng lệnh nhanh với phím mũi tên Lên, `!!`, hoặc `!n`."
+        },
+        {
+          "text": "Tìm kiếm lịch sử tương tác hiệu quả bằng tổ hợp phím `Ctrl + R`."
+        },
+        {
+          "text": "Ghi hoặc xóa lịch sử với `history -w` và `history -c`."
+        },
+        {
+          "text": "Phân biệt giữa làm sạch màn hình hiển thị (`clear`) và xóa lịch sử lệnh."
+        }
+      ]
+    }
+  ]
+}

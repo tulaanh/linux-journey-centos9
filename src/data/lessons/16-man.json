@@ -1,0 +1,313 @@
+{
+  "id": 16,
+  "slug": "man",
+  "category": "Command Line",
+  "lessonNumber": 16,
+  "title": "man (Sổ tay hướng dẫn hệ thống)",
+  "subtitle": "Tìm hiểu cách mở, điều hướng, tìm kiếm và lựa chọn phân mục sổ tay tham khảo với lệnh man.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu sổ tay hướng dẫn man pages",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Rất nhiều câu lệnh Linux, giao diện hệ thống, tệp cấu hình và công cụ quản trị đều có tài liệu hướng dẫn tham khảo được cài đặt sẵn gọi là các trang sổ tay (**manual pages**, hay thường gọi là **man pages**). Lệnh `man` giúp tìm kiếm và hiển thị các trang tài liệu này."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Mở một trang tài liệu với lệnh man",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Truyền tên câu lệnh hoặc chủ đề cần tra cứu cho lệnh `man`. Ví dụ mở trang hướng dẫn của lệnh `ls`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ man ls",
+            "runnableCommand": "man ls"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Các trang man page thường bao gồm các phần chuẩn: Tóm tắt cú pháp (SYNOPSIS), Mô tả chi tiết (DESCRIPTION), Danh sách tùy chọn (OPTIONS), Tệp liên quan (FILES) và Tham chiếu chéo (SEE ALSO)."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "open-ls-manual",
+        "question": "Câu lệnh nào mở trang sổ tay hướng dẫn chính thức được cài đặt cho chương trình `ls`?",
+        "options": [
+          {
+            "text": "help ls",
+            "isCode": true
+          },
+          {
+            "text": "man ls",
+            "isCode": true
+          },
+          {
+            "text": "ls --help",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `man ls` tra cứu chủ đề `ls` trong cơ sở dữ liệu manual và hiển thị trang sổ tay tương ứng."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Điều hướng và tìm kiếm bên trong trang man",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trên hầu hết các bản phân phối Linux, `man` hiển thị nội dung thông qua một trình phân trang (thường là `less`). Bạn có thể sử dụng các phím điều khiển quen thuộc:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Gõ `/từ_khóa` và nhấn `Enter`: Tìm kiếm xuôi từ vị trí hiện tại xuống dưới.",
+            "Phím `n`: Nhảy đến kết quả tìm kiếm tiếp theo cùng hướng.",
+            "Phím `N`: Nhảy đến kết quả tiếp theo ngược hướng.",
+            "Phím `q`: Thoát khỏi trang man và trở về màn hình dòng lệnh."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "search-man-page",
+        "question": "Khi đang mở một trang man bằng `less`, thao tác nào giúp bắt đầu tìm kiếm xuôi tùy chọn `--recursive`?",
+        "options": [
+          {
+            "text": "Gõ ?--recursive và nhấn Enter."
+          },
+          {
+            "text": "Gõ /--recursive và nhấn Enter."
+          },
+          {
+            "text": "Gõ n--recursive và nhấn Enter."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Dấu gạch chéo `/` bắt đầu chế độ tìm kiếm xuôi về phía trước trong trình xem `less`."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "leave-man-page",
+        "question": "Khi đang mở trang man trong trình xem thông thường, phím nào giúp bạn thoát ra và quay lại shell?",
+        "options": [
+          {
+            "text": "G",
+            "isCode": true
+          },
+          {
+            "text": "n",
+            "isCode": true
+          },
+          {
+            "text": "q",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Phím `q` (quit) thoát khỏi trình phân trang và trao lại quyền điều khiển cho shell."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Lựa chọn phân mục sổ tay (Manual Sections)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Hệ thống tài liệu Linux được phân chia thành các mục được đánh số từ 1 đến 8:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`1`: Các lệnh thông thường của người dùng (User Commands).",
+            "`2`: Các lệnh gọi hệ thống của nhân (System Calls).",
+            "`3`: Các hàm thư viện C (Library Functions).",
+            "`5`: Cấu trúc và định dạng tệp tin (File Formats), ví dụ `/etc/passwd`.",
+            "`8`: Các lệnh quản trị hệ thống dành cho root (System Administration Commands)."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Một tên có thể xuất hiện trong nhiều phân mục khác nhau. Bạn đặt số phân mục trước tên chủ đề để chỉ định chính xác trang cần mở:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ man 5 passwd\n$ man 1 passwd",
+            "runnableCommand": "man 5 passwd"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Lệnh `man 5 passwd` mở tài liệu mô tả định dạng tệp tin `/etc/passwd`. Trong khi `man 1 passwd` mở hướng dẫn câu lệnh đổi mật khẩu người dùng."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "open-passwd-file-format",
+        "question": "Câu lệnh nào mở trang tài liệu ở phân mục 5 mô tả định dạng tệp tin cấu hình tài khoản `passwd`?",
+        "options": [
+          {
+            "text": "man passwd 5",
+            "isCode": true
+          },
+          {
+            "text": "man 5 passwd",
+            "isCode": true
+          },
+          {
+            "text": "man 1 passwd",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Đặt số phân mục `5` trước tên chủ đề `passwd` để mở trang tài liệu định dạng tệp tin `passwd(5)`."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "content",
+      "title": "Xử lý khi trang man không tồn tại",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Không phải mọi câu lệnh đều có một trang man độc lập. Nếu `man` báo không tìm thấy:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Chạy `type <tên_lệnh>` để xem lệnh đó thuộc loại nào.",
+            "Dùng `help <tên_lệnh>` nếu đó là một lệnh tích hợp sẵn (Bash builtin).",
+            "Thử `<tên_lệnh> --help` nếu đó là một chương trình độc lập.",
+            "Kiểm tra xem bản phân phối có yêu cầu cài đặt gói tài liệu mở rộng hay không."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "missing-builtin-manual",
+        "question": "Lệnh `type cd` báo cáo rằng `cd` là shell builtin của Bash và không có trang man riêng biệt. Bạn nên dùng lệnh nào tiếp theo để xem hướng dẫn?",
+        "options": [
+          {
+            "text": "whatis cd",
+            "isCode": true
+          },
+          {
+            "text": "file cd",
+            "isCode": true
+          },
+          {
+            "text": "help cd",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh tích hợp `help` của Bash cung cấp tài liệu nội bộ chính xác cho builtin `cd`."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh man trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-man",
+          "title": "1. Thực hành tra cứu sổ tay lệnh Linux",
+          "description": "Thực hành mở các trang man của ls, cat, tra cứu theo phân mục và thoát trình xem.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "man-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Mở tài liệu hướng dẫn của lệnh ls",
+              "description": "Dùng lệnh man ls để xem thông tin chi tiết về các tùy chọn của lệnh ls.",
+              "runnableCommand": "man ls",
+              "buttonLabel": "Chạy man ls"
+            },
+            {
+              "id": "man-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Mở hướng dẫn của lệnh nối file cat",
+              "description": "Xem mô tả chi tiết của lệnh cat bằng man cat.",
+              "runnableCommand": "man cat",
+              "buttonLabel": "Chạy man cat"
+            },
+            {
+              "id": "man-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Mở tài liệu phân mục 5 cho tệp passwd",
+              "description": "Xem tài liệu cấu trúc định dạng tệp bằng man 5 passwd.",
+              "runnableCommand": "man 5 passwd",
+              "buttonLabel": "Chạy man 5 passwd"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh man",
+      "takeaways": [
+        {
+          "text": "Mở trang sổ tay tài liệu chi tiết theo tên chủ đề với `man`."
+        },
+        {
+          "text": "Tìm kiếm văn bản trong trang man bằng `/` và duyệt kết quả bằng `n`/`N`."
+        },
+        {
+          "text": "Thoát khỏi trình xem an toàn trở về shell bằng phím `q`."
+        },
+        {
+          "text": "Chỉ định số phân mục (ví dụ `man 5 passwd`) khi cần xem định dạng tệp."
+        },
+        {
+          "text": "Sử dụng `help` thay thế khi tra cứu các shell builtin."
+        }
+      ]
+    }
+  ]
+}

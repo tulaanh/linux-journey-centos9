@@ -1,0 +1,353 @@
+{
+  "id": 11,
+  "slug": "mv",
+  "category": "Command Line",
+  "lessonNumber": 11,
+  "title": "mv (Di chuyển và đổi tên tệp tin)",
+  "subtitle": "Tìm hiểu cách đổi tên và di chuyển tệp tin hoặc thư mục, tránh vô tình ghi đè dữ liệu với lệnh mv.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu lệnh mv",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `mv` (move) dùng để đổi tên tệp tin, thư mục hoặc di chuyển chúng sang một vị trí mới trong hệ thống. Khác với lệnh `cp`, sau khi di chuyển thành công, tệp tin gốc tại vị trí ban đầu sẽ không còn nữa."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "mv [OPTIONS] SOURCE DESTINATION"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Đổi tên tệp tin và thư mục",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Để đổi tên một đối tượng, bạn đặt tên cũ ở vị trí thứ nhất và tên mới ở vị trí thứ hai:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mv oldfile newfile",
+            "runnableCommand": "mv /tmp/draft.txt /tmp/final_report.txt"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Thao tác đổi tên thư mục cũng sử dụng cú pháp hoàn toàn tương tự:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mv old_directory_name new_directory_name",
+            "runnableCommand": "mv /tmp/myfolder /tmp/renamed_folder"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "rename-file-with-mv",
+        "question": "Câu lệnh nào đổi tên tệp `cat` thành `dog` trong thư mục hiện tại?",
+        "options": [
+          {
+            "text": "mv cat dog",
+            "isCode": true
+          },
+          {
+            "text": "mv dog cat",
+            "isCode": true
+          },
+          {
+            "text": "cp cat dog",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `mv` coi `cat` là tệp nguồn ban đầu và `dog` là tên đích đến mới."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Di chuyển tệp tin vào thư mục",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi đối số cuối cùng là một thư mục đã tồn tại, `mv` sẽ chuyển tệp tin nguồn vào bên trong thư mục đó:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mv file2 /home/pete/Documents",
+            "runnableCommand": "mv /tmp/final_report.txt /var/tmp/"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Để di chuyển nhiều tệp cùng lúc, hãy liệt kê các tệp nguồn trước và đặt thư mục đích ở vị trí cuối cùng:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mv file_1 file_2 somedirectory/",
+            "runnableCommand": "mv file1 file2 /tmp/"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Khác với `cp`, bạn không cần thêm cờ đệ quy `-r` khi di chuyển cả một thư mục."
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "move-multiple-files",
+        "question": "Câu lệnh nào di chuyển cả hai tệp `file_1` và `file_2` vào thư mục đã tồn tại `archive/`?",
+        "options": [
+          {
+            "text": "mv archive/ file_1 file_2",
+            "isCode": true
+          },
+          {
+            "text": "mv -r file_1 file_2 archive/",
+            "isCode": true
+          },
+          {
+            "text": "mv file_1 file_2 archive/",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Với nhiều nguồn, thư mục đích luôn đặt ở vị trí đối số cuối cùng và `mv` không cần cờ `-r`."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Kiểm soát việc ghi đè đích đến",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Mặc định, `mv` có thể ghi đè tệp đích nếu đã tồn tại. Hãy sử dụng các tùy chọn bảo vệ:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`-i`: Hỏi xác nhận trước khi ghi đè lên tệp đích.",
+            "`-n`: Chế độ không ghi đè (no-clobber), tự động bỏ qua nếu đích đã tồn tại.",
+            "`-b`: Tạo bản sao lưu (backup) của tệp đích trước khi bị thay thế (thường có hậu tố `~`).",
+            "`-v`: Hiển thị chi tiết từng tệp khi đang được di chuyển."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mv -i source_file destination_directory\n$ mv -n draft.txt finished/",
+            "runnableCommand": "mv -v /tmp/draft.txt /tmp/final_report.txt"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "move-without-overwriting",
+        "question": "Câu lệnh nào di chuyển `draft.txt` vào thư mục `finished/` và đảm bảo không bao giờ ghi đè lên tệp đã tồn tại ở đích?",
+        "options": [
+          {
+            "text": "mv -i draft.txt finished/",
+            "isCode": true
+          },
+          {
+            "text": "mv -b draft.txt finished/",
+            "isCode": true
+          },
+          {
+            "text": "mv -n draft.txt finished/",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Cờ `-n` (no-clobber) bỏ qua thao tác di chuyển nếu đích đến đã tồn tại, đảm bảo không ghi đè dữ liệu cũ."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Di chuyển thư mục và kết hợp ký tự đại diện",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể di chuyển một thư mục nguyên vẹn sang vị trí mới mà không cần bất kỳ cờ đặc biệt nào:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mv project /home/pete/Documents/",
+            "runnableCommand": "mv /tmp/myproject /var/tmp/"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Ký tự đại diện của shell (wildcard) giúp di chuyển hàng loạt tệp theo mẫu, ví dụ `*.txt`. Hãy luôn dùng `ls` để xem trước danh sách tệp được khớp:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls *.txt\n$ mv *.txt notes/",
+            "runnableCommand": "ls /tmp/*.txt"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "move-directory-without-recursion",
+        "question": "Câu lệnh nào di chuyển thư mục `project/` vào thư mục `/srv/archive/`?",
+        "options": [
+          {
+            "text": "mv -r project/ /srv/archive/",
+            "isCode": true
+          },
+          {
+            "text": "mv project/ /srv/archive/",
+            "isCode": true
+          },
+          {
+            "text": "cp project/ /srv/archive/",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Cú pháp thông thường `mv project/ /srv/archive/` di chuyển toàn bộ thư mục mà không cần cờ `-r`."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "preview-text-file-move",
+        "question": "Bạn dự định chạy `mv *.txt notes/`. Câu lệnh nào cho phép xem trước danh sách các tệp được chọn bởi mẫu ký tự đại diện đó?",
+        "options": [
+          {
+            "text": "ls '*.txt'",
+            "isCode": true
+          },
+          {
+            "text": "ls *.txt",
+            "isCode": true
+          },
+          {
+            "text": "mv -v *.txt notes/",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `ls *.txt` cho phép xem trước danh sách tệp trước khi bạn thực hiện di chuyển."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh mv trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-mv",
+          "title": "1. Thực hành đổi tên và di chuyển tệp tin",
+          "description": "Thực hành tạo tệp nháp, đổi tên tệp và di chuyển tệp sang thư mục tạm thời /var/tmp/.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "mv-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Tạo file thử nghiệm /tmp/draft.txt",
+              "description": "Dùng touch để tạo một file nháp mới trong thư mục /tmp.",
+              "runnableCommand": "touch /tmp/draft.txt",
+              "buttonLabel": "Tạo /tmp/draft.txt"
+            },
+            {
+              "id": "mv-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Đổi tên file thành /tmp/final_report.txt",
+              "description": "Sử dụng mv để đổi tên file từ draft.txt thành final_report.txt.",
+              "runnableCommand": "mv /tmp/draft.txt /tmp/final_report.txt",
+              "buttonLabel": "Đổi tên file"
+            },
+            {
+              "id": "mv-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Di chuyển file vào thư mục /var/tmp/",
+              "description": "Chuyển file final_report.txt sang thư mục /var/tmp/.",
+              "runnableCommand": "mv /tmp/final_report.txt /var/tmp/",
+              "buttonLabel": "Di chuyển sang /var/tmp/"
+            },
+            {
+              "id": "mv-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Kiểm tra kết quả trong /var/tmp/",
+              "description": "Dùng ls để xác nhận file đã nằm trong thư mục mới.",
+              "runnableCommand": "ls -l /var/tmp/final_report.txt",
+              "buttonLabel": "Kiểm tra /var/tmp/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh mv",
+      "takeaways": [
+        {
+          "text": "Đặt nguồn trước và tên mới hoặc thư mục đích ở phía sau."
+        },
+        {
+          "text": "Di chuyển thư mục trực tiếp mà không cần cờ đệ quy `-r`."
+        },
+        {
+          "text": "Bảo vệ dữ liệu đích với `-i` (hỏi xác nhận), `-n` (bỏ qua), hoặc `-b` (sao lưu)."
+        },
+        {
+          "text": "Xem trước kết quả ký tự đại diện bằng `ls` trước khi di chuyển hàng loạt."
+        }
+      ]
+    }
+  ]
+}

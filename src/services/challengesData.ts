@@ -1065,6 +1065,180 @@ Nhiệm vụ của bạn:
       ];
     },
   },
+
+  // 7. Manage and Monitor Linux Processes (CompTIA Linux+)
+  {
+    id: 1007,
+    slug: 'comptia-manage-and-monitor-linux-processes-590864',
+    title: 'Manage and Monitor Linux Processes (CompTIA Linux+)',
+    category: 'Processes',
+    difficulty: 'Cơ bản',
+    estimatedTime: '25 phút',
+    xp: 250,
+    summary: 'Làm chủ toàn diện kỹ năng quản trị và điều phối tiến trình chuẩn CompTIA Linux+ và LabEx #590864.',
+    scenario: `Hệ thống máy chủ CentOS 9 của bạn đang chuẩn bị triển khai các dịch vụ nền quan trọng. Là một quản trị viên Linux, bạn cần nắm vững cách kiểm soát tiến trình chạy ngầm, theo dõi tài nguyên, điều phối qua Job Control, điều chỉnh độ ưu tiên và hủy tiến trình an toàn.
+
+Nhiệm vụ của bạn:
+1. Chạy tiến trình sleep 300 trong nền (&) và kiểm tra danh sách jobs.
+2. Dùng ps aux hoặc ps -ef kết hợp grep để định vị tiến trình.
+3. Mở công cụ top để theo dõi tải hệ thống thời gian thực.
+4. Điều phối tác vụ với fg/bg.
+5. Dùng renice nâng mức ưu tiên nice lên 10.
+6. Kết thúc tiến trình an toàn bằng lệnh kill.`,
+    objectives: [
+      {
+        title: 'Chạy nền và quản lý jobs',
+        description: 'Khởi chạy tiến trình sleep 300 & và kiểm tra bằng jobs.',
+      },
+      {
+        title: 'Chụp snapshot tiến trình',
+        description: 'Lọc thông tin tiến trình bằng ps aux | grep sleep.',
+      },
+      {
+        title: 'Giám sát hệ thống thời gian thực',
+        description: 'Mở tiện ích top theo dõi CPU/RAM.',
+      },
+      {
+        title: 'Điều phối Job Control',
+        description: 'Sử dụng lệnh fg %1 hoặc bg %1.',
+      },
+      {
+        title: 'Điều chỉnh độ ưu tiên niceness',
+        description: 'Thay đổi nice value thành 10 bằng renice -n 10 -p 23885.',
+      },
+      {
+        title: 'Hủy tiến trình an toàn',
+        description: 'Kết thúc tiến trình bằng kill %1 hoặc kill <PID>.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'c1007-1',
+        title: 'Khởi chạy tiến trình nền với & và kiểm tra jobs',
+        description: 'Chạy lệnh sleep 300 & và kiểm tra bằng jobs',
+        points: 40,
+        hint: 'Chạy: sleep 300 & && jobs',
+      },
+      {
+        id: 'c1007-2',
+        title: 'Định vị tiến trình với ps và grep',
+        description: 'Chạy ps aux | grep sleep hoặc ps -ef | grep sleep',
+        points: 40,
+        hint: 'Chạy: ps aux | grep sleep',
+      },
+      {
+        id: 'c1007-3',
+        title: 'Theo dõi tài nguyên thời gian thực với top',
+        description: 'Chạy tiện ích top',
+        points: 40,
+        hint: 'Chạy: top',
+      },
+      {
+        id: 'c1007-4',
+        title: 'Thao tác Job Control với fg/bg',
+        description: 'Đưa tác vụ chạy nền bằng bg %1 hoặc fg %1',
+        points: 40,
+        hint: 'Chạy: bg %1 hoặc fg %1',
+      },
+      {
+        id: 'c1007-5',
+        title: 'Điều chỉnh Niceness lên 10 với renice',
+        description: 'Chạy renice -n 10 -p 23885',
+        points: 45,
+        hint: 'Chạy: renice -n 10 -p 23885',
+      },
+      {
+        id: 'c1007-6',
+        title: 'Chấm dứt tiến trình với kill',
+        description: 'Hủy tiến trình bằng kill %1 hoặc kill <PID>',
+        points: 45,
+        hint: 'Chạy: kill %1 && jobs',
+      },
+    ],
+    hints: [
+      'Khởi chạy lệnh ngầm: sleep 300 & && jobs',
+      'Tìm tiến trình: ps aux | grep sleep',
+      'Mở màn hình top: top (ấn q để thoát)',
+      'Điều khiển job: bg %1',
+      'Đổi nice: renice -n 10 -p 23885',
+      'Hủy job: kill %1 && jobs',
+    ],
+    referenceCommands: [
+      'sleep 300 &',
+      'jobs',
+      'ps aux | grep sleep',
+      'top',
+      'bg %1',
+      'renice -n 10 -p 23885',
+      'kill %1',
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('sleep') && h.includes('&')) && hist.some((h) => h.includes('jobs'));
+      const p2 = hist.some((h) => h.includes('ps') && h.includes('grep') && h.includes('sleep'));
+      const p3 = hist.some((h) => h.startsWith('top') || h === 'top');
+      const p4 = hist.some((h) => h.startsWith('bg') || h.startsWith('fg') || h.includes('%1'));
+      const p5 = hist.some((h) => h.includes('renice') && (h.includes('10') || h.includes('-n')));
+      const p6 = hist.some((h) => h.includes('kill') && (h.includes('%1') || h.includes('23885') || h.includes('sleep')));
+      return [
+        {
+          id: 'c1007-1',
+          title: 'Khởi chạy tiến trình nền với & và kiểm tra jobs',
+          passed: p1,
+          pointsEarned: p1 ? 40 : 0,
+          maxPoints: 40,
+          message: p1 ? 'Đã khởi chạy tiến trình ngầm và kiểm tra jobs.' : 'Chưa chạy sleep 300 & và jobs.',
+          hint: 'Chạy: sleep 300 & && jobs',
+        },
+        {
+          id: 'c1007-2',
+          title: 'Định vị tiến trình với ps và grep',
+          passed: p2,
+          pointsEarned: p2 ? 40 : 0,
+          maxPoints: 40,
+          message: p2 ? 'Đã tìm thấy tiến trình qua ps aux | grep sleep.' : 'Chưa chạy ps aux | grep sleep.',
+          hint: 'Chạy: ps aux | grep sleep',
+        },
+        {
+          id: 'c1007-3',
+          title: 'Theo dõi tài nguyên thời gian thực với top',
+          passed: p3,
+          pointsEarned: p3 ? 40 : 0,
+          maxPoints: 40,
+          message: p3 ? 'Đã mở màn hình giám sát top.' : 'Chưa chạy top.',
+          hint: 'Chạy: top',
+        },
+        {
+          id: 'c1007-4',
+          title: 'Thao tác Job Control với fg/bg',
+          passed: p4,
+          pointsEarned: p4 ? 40 : 0,
+          maxPoints: 40,
+          message: p4 ? 'Đã điều phối tác vụ với Job Control.' : 'Chưa dùng bg %1 hoặc fg %1.',
+          hint: 'Chạy: bg %1 hoặc fg %1',
+        },
+        {
+          id: 'c1007-5',
+          title: 'Điều chỉnh Niceness lên 10 với renice',
+          passed: p5,
+          pointsEarned: p5 ? 45 : 0,
+          maxPoints: 45,
+          message: p5 ? 'Đã thay đổi nice value thành 10.' : 'Chưa chạy renice -n 10 -p 23885.',
+          hint: 'Chạy: renice -n 10 -p 23885',
+        },
+        {
+          id: 'c1007-6',
+          title: 'Chấm dứt tiến trình với kill',
+          passed: p6,
+          pointsEarned: p6 ? 45 : 0,
+          maxPoints: 45,
+          message: p6 ? 'Đã kết thúc tiến trình an toàn.' : 'Chưa chạy kill %1 hoặc kill <PID>.',
+          hint: 'Chạy: kill %1 && jobs',
+        },
+      ];
+    },
+  },
 ];
 
 // Helper to convert ChallengeDefinition to LabDefinition so LabWorkspace can run it seamlessly

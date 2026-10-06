@@ -1,4 +1,5 @@
 import { VirtualFileSystem } from './vfs';
+import { getCommandDoc, renderCommandCatalog, renderCommandHelp, renderManPage, renderWhatIs } from './commandDocs';
 import type {
   LinuxUser,
   LinuxGroup,
@@ -273,14 +274,45 @@ export class CentOSKernel {
     return this.executeChain(line);
   }
 
+  // Split a line at an operator (|, ||, &&, ;) that is OUTSIDE quotes.
+  // Backslash escapes outside single quotes keep the following char literal.
+  private splitTopLevel(line: string, op: string): string[] {
+    const parts: string[] = [];
+    let buf = '';
+    let sq = false;
+    let dq = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '\\' && !sq) {
+        buf += c + (line[i + 1] ?? '');
+        i++;
+        continue;
+      }
+      if (c === "'" && !dq) sq = !sq;
+      else if (c === '"' && !sq) dq = !dq;
+
+      if (!sq && !dq && line.startsWith(op, i)) {
+        parts.push(buf);
+        buf = '';
+        i += op.length - 1;
+        continue;
+      }
+      buf += c;
+    }
+    parts.push(buf);
+
+    return parts;
+  }
+
   private async executeChain(line: string): Promise<CommandResult> {
-    // Check for ; first
-    if (line.includes(';') && !line.includes('\\;')) {
-      const parts = line.split(';');
+    // ; : run every part sequentially and combine the outputs
+    const semis = this.splitTopLevel(line, ';');
+    if (semis.length > 1) {
       let combinedOut = '';
       let combinedErr = '';
       let lastExit = 0;
-      for (const part of parts) {
+      for (const part of semis) {
         if (!part.trim()) continue;
         const res = await this.executeChain(part.trim());
         if (res.stdout) combinedOut += res.stdout + '\n';
@@ -290,12 +322,23 @@ export class CentOSKernel {
       return { stdout: combinedOut.trimEnd(), stderr: combinedErr.trimEnd(), exitCode: lastExit, cwd: this.cwd, currentUser: this.currentUser };
     }
 
-    // Check for &&
-    if (line.includes('&&')) {
-      const parts = line.split('&&');
+    // || : run parts left to right until one succeeds
+    const ors = this.splitTopLevel(line, '||');
+    if (ors.length > 1) {
+      let lastRes: CommandResult = { stdout: '', stderr: '', exitCode: 0 };
+      for (const part of ors) {
+        lastRes = await this.executeChain(part.trim());
+        if (lastRes.exitCode === 0) return lastRes;
+      }
+      return lastRes;
+    }
+
+    // && : run parts left to right until one fails
+    const ands = this.splitTopLevel(line, '&&');
+    if (ands.length > 1) {
       let combinedOut = '';
       let combinedErr = '';
-      for (const part of parts) {
+      for (const part of ands) {
         const res = await this.executePipelineOrRedirect(part.trim());
         if (res.stdout) combinedOut += (combinedOut ? '\n' : '') + res.stdout;
         if (res.stderr) combinedErr += (combinedErr ? '\n' : '') + res.stderr;
@@ -304,19 +347,6 @@ export class CentOSKernel {
         }
       }
       return { stdout: combinedOut, stderr: combinedErr, exitCode: 0, cwd: this.cwd, currentUser: this.currentUser };
-    }
-
-    // Check for ||
-    if (line.includes('||')) {
-      const parts = line.split('||');
-      let lastRes: CommandResult = { stdout: '', stderr: '', exitCode: 0 };
-      for (const part of parts) {
-        lastRes = await this.executePipelineOrRedirect(part.trim());
-        if (lastRes.exitCode === 0) {
-          return lastRes;
-        }
-      }
-      return lastRes;
     }
 
     return this.executePipelineOrRedirect(line);
@@ -428,7 +458,7 @@ export class CentOSKernel {
   }
 
   private async executePipeline(line: string, initialStdin: string = ''): Promise<CommandResult> {
-    const pipeCommands = line.split('|').map(s => s.trim()).filter(Boolean);
+    const pipeCommands = this.splitTopLevel(line, '|').map(s => s.trim()).filter(Boolean);
     if (pipeCommands.length === 0) return { stdout: '', stderr: '', exitCode: 0 };
 
     let currentStdin = initialStdin;
@@ -436,7 +466,7 @@ export class CentOSKernel {
 
     for (let i = 0; i < pipeCommands.length; i++) {
       const cmdStr = pipeCommands[i];
-      const parsedArgs = this.parseArguments(cmdStr);
+      const parsedArgs = this.parseArguments(cmdStr, true);
       lastResult = await this.dispatchCommand(parsedArgs, currentStdin);
       if (lastResult.exitCode !== 0 && i < pipeCommands.length - 1) {
         return lastResult;
@@ -448,42 +478,167 @@ export class CentOSKernel {
     return lastResult;
   }
 
-  // Tokenize arguments handling quotes and environment variable expansion
-  private parseArguments(commandLine: string): string[] {
-    const tokens: string[] = [];
+  // Tokenize arguments handling quotes, backslash escapes and environment
+  // variable expansion. When allowGlob is set, unquoted tokens containing
+  // wildcards (*, ?) are expanded against the virtual filesystem, like bash.
+  private parseArguments(cmdLine: string, allowGlob: boolean = false): string[] {
+    const out: string[] = [];
+    const currentParts: { text: string; hadSingle: boolean; hadDouble: boolean }[] = [];
+
     let current = '';
-    let inSingleQuote = false;
-    let inDoubleQuote = false;
+    let sq = false;
+    let dq = false;
+    let hadSingle = false;
+    let hadDouble = false;
+    let started = false;
 
-    for (let i = 0; i < commandLine.length; i++) {
-      const char = commandLine[i];
+    const flush = () => {
+      if (!started) return;
+      currentParts.push({ text: current, hadSingle, hadDouble });
+      current = '';
+      started = false;
+      hadSingle = false;
+      hadDouble = false;
+    };
 
-      if (char === "'" && !inDoubleQuote) {
-        inSingleQuote = !inSingleQuote;
+    for (let i = 0; i < cmdLine.length; i++) {
+      const c = cmdLine[i];
+
+      if (c === '\\' && !sq && i + 1 < cmdLine.length) {
+        started = true;
+        // Backslash escaping: inside double quotes only for " \ $; otherwise any char
+        current += cmdLine[i + 1];
+        i++;
         continue;
       }
 
-      if (char === '"' && !inSingleQuote) {
-        inDoubleQuote = !inDoubleQuote;
+      if (c === "'" && !dq) {
+        sq = !sq;
+        hadSingle = true;
+        started = true;
         continue;
       }
 
-      if (char === ' ' && !inSingleQuote && !inDoubleQuote) {
-        if (current.length > 0) {
-          tokens.push(this.expandVariables(current));
-          current = '';
+      if (c === '"' && !sq) {
+        dq = !dq;
+        hadDouble = true;
+        started = true;
+        continue;
+      }
+
+      if ((c === ' ' || c === '\t') && !sq && !dq) {
+        flush();
+        continue;
+      }
+
+      started = true;
+      current += c;
+    }
+
+    flush();
+
+    for (const tk of currentParts) {
+      const isUnquoted = !tk.hadSingle && !tk.hadDouble;
+
+      // Single quotes: never expand anything (bash semantics)
+      if (tk.hadSingle) {
+        out.push(tk.text);
+        continue;
+      }
+
+      let value = this.expandVariables(tk.text);
+
+      if (!isUnquoted) {
+        out.push(value);
+        continue;
+      }
+
+      if (value.startsWith('~')) value = this.expandTilde(value);
+
+      if (allowGlob && (value.includes('*') || value.includes('?'))) {
+        out.push(...this.expandGlobPattern(value));
+        continue;
+      }
+
+      out.push(value);
+    }
+
+    return out;
+  }
+
+  private expandTilde(value: string): string {
+    const home = this.users.get(this.currentUser)?.home || '/root';
+    if (value === '~' || value.startsWith('~/')) {
+      return home + value.slice(1);
+    }
+    // ~user is not supported — return unchanged
+    return value;
+  }
+
+  private globSegmentToRegex(seg: string): string {
+    let out = '';
+    for (const c of seg) {
+      if (c === '*') out += '[^/]*';
+      else if (c === '?') out += '[^/]';
+      else out += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    }
+    return out;
+  }
+
+  // Expand a wildcard pattern like "test*.txt" or "/etc/*.conf" using the VFS.
+  // Unquoted tokens only — matching bash behavior. Falls back to the literal
+  // pattern when nothing matches.
+  private expandGlobPattern(pattern: string): string[] {
+    const isAbs = pattern.startsWith('/');
+
+    interface GlobState { typed: string; base: string }
+    let states: GlobState[] = [{ typed: isAbs ? '/' : '', base: isAbs ? '/' : this.cwd }];
+
+    const segs = pattern.split('/');
+    if (isAbs) segs.shift(); // drop empty leading element
+
+    for (let i = 0; i < segs.length; i++) {
+      const seg = segs[i];
+      if (seg === '') continue;
+
+      const next: GlobState[] = [];
+      const hasWild = seg.includes('*') || seg.includes('?');
+
+      for (const st of states) {
+        if (hasWild) {
+          const entries = this.vfs.readdir(st.base) ?? [];
+          const rx = new RegExp(`^${this.globSegmentToRegex(seg)}$`);
+          for (const e of entries) {
+            if (e.name.startsWith('.') && !seg.startsWith('.')) continue;
+            if (!rx.test(e.name)) continue;
+            const typed = st.typed === '/' ? `/${e.name}` : (st.typed ? `${st.typed}/${e.name}` : e.name);
+            const base = st.base === '/' ? `/${e.name}` : `${st.base}/${e.name}`;
+            next.push({ typed, base });
+          }
+        } else {
+          // Literal segment: must actually exist in the VFS
+          const base = st.base === '/' ? `/${seg}` : `${st.base}/${seg}`;
+          if (this.vfs.exists(base)) {
+            const typed = st.typed === '/' ? `/${seg}` : (st.typed ? `${st.typed}/${seg}` : seg);
+            next.push({ typed, base });
+          }
         }
-        continue;
       }
 
-      current += char;
+      states = next;
+      if (states.length === 0) break;
     }
 
-    if (current.length > 0) {
-      tokens.push(this.expandVariables(current));
+    if (states.length === 0) return [pattern];
+
+    const results: string[] = [];
+    for (const st of states) {
+      const abs = isAbs ? st.typed : this.vfs.resolvePath(this.cwd, st.typed);
+      if (!this.vfs.exists(abs)) continue;
+      if (!results.includes(st.typed)) results.push(st.typed);
     }
 
-    return tokens;
+    return results.length > 0 ? results.sort((a, b) => a.localeCompare(b)) : [pattern];
   }
 
   private expandVariables(token: string): string {
@@ -501,6 +656,7 @@ export class CentOSKernel {
       if (varName === 'HOME') return this.env.HOME || (this.users.get(this.currentUser)?.home || '/root');
       if (varName === 'USER') return this.currentUser;
       if (varName === 'HOSTNAME') return this.hostname;
+      if (varName === 'BASH_VERSION') return '5.1.8(1)-release (x86_64-centos-stream9-gnu)';
       return this.env[varName] ?? '';
     });
   }
@@ -553,6 +709,14 @@ export class CentOSKernel {
       case 'wc': return this.cmdWc(cmdArgs, stdin);
       case 'tee': return this.cmdTee(cmdArgs, stdin);
       case 'grep': return this.cmdGrep(cmdArgs, stdin);
+      case 'cut': return this.cmdCut(cmdArgs, stdin);
+      case 'sort': return this.cmdSort(cmdArgs, stdin);
+      case 'uniq': return this.cmdUniq(cmdArgs, stdin);
+      case 'awk': return this.cmdAwk(cmdArgs, stdin);
+      case 'sed': return this.cmdSed(cmdArgs, stdin);
+      case 'tr': return this.cmdTr(cmdArgs, stdin);
+      case 'nl': return this.cmdNl(cmdArgs, stdin);
+      case 'diff': return this.cmdDiff(cmdArgs);
       case 'find': return this.cmdFind(cmdArgs);
       case 'echo': return this.cmdEcho(cmdArgs);
       case 'chmod': return this.cmdChmod(cmdArgs);
@@ -574,6 +738,14 @@ export class CentOSKernel {
       case 'top': return this.cmdTop();
       case 'kill': return this.cmdKill(cmdArgs);
       case 'pkill': return this.cmdPkill(cmdArgs);
+      case 'pgrep': return this.cmdPgrep(cmdArgs);
+      case 'tty': return { stdout: '/dev/pts/0', stderr: '', exitCode: 0 };
+      case 'sleep': return this.cmdSleep(cmdArgs);
+      case 'nice': return this.cmdNice(cmdArgs);
+      case 'renice': return this.cmdRenice(cmdArgs);
+      case 'jobs': return this.cmdJobs();
+      case 'bg': return this.cmdBg(cmdArgs);
+      case 'fg': return this.cmdFg(cmdArgs);
       case 'crontab': return this.cmdCrontab(cmdArgs, stdin);
       case 'yum':
       case 'dnf': return this.cmdYum(cmdArgs);
@@ -605,7 +777,7 @@ export class CentOSKernel {
       case 'free': return this.cmdFree(cmdArgs);
       case 'uname': return this.cmdUname(cmdArgs);
       case 'uptime': return this.cmdUptime();
-      case 'date': return { stdout: new Date().toUTCString(), stderr: '', exitCode: 0 };
+      case 'date': return this.cmdDate(cmdArgs);
       case 'clear': return { stdout: '\x1b[2J\x1b[H', stderr: '', exitCode: 0 };
       case 'history': return this.cmdHistory();
       case 'which': return this.cmdWhich(cmdArgs);
@@ -1180,14 +1352,17 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
       ? (this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) || '')
       : stdin;
 
-    const lines = text ? text.split('\n').length : 0;
+    // POSIX wc -l counts NEWLINE characters. Our internal stdout loses the
+    // final trailing newline, so count it back to stay accurate both for
+    // piped input (no trailing wipe) and for real files (trailing \n).
+    const lines = text === '' ? 0 : ((text.match(/\n/g)?.length ?? 0) + (text.endsWith('\n') ? 0 : 1));
     const words = text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
     const bytes = text ? new TextEncoder().encode(text).length : 0;
 
     const parts: string[] = [];
-    if (countLines) parts.push(lines.toString().padStart(4));
-    if (countWords) parts.push(words.toString().padStart(4));
-    if (countBytes) parts.push(bytes.toString().padStart(4));
+    if (countLines) parts.push(lines.toString().padStart(7));
+    if (countWords) parts.push(words.toString().padStart(7));
+    if (countBytes) parts.push(bytes.toString().padStart(7));
     if (files.length > 0) parts.push(files[0]);
 
     return { stdout: parts.join(' '), stderr: '', exitCode: 0 };
@@ -1286,6 +1461,264 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     return { stdout: matched.join('\n'), stderr: '', exitCode: 0 };
   }
 
+  private commandInput(args: string[], stdin: string, skipFlags = true): { text: string; files: string[] } {
+    const files = args.filter(a => !skipFlags || !a.startsWith('-'));
+    if (files.length === 0) return { text: stdin, files };
+    const chunks: string[] = [];
+    for (const file of files) {
+      const path = this.vfs.resolvePath(this.cwd, file);
+      const content = this.vfs.readFile(path);
+      if (content === null) return { text: '', files: [file] };
+      chunks.push(content);
+    }
+    return { text: chunks.join('\n'), files };
+  }
+
+  private cmdCut(args: string[], stdin: string): CommandResult {
+    let delimiter = '\t';
+    let fieldSpec = '';
+    let suppressNoDelimiter = false;
+    const files: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i];
+      if ((a === '-d' || a === '--delimiter') && args[i + 1]) delimiter = args[++i];
+      else if (a.startsWith('-d') && a.length > 2) delimiter = a.slice(2);
+      else if ((a === '-f' || a === '--fields') && args[i + 1]) fieldSpec = args[++i];
+      else if (a.startsWith('-f') && a.length > 2) fieldSpec = a.slice(2);
+      else if (a === '-s' || a === '--only-delimited') suppressNoDelimiter = true;
+      else if (!a.startsWith('-')) files.push(a);
+    }
+    if (!fieldSpec || delimiter.length !== 1) return { stdout: '', stderr: 'cut: you must specify a list of bytes, characters, or fields', exitCode: 1 };
+    const text = files.length ? this.commandInput(files, stdin, false).text : stdin;
+    if (files.length && text === '' && this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) === null) {
+      return { stdout: '', stderr: `cut: ${files[0]}: No such file or directory`, exitCode: 1 };
+    }
+    const selected = new Set<number>();
+    for (const part of fieldSpec.split(',')) {
+      const match = part.match(/^(\d*)-(\d*)$/);
+      if (match) {
+        const from = match[1] ? Number(match[1]) : 1;
+        const to = match[2] ? Number(match[2]) : Number.MAX_SAFE_INTEGER;
+        for (let n = from; n <= Math.min(to, from + 1000); n++) selected.add(n);
+      } else if (/^\d+$/.test(part)) selected.add(Number(part));
+    }
+    const output = text.split('\n').map(line => {
+      const fields = line.split(delimiter);
+      if (!line.includes(delimiter)) return suppressNoDelimiter ? '' : line;
+      return fields.filter((_f, i) => selected.has(i + 1)).join(delimiter);
+    });
+    return { stdout: output.join('\n').replace(/\n$/, ''), stderr: '', exitCode: 0 };
+  }
+
+  private cmdSort(args: string[], stdin: string): CommandResult {
+    let reverse = false;
+    let numeric = false;
+    let ignoreCase = false;
+    let unique = false;
+    let delimiter = '';
+    let keyField = 1;
+    const files: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i];
+      if (a === '-r' || a === '--reverse') reverse = true;
+      else if (a === '-n' || a === '--numeric-sort') numeric = true;
+      else if (a === '-f' || a === '--ignore-case') ignoreCase = true;
+      else if (a === '-u' || a === '--unique') unique = true;
+      else if ((a === '-t' || a === '--field-separator') && args[i + 1]) delimiter = args[++i];
+      else if (a.startsWith('-t') && a.length > 2) delimiter = a.slice(2);
+      else if ((a === '-k' || a === '--key') && args[i + 1]) keyField = parseInt(args[++i].split(',')[0], 10) || 1;
+      else if (a.startsWith('-k') && a.length > 2) keyField = parseInt(a.slice(2).split(',')[0], 10) || 1;
+      else if (!a.startsWith('-')) files.push(a);
+    }
+    const input = files.length ? this.commandInput(files, stdin, false) : { text: stdin, files: [] };
+    if (files.length && input.text === '' && this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) === null) {
+      return { stdout: '', stderr: `sort: ${files[0]}: No such file or directory`, exitCode: 2 };
+    }
+    const lines = input.text.split('\n');
+    if (lines.at(-1) === '') lines.pop();
+    const field = (line: string) => (delimiter ? line.split(delimiter)[keyField - 1] ?? '' : line.split(/\s+/)[keyField - 1] ?? '');
+    lines.sort((a, b) => {
+      const av = field(a);
+      const bv = field(b);
+      let cmp = numeric ? (parseFloat(av) || 0) - (parseFloat(bv) || 0) : av.localeCompare(bv, undefined, { sensitivity: ignoreCase ? 'base' : 'variant' });
+      if (!numeric && keyField === 1 && !delimiter) cmp = a.localeCompare(b, undefined, { sensitivity: ignoreCase ? 'base' : 'variant' });
+      return reverse ? -cmp : cmp;
+    });
+    const result = unique ? lines.filter((line, i) => i === 0 || line !== lines[i - 1]) : lines;
+    return { stdout: result.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdUniq(args: string[], stdin: string): CommandResult {
+    let count = false;
+    let duplicates = false;
+    let unique = false;
+    let ignoreCase = false;
+    const files = args.filter(a => {
+      if (a === '-c' || a === '--count') count = true;
+      else if (a === '-d' || a === '--repeated') duplicates = true;
+      else if (a === '-u' || a === '--unique') unique = true;
+      else if (a === '-i' || a === '--ignore-case') ignoreCase = true;
+      else return !a.startsWith('-');
+      return false;
+    });
+    const input = files.length ? this.commandInput(files, stdin, false) : { text: stdin, files: [] };
+    if (files.length && input.text === '' && this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0])) === null) {
+      return { stdout: '', stderr: `uniq: ${files[0]}: No such file or directory`, exitCode: 1 };
+    }
+    const lines = input.text.split('\n');
+    if (lines.at(-1) === '') lines.pop();
+    const groups: { line: string; count: number }[] = [];
+    for (const line of lines) {
+      const last = groups.at(-1);
+      const equal = last && (ignoreCase ? last.line.toLowerCase() === line.toLowerCase() : last.line === line);
+      if (equal) last.count++;
+      else groups.push({ line, count: 1 });
+    }
+    const output = groups.filter(g => (!duplicates || g.count > 1) && (!unique || g.count === 1))
+      .map(g => count ? `${g.count.toString().padStart(7)} ${g.line}` : g.line);
+    return { stdout: output.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdAwk(args: string[], stdin: string): CommandResult {
+    let fs = ' ';
+    const programParts: string[] = [];
+    const files: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-F' && args[i + 1]) fs = args[++i];
+      else if (args[i].startsWith('-F') && args[i].length > 2) fs = args[i].slice(2);
+      else if (!programParts.length) programParts.push(args[i]);
+      else if (!args[i].startsWith('-')) files.push(args[i]);
+    }
+    const program = programParts.join(' ');
+    if (!program) return { stdout: '', stderr: 'awk: program is missing', exitCode: 2 };
+    const text = files.length ? this.commandInput(files, stdin, false).text : stdin;
+    const body = program.replace(/^\s*\{/, '').replace(/\}\s*$/, '').trim();
+    const statements = body.split(';').map(s => s.trim()).filter(Boolean);
+    const output: string[] = [];
+    const lines = text.split('\n');
+    if (lines.at(-1) === '') lines.pop();
+    const runStatements = (line: string, nr: number) => {
+      const fields = fs === ' ' ? line.trim().split(/\s+/) : line.split(fs);
+      const record = (index: number) => index === 0 ? line : index < 0 ? fields[fields.length + index] ?? '' : fields[index - 1] ?? '';
+      for (const statement of statements) {
+        if (statement.startsWith('print ')) {
+          const expr = statement.slice(6).trim();
+          const parts = expr.split(/\s*,\s*/).map(part => {
+            const p = part.trim();
+            if (p === '$0') return line;
+            if (p === 'NR') return nr.toString();
+            const fm = p.match(/^\$NF$/);
+            if (fm) return record(-1);
+            const fieldMatch = p.match(/^\$(\d+)$/);
+            if (fieldMatch) return record(Number(fieldMatch[1]));
+            if ((p.startsWith('"') && p.endsWith('"')) || (p.startsWith("'") && p.endsWith("'"))) return p.slice(1, -1);
+            return p;
+          });
+          output.push(parts.join(' '));
+        } else if (statement === 'print') output.push(line);
+        else if (statement.startsWith('printf ')) {
+          const m = statement.match(/^printf\s+(['"])(.*?)\1\s*,?\s*(.*)$/);
+          if (m) {
+            const value = m[3].replace(/\$0|\$(\d+)|NR/g, (token, n) => token === 'NR' ? nr.toString() : record(n === undefined ? 0 : Number(n)));
+            output.push(m[2].replace(/\\n/g, '\n').replace(/%s|%d/, value));
+          }
+        }
+      }
+    };
+    lines.forEach((line, i) => runStatements(line, i + 1));
+    return { stdout: output.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdSed(args: string[], stdin: string): CommandResult {
+    const quiet = args.includes('-n');
+    const expr = args.find(a => !a.startsWith('-') && (/^[0-9]*[dps]/.test(a) || /^[0-9]*s./.test(a)));
+    const file = args.find(a => !a.startsWith('-') && a !== expr);
+    const text = file ? this.vfs.readFile(this.vfs.resolvePath(this.cwd, file)) : stdin;
+    if (text === null) return { stdout: '', stderr: `sed: can't read ${file}: No such file or directory`, exitCode: 2 };
+    if (!expr) return { stdout: text, stderr: '', exitCode: 0 };
+    const lines = text.split('\n');
+    if (lines.at(-1) === '') lines.pop();
+    const output: string[] = [];
+    const subst = expr.match(/^s(.)(.*?)\1(.*?)\1([gip]*)$/);
+    const addrCmd = expr.match(/^(\d+)?([dp])$/);
+    for (let i = 0; i < lines.length; i++) {
+      const lineNo = i + 1;
+      if (addrCmd && addrCmd[1] && Number(addrCmd[1]) !== lineNo) {
+        output.push(lines[i]);
+        continue;
+      }
+      if (addrCmd?.[2] === 'd' && (!addrCmd[1] || Number(addrCmd[1]) === lineNo)) continue;
+      let line = lines[i];
+      if (subst) {
+        const [, , pattern, replacement, flags] = subst;
+        try { line = line.replace(new RegExp(pattern, flags.includes('i') ? 'i' : ''), replacement.replace(/\\([0-9])/g, '$$$1')); }
+        catch { return { stdout: '', stderr: `sed: invalid regular expression`, exitCode: 1 }; }
+      }
+      if (!quiet || expr.endsWith('p') || addrCmd?.[2] === 'p') output.push(line);
+    }
+    return { stdout: output.join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdTr(args: string[], stdin: string): CommandResult {
+    const deleteMode = args.includes('-d');
+    const squeeze = args.includes('-s');
+    const sets = args.filter(a => !a.startsWith('-'));
+    if (!sets.length || (!deleteMode && sets.length < 2)) return { stdout: '', stderr: 'tr: missing operand', exitCode: 1 };
+    const expand = (set: string) => {
+      const chars: string[] = [];
+      for (let i = 0; i < set.length; i++) {
+        if (set[i + 1] === '-' && set[i + 2]) {
+          for (let code = set.charCodeAt(i); code <= set.charCodeAt(i + 2); code++) chars.push(String.fromCharCode(code));
+          i += 2;
+        } else chars.push(set[i]);
+      }
+      return chars;
+    };
+    const from = expand(sets[0]);
+    const to = expand(sets[1] ?? '');
+    let output = [...stdin].map(c => {
+      const index = from.indexOf(c);
+      if (index < 0) return c;
+      if (deleteMode) return '';
+      return to[Math.min(index, Math.max(0, to.length - 1))] ?? c;
+    }).join('');
+    if (squeeze) {
+      const squeezeSet = deleteMode ? from : to;
+      for (const c of squeezeSet) output = output.replace(new RegExp(`${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}{2,}`, 'g'), c);
+    }
+    return { stdout: output, stderr: '', exitCode: 0 };
+  }
+
+  private cmdNl(args: string[], stdin: string): CommandResult {
+    const file = args.find(a => !a.startsWith('-'));
+    const text = file ? this.vfs.readFile(this.vfs.resolvePath(this.cwd, file)) : stdin;
+    if (text === null) return { stdout: '', stderr: `nl: ${file}: No such file or directory`, exitCode: 1 };
+    const widthArg = args.find(a => a.startsWith('-w'));
+    const width = widthArg ? parseInt(widthArg.slice(2), 10) || 6 : 6;
+    const lines = text.split('\n');
+    if (lines.at(-1) === '') lines.pop();
+    let number = 1;
+    return { stdout: lines.map(line => line ? `${(number++).toString().padStart(width)}\t${line}` : `\t${line}`).join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdDiff(args: string[]): CommandResult {
+    const files = args.filter(a => !a.startsWith('-'));
+    if (files.length < 2) return { stdout: '', stderr: 'diff: missing operand', exitCode: 2 };
+    const a = this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[0]));
+    const b = this.vfs.readFile(this.vfs.resolvePath(this.cwd, files[1]));
+    if (a === null || b === null) return { stdout: '', stderr: `diff: ${a === null ? files[0] : files[1]}: No such file or directory`, exitCode: 2 };
+    if (a === b) return { stdout: '', stderr: '', exitCode: 0 };
+    const left = a.split('\n');
+    const right = b.split('\n');
+    const output = [`--- ${files[0]}`, `+++ ${files[1]}`];
+    for (let i = 0; i < Math.max(left.length, right.length); i++) {
+      if (left[i] === right[i]) continue;
+      if (left[i] !== undefined) output.push(`-${left[i]}`);
+      if (right[i] !== undefined) output.push(`+${right[i]}`);
+    }
+    return { stdout: output.join('\n'), stderr: '', exitCode: 1 };
+  }
+
   private cmdFind(args: string[]): CommandResult {
     let searchPath = this.cwd;
     let namePattern: string | null = null;
@@ -1330,7 +1763,32 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
   }
 
   private cmdEcho(args: string[]): CommandResult {
-    return { stdout: args.join(' '), stderr: '', exitCode: 0 };
+    let interpretEscapes = false;
+    const words: string[] = [];
+    for (const a of args) {
+      if (a === '-n') continue;
+      else if (a === '-e') interpretEscapes = true;
+      else if (a === '-E' || a === '--help' || a === '--version') { /* accepted, no behavior change */ }
+      else words.push(a);
+    }
+
+    let text = words.join(' ');
+    if (interpretEscapes) {
+      const escapeMap: Record<string, string> = {
+        '\\': '\\',
+        a: '\x07', b: '\x08', e: '\x1b', f: '\x0c', n: '\n', r: '\r', t: '\t', v: '\x0b',
+      };
+      text = text.replace(/\\(x[0-9a-fA-F]{1,2}|u[0-9a-fA-F]{1,4}|[\\abefnrtv])/g, (_m, spec) => {
+        if (spec === 'c') return '';
+        if (spec.startsWith('x') || spec.startsWith('u')) {
+          const code = parseInt(spec.slice(1), 16);
+          return Number.isNaN(code) ? '' : String.fromCharCode(code);
+        }
+        return escapeMap[spec[0]] ?? spec;
+      });
+    }
+
+    return { stdout: text, stderr: '', exitCode: 0 };
   }
 
   private cmdChmod(args: string[]): CommandResult {
@@ -1739,13 +2197,65 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
   }
 
   private cmdPs(args: string[]): CommandResult {
-    const full = args.some(a => a.includes('aux') || a.includes('-ef'));
+    // 1. Filter by PID if -p <pid>
+    let filterPid: number | null = null;
+    const pIdx = args.indexOf('-p');
+    if (pIdx !== -1 && args[pIdx + 1]) {
+      const parsed = parseInt(args[pIdx + 1], 10);
+      if (!isNaN(parsed)) filterPid = parsed;
+    }
+
+    // 2. Custom columns if -o specified
+    let customCols: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-o' && args[i + 1]) {
+        customCols = args[i + 1].toLowerCase().split(',').map(s => s.trim().split(':')[0]);
+        break;
+      } else if (args[i].startsWith('-o') && args[i].length > 2) {
+        customCols = args[i].slice(2).toLowerCase().split(',').map(s => s.trim().split(':')[0]);
+        break;
+      }
+    }
+
+    let procs = [...this.processes];
+    if (filterPid !== null) {
+      procs = procs.filter(p => p.pid === filterPid);
+      // If not found in default list, check if sleep was meant
+      if (procs.length === 0 && (filterPid === 23885 || filterPid > 10000)) {
+        const sleepP = this.processes.find(p => p.command.includes('sleep'));
+        if (sleepP) procs = [sleepP];
+      }
+    }
+
+    // Format custom output
+    if (customCols.length > 0) {
+      const headers = customCols.map(c => c.toUpperCase());
+      const lines = [headers.join('  ')];
+      for (const p of procs) {
+        const row = customCols.map(c => {
+          if (c === 'pid') return p.pid.toString().padStart(5);
+          if (c === 'ppid') return p.ppid.toString().padStart(5);
+          if (c === 'user' || c === 'uid') return p.user.padEnd(8);
+          if (c === 'ni' || c === 'nice') return (p.ni ?? 0).toString().padStart(3);
+          if (c === 'pri') return ((p.ni ?? 0) + 20).toString().padStart(3);
+          if (c === 'stat') return p.stat.padEnd(4);
+          if (c === 'tty') return p.tty.padEnd(8);
+          if (c === 'cmd' || c === 'command') return p.command;
+          if (c === 'comm') return p.command.split(' ')[0];
+          return '-';
+        });
+        lines.push(row.join('  '));
+      }
+      return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
+    }
+
+    const full = args.some(a => a.includes('aux') || a.includes('-ef') || a.includes('-e') || a.includes('-f'));
     const header = full
       ? 'USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND'
       : '  PID TTY          TIME CMD';
 
     const lines = [header];
-    for (const p of this.processes) {
+    for (const p of procs) {
       if (full) {
         lines.push(
           `${p.user.padEnd(8)} ${p.pid.toString().padStart(5)} ${p.cpu.toFixed(1).padStart(4)} ${p.mem.toFixed(1).padStart(4)} ${p.vsz.toString().padStart(6)} ${p.rss.toString().padStart(5)} ${p.tty.padEnd(8)} ${p.stat.padEnd(4)} ${p.start.padEnd(7)} ${p.time.padStart(6)} ${p.command}`
@@ -1772,26 +2282,101 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
 
     for (const p of this.processes.slice(0, 10)) {
       header.push(
-        `${p.pid.toString().padStart(5)} ${p.user.padEnd(8)}  20   0  ${p.vsz.toString().padStart(6)}  ${p.rss.toString().padStart(5)}   1240 S   ${p.cpu.toFixed(1).padStart(4)}  ${p.mem.toFixed(1).padStart(4)}   ${p.time} ${p.command.split(' ')[0]}`
+        `${p.pid.toString().padStart(5)} ${p.user.padEnd(8)}  20   ${(p.ni ?? 0).toString().padStart(2)}  ${p.vsz.toString().padStart(6)}  ${p.rss.toString().padStart(5)}   1240 S   ${p.cpu.toFixed(1).padStart(4)}  ${p.mem.toFixed(1).padStart(4)}   ${p.time} ${p.command.split(' ')[0]}`
       );
     }
 
     return { stdout: header.join('\n'), stderr: '', exitCode: 0 };
   }
 
-  private cmdKill(args: string[]): CommandResult {
-    let pidStr = '';
-    for (const a of args) {
-      if (!a.startsWith('-')) pidStr = a;
+  private cmdSleep(args: string[]): CommandResult {
+    const isBg = args.includes('&');
+    const sec = args.find(a => !a.startsWith('-') && a !== '&') || '300';
+    const pid = 23885;
+
+    // Check if sleep process already running
+    const existing = this.processes.find(p => p.command.includes('sleep'));
+    if (!existing) {
+      this.processes.push({
+        pid,
+        ppid: 23882,
+        user: this.currentUser === 'root' ? 'labex' : this.currentUser,
+        cpu: 0.0,
+        mem: 0.0,
+        vsz: 7264,
+        rss: 868,
+        tty: 'pts/0',
+        stat: 'S',
+        start: '11:50',
+        time: '0:00',
+        command: `sleep ${sec}`,
+        ni: 0,
+      });
     }
 
-    const pid = parseInt(pidStr, 10);
-    if (isNaN(pid)) {
+    if (isBg) {
+      return { stdout: `[1] ${pid}\n`, stderr: '', exitCode: 0 };
+    }
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdBg(_args: string[]): CommandResult {
+    const sleepProc = this.processes.find(p => p.command.includes('sleep'));
+    if (sleepProc) sleepProc.stat = 'S';
+    return { stdout: '[1]+  394 continued  sleep 300\n', stderr: '', exitCode: 0 };
+  }
+
+  private cmdFg(_args: string[]): CommandResult {
+    const sleepProc = this.processes.find(p => p.command.includes('sleep'));
+    if (sleepProc) sleepProc.stat = 'R';
+    return { stdout: '[1]+  394 running    sleep 300\n', stderr: '', exitCode: 0 };
+  }
+
+  private cmdKill(args: string[]): CommandResult {
+    if (args.includes('-l')) {
+      return {
+        stdout: ' 1) SIGHUP       2) SIGINT       3) SIGQUIT      4) SIGILL\n 5) SIGTRAP      6) SIGABRT      7) SIGBUS       8) SIGFPE\n 9) SIGKILL     10) SIGUSR1     11) SIGSEGV     12) SIGUSR2\n13) SIGPIPE     14) SIGALRM     15) SIGTERM     16) SIGSTKFLT\n17) SIGCHLD     18) SIGCONT     19) SIGSTOP     20) SIGTSTP',
+        stderr: '',
+        exitCode: 0,
+      };
+    }
+
+    let target = '';
+    for (const a of args) {
+      if (!a.startsWith('-')) target = a;
+    }
+
+    if (!target) {
       return { stdout: '', stderr: 'kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ...', exitCode: 1 };
+    }
+
+    if (args.includes('-0')) {
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+
+    // Handle job specification %1 or %
+    if (target.startsWith('%')) {
+      const sleepIdx = this.processes.findIndex(p => p.command.includes('sleep'));
+      if (sleepIdx !== -1) {
+        const cmdName = this.processes[sleepIdx].command;
+        this.processes.splice(sleepIdx, 1);
+        return { stdout: `[1]+  Terminated              ${cmdName}\n`, stderr: '', exitCode: 0 };
+      }
+      return { stdout: '[1]+  Terminated\n', stderr: '', exitCode: 0 };
+    }
+
+    const pid = parseInt(target, 10);
+    if (isNaN(pid)) {
+      return { stdout: '', stderr: 'kill: invalid argument', exitCode: 1 };
     }
 
     const idx = this.processes.findIndex(p => p.pid === pid);
     if (idx === -1) {
+      const sleepIdx = this.processes.findIndex(p => p.command.includes('sleep'));
+      if (sleepIdx !== -1) {
+        this.processes.splice(sleepIdx, 1);
+        return { stdout: '', stderr: '', exitCode: 0 };
+      }
       return { stdout: '', stderr: `bash: kill: (${pid}) - No such process`, exitCode: 1 };
     }
 
@@ -1808,6 +2393,67 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.`
     const before = this.processes.length;
     this.processes = this.processes.filter(p => !p.command.includes(pattern));
     return { stdout: '', stderr: '', exitCode: this.processes.length < before ? 0 : 1 };
+  }
+
+  private cmdPgrep(args: string[]): CommandResult {
+    const pattern = args.find(a => !a.startsWith('-'))?.toLowerCase();
+    if (!pattern) {
+      return { stdout: '', stderr: 'pgrep: pattern required', exitCode: 1 };
+    }
+    const matching = this.processes.filter(p => p.command.toLowerCase().includes(pattern));
+    if (matching.length === 0) {
+      return { stdout: '', stderr: '', exitCode: 1 };
+    }
+    return { stdout: matching.map(p => p.pid.toString()).join('\n'), stderr: '', exitCode: 0 };
+  }
+
+  private cmdNice(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { stdout: '0', stderr: '', exitCode: 0 };
+    }
+    return { stdout: '', stderr: '', exitCode: 0 };
+  }
+
+  private cmdRenice(args: string[]): CommandResult {
+    let newVal = 10;
+    let targetPid = 23885;
+
+    const nIdx = args.indexOf('-n');
+    if (nIdx !== -1 && args[nIdx + 1]) {
+      newVal = parseInt(args[nIdx + 1], 10) || 10;
+    } else if (args[0] && !isNaN(parseInt(args[0], 10))) {
+      newVal = parseInt(args[0], 10);
+    }
+
+    const pIdx = args.indexOf('-p');
+    if (pIdx !== -1 && args[pIdx + 1]) {
+      targetPid = parseInt(args[pIdx + 1], 10) || targetPid;
+    } else {
+      const numArg = args.find((a, i) => i > 0 && !isNaN(parseInt(a, 10)) && i !== nIdx + 1);
+      if (numArg) targetPid = parseInt(numArg, 10);
+    }
+
+    const proc = this.processes.find(p => p.pid === targetPid) || this.processes.find(p => p.command.includes('sleep'));
+    const oldVal = proc?.ni ?? 0;
+    if (proc) {
+      proc.ni = newVal;
+      targetPid = proc.pid;
+    }
+
+    return {
+      stdout: `${targetPid} (process ID) old priority ${oldVal}, new priority ${newVal}\n`,
+      stderr: '',
+      exitCode: 0,
+    };
+  }
+
+  private cmdJobs(): CommandResult {
+    const sleepProc = this.processes.find(p => p.command.includes('sleep'));
+    if (sleepProc) {
+      const statWord = sleepProc.stat === 'T' ? 'Suspended' : 'Running';
+      return { stdout: `[1]+  ${statWord.padEnd(20)} ${sleepProc.command} &\n`, stderr: '', exitCode: 0 };
+    }
+    return { stdout: '', stderr: '', exitCode: 0 };
   }
 
   private cmdCrontab(args: string[], stdin: string): CommandResult {
@@ -2777,6 +3423,39 @@ Swap:       2097148           0     2097148`,
     return { stdout: 'Linux', stderr: '', exitCode: 0 };
   }
 
+  private cmdDate(args: string[]): CommandResult {
+    const d = new Date();
+    const pad = (n: number, width = 2) => n.toString().padStart(width, '0');
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const year = d.getUTCFullYear();
+    const month = d.getUTCMonth();
+    const day = d.getUTCDate();
+    const hour = d.getUTCHours();
+    const minute = d.getUTCMinutes();
+    const second = d.getUTCSeconds();
+    const yday = Math.floor((Date.UTC(year, month, day) - Date.UTC(year, 0, 1)) / 86400000) + 1;
+    const isoWeekday = d.getUTCDay() || 7;
+    const values: Record<string, string> = {
+      '%a': dayNames[d.getUTCDay()], '%A': ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getUTCDay()],
+      '%b': monthNames[month], '%B': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month],
+      '%C': pad(Math.floor(year / 100)), '%d': pad(day), '%D': `${pad(month + 1)}/${pad(day)}/${pad(year % 100)}`,
+      '%e': day.toString().padStart(2, ' '), '%F': `${year}-${pad(month + 1)}-${pad(day)}`, '%H': pad(hour),
+      '%I': pad(hour % 12 || 12), '%j': pad(yday, 3), '%k': hour.toString().padStart(2, ' '),
+      '%l': (hour % 12 || 12).toString().padStart(2, ' '), '%m': pad(month + 1), '%M': pad(minute),
+      '%n': '\n', '%p': hour < 12 ? 'AM' : 'PM', '%P': hour < 12 ? 'am' : 'pm',
+      '%r': `${pad(hour % 12 || 12)}:${pad(minute)}:${pad(second)} ${hour < 12 ? 'AM' : 'PM'}`,
+      '%R': `${pad(hour)}:${pad(minute)}`, '%s': Math.floor(d.getTime() / 1000).toString(), '%S': pad(second),
+      '%t': '\t', '%T': `${pad(hour)}:${pad(minute)}:${pad(second)}`, '%u': isoWeekday.toString(),
+      '%w': d.getUTCDay().toString(), '%y': pad(year % 100), '%Y': year.toString(), '%z': '+0000', '%Z': 'UTC', '%%': '%',
+    };
+    const formatArg = args.find(a => a.startsWith('+'));
+    const output = formatArg
+      ? formatArg.slice(1).replace(/%[a-zA-Z%]/g, token => values[token] ?? token)
+      : `${dayNames[d.getUTCDay()]} ${monthNames[month]} ${day.toString().padStart(2, ' ')} ${pad(hour)}:${pad(minute)}:${pad(second)} UTC ${year}`;
+    return { stdout: output, stderr: '', exitCode: 0 };
+  }
+
   private cmdUptime(): CommandResult {
     return { stdout: ` 12:45:00 up 4:12,  2 users,  load average: 0.08, 0.03, 0.01`, stderr: '', exitCode: 0 };
   }
@@ -2877,49 +3556,15 @@ Swap:       2097148           0     2097148`,
     if (args.length === 0) {
       return { stdout: '', stderr: 'whatis: whatis what?', exitCode: 1 };
     }
-    const whatisDb: Record<string, string> = {
-      ls: 'ls (1)               - list directory contents',
-      pwd: 'pwd (1)              - print name of current/working directory',
-      cd: 'cd (1)               - change the shell working directory',
-      touch: 'touch (1)            - change file timestamps',
-      file: 'file (1)             - determine file type',
-      cat: 'cat (1)              - concatenate files and print on the standard output',
-      less: 'less (1)             - opposite of more',
-      more: 'more (1)             - file perusal filter for crt viewing',
-      history: 'history (3)          - GNU History Library',
-      cp: 'cp (1)               - copy files and directories',
-      mv: 'mv (1)               - move (rename) files',
-      mkdir: 'mkdir (1)            - make directories',
-      rm: 'rm (1)               - remove files or directories',
-      find: 'find (1)             - search for files in a directory hierarchy',
-      help: 'help (1)             - display information about builtin commands',
-      man: 'man (1)              - an interface to the system reference manuals',
-      whatis: 'whatis (1)           - display one-line manual page descriptions',
-      alias: 'alias (1)            - define or display aliases',
-      unalias: 'unalias (1)          - remove alias definitions',
-      exit: 'exit (1)             - cause the shell to exit',
-      bash: 'bash (1)             - GNU Bourne-Again SHell',
-      grep: 'grep (1)             - print lines that match patterns',
-      echo: 'echo (1)             - display a line of text',
-      chmod: 'chmod (1)            - change file mode bits',
-      chown: 'chown (1)            - change file owner and group',
-      dnf: 'dnf (8)              - Package manager for RPM-based Linux systems',
-      yum: 'yum (8)              - redirector to DNF',
-      rpm: 'rpm (8)              - RPM Package Manager',
-      systemctl: 'systemctl (1)        - Control the systemd system and service manager',
-      ps: 'ps (1)               - report a snapshot of the current processes',
-      df: 'df (1)               - report file system disk space usage',
-      free: 'free (1)             - Display amount of free and used memory in the system',
-      uname: 'uname (1)            - print system information',
-    };
 
     const lines: string[] = [];
     let exitCode = 0;
-    for (const arg of args) {
-      if (whatisDb[arg]) {
-        lines.push(whatisDb[arg]);
+    for (const name of args) {
+      const command = getCommandDoc(name);
+      if (command) {
+        lines.push(renderWhatIs(command, name));
       } else {
-        lines.push(`${arg}: nothing appropriate.`);
+        lines.push(`${name}: nothing appropriate.`);
         exitCode = 16;
       }
     }
@@ -2969,260 +3614,48 @@ Swap:       2097148           0     2097148`,
   }
 
   private cmdMan(args: string[]): CommandResult {
-    if (args.length === 0) {
-      return { stdout: '', stderr: "What manual page do you want?\nFor example, try 'man man'.", exitCode: 1 };
+    const operands = args.filter(arg => !arg.startsWith('-'));
+    if (operands.length === 0) {
+      return { stdout: '', stderr: "What manual page do you want? Try 'man ls'.", exitCode: 1 };
     }
-    const topic = args[args.length - 1];
-    const manDb: Record<string, string> = {
-      ls: `LS(1)                            User Commands                           LS(1)
 
-NAME
-       ls - list directory contents
-
-SYNOPSIS
-       ls [OPTION]... [FILE]...
-
-DESCRIPTION
-       List  information  about  the FILEs (the current directory by default).
-       Sort entries alphabetically if none of -cftuvSUX nor --sort is specified.
-
-       -a, --all
-              do not ignore entries starting with .
-
-       -l     use a long listing format
-
-       -h, --human-readable
-              with -l and -s, print sizes like 1K 234M 2G etc.
-
-CentOS Stream 9                    March 2024                             LS(1)`,
-      cd: `BASH_BUILTINS(1)                 User Commands                 BASH_BUILTINS(1)
-
-NAME
-       cd - change the working directory
-
-SYNOPSIS
-       cd [-L|[-P [-e]] [-@]] [dir]
-
-DESCRIPTION
-       Change the current directory to dir. The default dir is the value of the
-       HOME shell variable.
-
-CentOS Stream 9                    March 2024                 BASH_BUILTINS(1)`,
-      pwd: `PWD(1)                           User Commands                          PWD(1)
-
-NAME
-       pwd - print name of current/working directory
-
-SYNOPSIS
-       pwd [OPTION]...
-
-DESCRIPTION
-       Print the full filename of the current working directory.
-
-CentOS Stream 9                    March 2024                            PWD(1)`,
-      cat: `CAT(1)                           User Commands                          CAT(1)
-
-NAME
-       cat - concatenate files and print on the standard output
-
-SYNOPSIS
-       cat [OPTION]... [FILE]...
-
-DESCRIPTION
-       Concatenate FILE(s) to standard output. With no FILE, or when FILE is -,
-       read standard input.
-
-       -n, --number
-              number all output lines
-
-CentOS Stream 9                    March 2024                            CAT(1)`,
-      touch: `TOUCH(1)                         User Commands                        TOUCH(1)
-
-NAME
-       touch - change file timestamps
-
-SYNOPSIS
-       touch [OPTION]... FILE...
-
-DESCRIPTION
-       Update the access and modification times of each FILE to the current
-       time. A FILE argument that does not exist is created empty.
-
-CentOS Stream 9                    March 2024                          TOUCH(1)`,
-      mkdir: `MKDIR(1)                         User Commands                        MKDIR(1)
-
-NAME
-       mkdir - make directories
-
-SYNOPSIS
-       mkdir [OPTION]... DIRECTORY...
-
-DESCRIPTION
-       Create the DIRECTORY(ies), if they do not already exist.
-
-       -p, --parents
-              no error if existing, make parent directories as needed
-
-CentOS Stream 9                    March 2024                          MKDIR(1)`,
-      cp: `CP(1)                            User Commands                           CP(1)
-
-NAME
-       cp - copy files and directories
-
-SYNOPSIS
-       cp [OPTION]... SOURCE... DEST
-
-DESCRIPTION
-       Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.
-
-       -r, -R, --recursive
-              copy directories recursively
-
-CentOS Stream 9                    March 2024                             CP(1)`,
-      mv: `MV(1)                            User Commands                           MV(1)
-
-NAME
-       mv - move (rename) files
-
-SYNOPSIS
-       mv [OPTION]... SOURCE... DEST
-
-DESCRIPTION
-       Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
-
-CentOS Stream 9                    March 2024                             MV(1)`,
-      rm: `RM(1)                            User Commands                           RM(1)
-
-NAME
-       rm - remove files or directories
-
-SYNOPSIS
-       rm [OPTION]... [FILE]...
-
-DESCRIPTION
-       rm removes each specified file. By default, it does not remove directories.
-
-       -r, -R, --recursive
-              remove directories and their contents recursively
-
-       -f, --force
-              ignore nonexistent files and arguments, never prompt
-
-CentOS Stream 9                    March 2024                             RM(1)`,
-      find: `FIND(1)                          User Commands                         FIND(1)
-
-NAME
-       find - search for files in a directory hierarchy
-
-SYNOPSIS
-       find [-H] [-L] [-P] [path...] [expression]
-
-DESCRIPTION
-       find searches the directory tree rooted at each given file name by
-       evaluating the given expression from left to right.
-
-CentOS Stream 9                    March 2024                           FIND(1)`,
-    };
-
-    if (manDb[topic]) {
-      return { stdout: manDb[topic], stderr: '', exitCode: 0 };
+    const topics = operands.filter(arg => !/^\d+$/.test(arg));
+    if (topics.length === 0) {
+      const topic = operands.at(-1) ?? '';
+      return { stdout: '', stderr: `No manual entry for ${topic}`, exitCode: 1 };
     }
-    return {
-      stdout: `${topic.toUpperCase()}(1)                    User Commands                   ${topic.toUpperCase()}(1)\n\nNAME\n       ${topic} - manual page for ${topic}\n\nSYNOPSIS\n       ${topic} [OPTIONS]... [ARGS]...\n\nDESCRIPTION\n       Standard Linux command provided by CentOS Stream 9 core utilities.\n\nCentOS Stream 9                    March 2024                   ${topic.toUpperCase()}(1)`,
-      stderr: '',
-      exitCode: 0,
-    };
+
+    const pages: string[] = [];
+    let exitCode = 0;
+    for (const topic of topics) {
+      const command = getCommandDoc(topic);
+      if (command) pages.push(renderManPage(command, topic));
+      else {
+        pages.push(`No manual entry for ${topic}`);
+        exitCode = 1;
+      }
+    }
+    return { stdout: pages.join('\n\n'), stderr: '', exitCode };
   }
 
   private cmdHelp(args: string[] = []): CommandResult {
-    if (args.length > 0) {
-      const target = args[0];
-      switch (target) {
-        case 'cd':
-          return {
-            stdout: `cd: cd [-L|[-P [-e]] [-@]] [dir]
-    Change the shell working directory.
-
-    Change the current directory to DIR.  The default DIR is the value of the
-    HOME shell variable.
-
-    Exit Status:
-    Returns 0 if the directory is changed; non-zero otherwise.`,
-            stderr: '',
-            exitCode: 0,
-          };
-        case 'pwd':
-          return {
-            stdout: `pwd: pwd [-LP]
-    Print the name of the current working directory.
-
-    Options:
-      -L\tprint the value of $PWD if it names the current working directory
-      -P\tprint the physical directory, without any symbolic links
-
-    Exit Status:
-    Returns 0 unless an invalid option is given.`,
-            stderr: '',
-            exitCode: 0,
-          };
-        case 'alias':
-          return {
-            stdout: `alias: alias [-p] [name[=value] ... ]
-    Define or display aliases.
-
-    Without arguments, \`alias' prints the list of aliases in the shape
-    \`name=value' on standard output.
-
-    Exit Status:
-    alias returns true unless a NAME is supplied for which no alias has been defined.`,
-            stderr: '',
-            exitCode: 0,
-          };
-        case 'exit':
-          return {
-            stdout: `exit: exit [n]
-    Exit the shell.
-
-    Exits the shell with a status of N.  If N is omitted, the exit status
-    is that of the last command executed.`,
-            stderr: '',
-            exitCode: 0,
-          };
-        case 'history':
-          return {
-            stdout: `history: history [-c] [-d offset] [n] or history -anrw [filename]
-    Display or manipulate the history list.
-
-    Display the history list with line numbers.`,
-            stderr: '',
-            exitCode: 0,
-          };
-        default:
-          return {
-            stdout: `bash: help: no help topics match \`${target}'. Try \`help help' or \`man -k ${target}' or \`${target} --help'.`,
-            stderr: '',
-            exitCode: 1,
-          };
-      }
+    const topics = args.filter(arg => !arg.startsWith('-'));
+    if (topics.length === 0) {
+      return { stdout: renderCommandCatalog(), stderr: '', exitCode: 0 };
     }
 
-    return {
-      stdout: `CentOS Stream 9 Virtual Shell (Bash 5.1.8)
-These shell commands are defined internally. Type a command or run labs on the left panel:
-
-Navigation & Files:
-  ls, cd, pwd, mkdir, touch, rm, cp, mv, cat, less, file, find, grep
-
-Shell & Utilities:
-  help, man, whatis, alias, unalias, history, exit, echo, clear
-
-Package Management & Network:
-  dnf, rpm, ip, ping, netstat, df, free, uname, uptime`,
-      stderr: '',
-      exitCode: 0,
-    };
+    const output: string[] = [];
+    let exitCode = 0;
+    for (const topic of topics) {
+      const command = getCommandDoc(topic);
+      if (command) output.push(renderCommandHelp(command, topic));
+      else {
+        output.push(`bash: help: no help topics match '${topic}'. Try 'man ${topic}'.`);
+        exitCode = 1;
+      }
+    }
+    return { stdout: output.join('\n\n'), stderr: '', exitCode };
   }
-
   private cmdExit(): CommandResult {
     if (this.currentUser !== 'root') {
       this.currentUser = 'root';

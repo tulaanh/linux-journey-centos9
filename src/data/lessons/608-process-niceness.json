@@ -1,0 +1,289 @@
+{
+  "id": 608,
+  "slug": "process-niceness",
+  "category": "Processes",
+  "lessonNumber": 8,
+  "title": "Niceness (Độ ưu tiên lập lịch tiến trình với nice & renice)",
+  "subtitle": "Tìm hiểu cách giá trị nice tác động đến trọng số lập lịch CPU và cách dùng lệnh nice, renice trong Linux.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Cơ chế lập lịch CPU và khái niệm Niceness",
+      "blocks": [
+        {
+          "text": "Linux có thể thực thi đồng thời các luồng (threads) trên các lõi CPU khác nhau và chia sẻ thời gian (time-sharing) một lõi cho nhiều luồng đang sẵn sàng chạy. Trình lập lịch của nhân (scheduler) đưa ra các quyết định này dựa trên chính sách lập lịch, độ ưu tiên, sự ràng buộc CPU (affinity) và khối lượng công việc.",
+          "type": "paragraph"
+        },
+        {
+          "text": "Giá trị **nice** là một trong những thông số đầu vào cho các chính sách chia sẻ thời gian thông thường (ordinary time-sharing policies như CFS - Completely Fair Scheduler).",
+          "type": "paragraph"
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Dải giá trị Nice và ý nghĩa trọng số",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Dải giá trị nice tiêu chuẩn trong Linux nằm trong khoảng từ `-20` đến `19`:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Giá trị càng thấp** (về phía `-20`): Cho tác vụ **trọng số lập lịch cao hơn** (ưu tiên hơn) so với các tác vụ thông thường khác.",
+            "**Giá trị càng cao** (về phía `19`): Làm cho tiến trình trở nên \"tử tế hơn\" (nicer) với hệ thống bằng cách nhường quyền ưu tiên cho các tiến trình khác (**trọng số thấp hơn**).",
+            "**Giá trị mặc định**: Thông thường là `0`."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "**Lưu ý quan trọng**: Niceness không dành riêng một tỷ lệ phần trăm CPU cố định nào và không đảm bảo việc thực thi tức thì. Hiệu ứng của nó rõ ràng nhất khi có nhiều tác vụ cạnh tranh thời gian xử lý trên CPU."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-niceness-lower-value",
+        "question": "Dưới cùng một chính sách lập lịch thông thường, giá trị nice nào sau đây mang lại trọng số ưu tiên CPU tương đối lớn hơn?",
+        "options": [
+          {
+            "text": "10",
+            "isCode": true
+          },
+          {
+            "text": "19",
+            "isCode": true
+          },
+          {
+            "text": "-5",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Giá trị nice càng thấp (số âm) thì độ ưu tiên và trọng số được phân bổ thời gian CPU càng lớn."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Xem giá trị Niceness với top và ps",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong giao diện của lệnh `top`, cột `NI` hiển thị giá trị niceness của từng tiến trình. Bạn cũng có thể yêu cầu xem trường này với lệnh `ps`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps -o pid,ni,pri,stat,cmd -p 3245",
+            "runnableCommand": "ps -o pid,ni,pri,stat,cmd -p $$"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Cột `NI` là giá trị nice người dùng có thể điều chỉnh (`-20` đến `19`). Cột `PRI` là mức ưu tiên nội bộ được bộ lập lịch của kernel tính toán dựa trên `NI` và chính sách thực thi; thang đo này khác nhau tùy thuộc vào công cụ và lớp lập lịch, không nên đồng nhất hai cột này."
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-niceness-top-column",
+        "question": "Cột nào trong tiện ích top thông thường hiển thị giá trị nice của tiến trình?",
+        "options": [
+          {
+            "text": "PID",
+            "isCode": true
+          },
+          {
+            "text": "TTY",
+            "isCode": true
+          },
+          {
+            "text": "NI",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! `NI` là chữ viết tắt thông thường cho cột niceness trong bảng theo dõi của `top`."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Khởi chạy tiến trình với mức nice tùy chỉnh bằng lệnh nice",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sử dụng lệnh `nice` để khởi chạy một câu lệnh mới với giá trị nice được điều chỉnh ngay từ đầu:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ nice -n 5 long-computation",
+            "runnableCommand": "nice -n 5 sleep 100"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Một người dùng bình thường (non-privileged user) chỉ có thể tăng giá trị nice (làm tiến trình thân thiện/nhường nhịn hơn, ví dụ từ 0 lên 5 hoặc 10). Để đặt một giá trị nice âm (tăng độ ưu tiên cao hơn), bắt buộc phải có quyền quản trị viên `root` hoặc cấu hình giới hạn tài nguyên thích hợp."
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-niceness-nice-command",
+        "question": "Câu lệnh `nice -n 5 long-computation` thực hiện điều gì?",
+        "options": [
+          {
+            "text": "Khởi chạy câu lệnh với giá trị nice là 5, nếu được phép."
+          },
+          {
+            "text": "Thay đổi PID 5 sang giá trị nice thấp nhất có thể."
+          },
+          {
+            "text": "Đảm bảo câu lệnh luôn nhận được chính xác 5% thời lượng của một CPU."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `nice` dùng để khởi chạy một tiến trình mới với giá trị điều chỉnh lập lịch mong muốn (ở đây là +5)."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Thay đổi độ ưu tiên của tiến trình đang chạy bằng renice",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu một tiến trình đã đang chạy, sử dụng tiện ích `renice` để thay đổi giá trị nice của nó mà không cần khởi động lại:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ renice -n 10 -p 3245",
+            "runnableCommand": "renice -n 10 -p 3245"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Lệnh trên gán giá trị nice `10` cho tiến trình có PID `3245`. Luôn xác minh PID trước để tránh nhầm lẫn do tái sử dụng PID. Người dùng thông thường chỉ được phép tăng giá trị nice cho tiến trình mình sở hữu; việc giảm giá trị nice (để tăng ưu tiên) đòi hỏi quyền `root`."
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-niceness-renice-purpose",
+        "question": "Công cụ nào được sử dụng để thay đổi giá trị nice của một tiến trình ĐANG chạy?",
+        "options": [
+          {
+            "text": "nice",
+            "isCode": true
+          },
+          {
+            "text": "kill",
+            "isCode": true
+          },
+          {
+            "text": "renice",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! `renice` nhắm vào các PID, nhóm tiến trình hoặc người dùng đang hoạt động để điều chỉnh lại niceness."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành điều chỉnh niceness trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-niceness-practice",
+          "title": "1. Sử dụng nice và renice quản lý ưu tiên CPU",
+          "description": "Thực hành khởi chạy tiến trình với nice tùy chỉnh và dùng renice thay đổi độ ưu tiên trong khi tiến trình đang chạy.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "nice-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Khởi chạy tiến trình mới với nice = 10",
+              "description": "Chạy lệnh sleep 300 trong nền với mức nice 10.",
+              "runnableCommand": "nice -n 10 sleep 300 &",
+              "buttonLabel": "Chạy nice -n 10"
+            },
+            {
+              "id": "nice-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Kiểm tra cột NI với ps",
+              "description": "Xem giá trị cột NI của tiến trình sleep vừa khởi chạy.",
+              "runnableCommand": "ps -o pid,ni,pri,stat,cmd -p $(pgrep -n sleep)",
+              "buttonLabel": "Kiểm tra cột NI"
+            },
+            {
+              "id": "nice-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Điều chỉnh giá trị nice lên 15 với renice",
+              "description": "Dùng lệnh renice để tăng mức nice lên 15 cho tiến trình sleep.",
+              "runnableCommand": "renice -n 15 -p $(pgrep -n sleep)",
+              "buttonLabel": "Chạy renice -n 15"
+            },
+            {
+              "id": "nice-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Xác nhận giá trị niceness mới",
+              "description": "Xác nhận lại xem cột NI đã cập nhật lên 15 hay chưa.",
+              "runnableCommand": "ps -o pid,ni,stat,cmd -p $(pgrep -n sleep)",
+              "buttonLabel": "Xác nhận kết quả"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học Niceness",
+      "takeaways": [
+        {
+          "text": "Hiểu giá trị nice nằm trong dải `-20` đến `19`, giá trị càng nhỏ thì trọng số CPU càng lớn."
+        },
+        {
+          "text": "Phân biệt cột `NI` (giá trị người dùng cấu hình) và cột `PRI` (mức ưu tiên nội bộ của scheduler)."
+        },
+        {
+          "text": "Sử dụng `nice` khi khởi chạy lệnh mới và `renice` khi cần điều chỉnh tiến trình đang chạy."
+        },
+        {
+          "text": "Ghi nhớ rằng người dùng thường chỉ có thể nhường ưu tiên (tăng nice), chỉ `root` mới được cấp quyền ưu tiên cao hơn (giảm nice)."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,340 @@
+{
+  "id": 13,
+  "slug": "rm",
+  "category": "Command Line",
+  "lessonNumber": 13,
+  "title": "rm (Xóa tệp tin và thư mục)",
+  "subtitle": "Tìm hiểu cách xóa tệp tin và thư mục một cách cẩn trọng, kiểm tra đối tượng và chọn tùy chọn rm an toàn.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu lệnh rm",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `rm` (remove) dùng để xóa các tệp tin và thư mục trên hệ thống tệp. Trên giao diện dòng lệnh Linux, thao tác xóa bằng `rm` **không đưa tệp vào thùng rác** (Trash) và **không có lệnh Undo** (hoàn tác). Mọi tệp bị xóa sẽ biến mất vĩnh viễn!"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "rm [OPTIONS] FILE..."
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Xóa tệp tin đơn và nhiều tệp",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Truyền một hoặc nhiều đường dẫn tệp tin cho lệnh `rm`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ rm file1\n$ rm notes.txt old-report.txt draft.md",
+            "runnableCommand": "rm /tmp/junk_file.log"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "Luôn kiểm tra kỹ chính tả và vị trí đường dẫn trước khi nhấn phím Enter. Bản sao lưu (backup) hoặc hệ thống quản lý mã nguồn (git) là phương án phục hồi đáng tin cậy nhất."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "remove-one-file",
+        "question": "Sau khi đã kiểm tra chính xác đối tượng, câu lệnh nào thực hiện xóa tệp `old-report.txt`?",
+        "options": [
+          {
+            "text": "rm old-report.txt",
+            "isCode": true
+          },
+          {
+            "text": "rmdir old-report.txt",
+            "isCode": true
+          },
+          {
+            "text": "mv old-report.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `rm` xóa tệp tin chỉ định. Lệnh `rmdir` chỉ dùng cho thư mục rỗng."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Xem trước ký tự đại diện trước khi xóa",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Shell mở rộng ký tự đại diện trước khi chạy `rm`. Ví dụ `*.tmp` sẽ khớp với tất cả các tệp có đuôi `.tmp`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ rm *.tmp",
+            "runnableCommand": "ls *.tmp"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Để tránh xóa nhầm các tệp quan trọng, hãy luôn chạy `ls` với mẫu tương tự để xem trước danh sách tệp:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls *.tmp\ncache.tmp  test.tmp\n$ rm *.tmp",
+            "runnableCommand": "ls /tmp/*.log"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "preview-removal-pattern",
+        "question": "Bạn dự định xóa `*.tmp`. Câu lệnh nào cho phép xem danh sách các tệp được khớp trước mà không xóa bất kỳ thứ gì?",
+        "options": [
+          {
+            "text": "rm -v *.tmp",
+            "isCode": true
+          },
+          {
+            "text": "ls '*.tmp'",
+            "isCode": true
+          },
+          {
+            "text": "ls *.tmp",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh `ls *.tmp` mở rộng cùng mẫu ký tự và in ra danh sách tệp một cách an toàn ở chế độ chỉ đọc."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Xác nhận an toàn với cờ -i và cưỡng chế với -f",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Tùy chọn `-i` yêu cầu xác nhận trước khi xóa từng tệp, giúp bạn tránh sai sót:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ rm -i important.txt\nrm: remove regular file 'important.txt'? y",
+            "runnableCommand": "rm -i /tmp/test.txt"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Tùy chọn `-f` (force) bỏ qua tệp không tồn tại và tắt toàn bộ các câu hỏi xác nhận:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ rm -f old-cache.txt",
+            "runnableCommand": "rm -f /tmp/nonexistent.txt"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "Không bao giờ dùng `-f` chỉ để làm tắt một thông báo lỗi mà bạn chưa hiểu rõ nguyên nhân!"
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "confirm-each-removal",
+        "question": "Câu lệnh nào yêu cầu bạn xác nhận trước khi xóa tệp `important.txt`?",
+        "options": [
+          {
+            "text": "rm -i important.txt",
+            "isCode": true
+          },
+          {
+            "text": "rm -f important.txt",
+            "isCode": true
+          },
+          {
+            "text": "rm -v important.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Tùy chọn `-i` (interactive) sẽ hỏi xác nhận người dùng trước khi tiến hành xóa."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Xóa thư mục và cảnh báo về rm -rf",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `rm` mặc định không thể xóa thư mục và sẽ báo lỗi: `cannot remove 'projects': Is a directory`."
+        },
+        {
+          "type": "list",
+          "items": [
+            "`rmdir <thư_mục>`: Chỉ xóa khi thư mục đó hoàn toàn rỗng. Rất an toàn.",
+            "`rm -r <thư_mục>`: Xóa đệ quy toàn bộ thư mục cùng mọi tệp tin con bên trong.",
+            "`rm -rf <thư_mục>`: Xóa đệ quy và cưỡng chế mà không hỏi xác nhận. **Cực kỳ nguy hiểm!**"
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ rmdir empty-dir\n$ rm -r old-project",
+            "runnableCommand": "rm -r /tmp/obsolete_data"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "remove-empty-directory-only",
+        "question": "Câu lệnh nào chỉ xóa thư mục `old-cache/` khi và chỉ khi thư mục đó hoàn toàn rỗng?",
+        "options": [
+          {
+            "text": "rm -r old-cache/",
+            "isCode": true
+          },
+          {
+            "text": "rmdir old-cache/",
+            "isCode": true
+          },
+          {
+            "text": "rm -f old-cache/",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! `rmdir` chỉ thành công nếu thư mục rỗng, bảo vệ dữ liệu bên trong không bị xóa nhầm."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "remove-nonempty-tree",
+        "question": "Sau khi đã kiểm tra kỹ toàn bộ đường dẫn, câu lệnh nào xóa thư mục `old-project/` cùng tất cả nội dung bên trong mà vẫn giữ nguyên các câu hỏi xác nhận thông thường?",
+        "options": [
+          {
+            "text": "rm old-project/",
+            "isCode": true
+          },
+          {
+            "text": "rm -r old-project/",
+            "isCode": true
+          },
+          {
+            "text": "rmdir old-project/",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Tùy chọn `-r` xóa đệ quy cây thư mục mà không gắn cờ `-f` tắt cảnh báo."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh rm trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-rm",
+          "title": "1. Thực hành xóa tệp và thư mục an toàn",
+          "description": "Thực hành xóa tệp rác, xóa thư mục chứa tệp đệ quy và xóa thư mục rỗng với rmdir.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "rm-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Xóa tệp rác trong /tmp",
+              "description": "Xóa tệp rác /tmp/junk_file.log bằng lệnh rm.",
+              "runnableCommand": "rm /tmp/junk_file.log",
+              "buttonLabel": "Chạy rm junk_file.log"
+            },
+            {
+              "id": "rm-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Xóa thư mục chứa dữ liệu với cờ đệ quy -r",
+              "description": "Xóa thư mục /tmp/obsolete_data cùng toàn bộ tệp bên trong bằng rm -r.",
+              "runnableCommand": "rm -r /tmp/obsolete_data",
+              "buttonLabel": "Chạy rm -r"
+            },
+            {
+              "id": "rm-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Xóa thư mục rỗng bằng rmdir",
+              "description": "Tạo thử thư mục rỗng và dùng rmdir để xóa an toàn.",
+              "runnableCommand": "mkdir /tmp/empty_dir && rmdir /tmp/empty_dir",
+              "buttonLabel": "Chạy rmdir"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh rm",
+      "takeaways": [
+        {
+          "text": "Xác nhận lại đường dẫn tệp tin trước khi nhấn Enter."
+        },
+        {
+          "text": "Xem trước kết quả của ký tự đại diện bằng `ls`."
+        },
+        {
+          "text": "Hỏi xác nhận trước khi xóa bằng cờ `-i` hoặc `-I`."
+        },
+        {
+          "text": "Ưu tiên dùng `rmdir` khi muốn đảm bảo thư mục phải rỗng."
+        },
+        {
+          "text": "Cực kỳ cẩn trọng khi thực hiện xóa đệ quy `-r` và không lạm dụng `-f`."
+        }
+      ]
+    }
+  ]
+}

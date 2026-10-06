@@ -892,5 +892,24 @@ SwapFree:        2097148 kB
 `);
 
     this.writeFile('/proc/version', 'Linux version 5.14.0-362.el9.x86_64 (mockbuild@x86-04.stream.rdu2.redhat.com) (gcc (GCC) 11.4.1 20230605 (Red Hat 11.4.1-2)) #1 SMP PREEMPT_DYNAMIC Wed Oct 11 17:30:01 UTC 2023\n');
+    this.writeFile('/proc/uptime', '15124.52 30128.84\n');
+    this.writeFile('/proc/loadavg', '0.08 0.03 0.01 1/145 18450\n');
+    this.createDirectory('/proc/1');
+    this.writeFile('/proc/1/cmdline', '/usr/lib/systemd/systemd\0--switched-root\0--system\0');
+    this.writeFile('/proc/1/comm', 'systemd\n');
+    this.writeFile('/proc/1/status', `Name:\tsystemd
+Umask:\t0000
+State:\tS (sleeping)
+Tgid:\t1
+Ngid:\t0
+Pid:\t1
+PPid:\t0
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t256
+Groups:\t
+Threads:\t1
+`);
   }
 }

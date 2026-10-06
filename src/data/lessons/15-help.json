@@ -1,0 +1,281 @@
+{
+  "id": 15,
+  "slug": "help",
+  "category": "Command Line",
+  "lessonNumber": 15,
+  "title": "help (Trợ giúp dòng lệnh & Shell Builtins)",
+  "subtitle": "Tìm hiểu cách tra cứu trợ giúp tích hợp sẵn trong shell, xem tóm tắt cách dùng chương trình và phân giải lệnh.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu hệ thống trợ giúp trong Linux",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bạn không cần phải ghi nhớ mọi tùy chọn cờ lệnh. Bash và hầu hết các chương trình cài đặt trên Linux đều cung cấp tài liệu hướng dẫn trực tiếp ngay trên terminal. Tuy nhiên, cách tra cứu thích hợp phụ thuộc vào loại câu lệnh bạn đang dùng."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Trợ giúp cho các lệnh Shell Builtins với help",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bash cung cấp lệnh builtin `help` dành riêng cho các câu lệnh được tích hợp sẵn bên trong chính shell đó. Ví dụ như `cd`, `history`, `type`, `echo`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ help echo",
+            "runnableCommand": "help cd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Chạy `help` mà không có đối số sẽ liệt kê danh sách toàn bộ các builtin mà Bash hỗ trợ tài liệu trợ giúp."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "help-for-bash-cd",
+        "question": "Câu lệnh nào hiển thị mục trợ giúp của Bash dành cho lệnh tích hợp sẵn `cd`?",
+        "options": [
+          {
+            "text": "cd --help",
+            "isCode": true
+          },
+          {
+            "text": "help cd",
+            "isCode": true
+          },
+          {
+            "text": "type cd",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `help` của Bash được thiết kế riêng để tra cứu tài liệu của các shell builtin."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Xem tóm tắt cách dùng của chương trình với --help",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Rất nhiều chương trình độc lập bên ngoài tuân theo quy ước chấp nhận tùy chọn `--help` để in ra bản tóm tắt cú pháp và danh sách cờ lệnh:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ls --help",
+            "runnableCommand": "ls --help"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Quy ước `--help` rất phổ biến trên GNU/Linux nhưng không phải 100% chương trình đều hỗ trợ. Hãy quan sát kết quả trả về để xác nhận."
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "quick-ls-usage",
+        "question": "Câu lệnh nào in bản tóm tắt cú pháp và tùy chọn sử dụng của chương trình `ls`?",
+        "options": [
+          {
+            "text": "help ls",
+            "isCode": true
+          },
+          {
+            "text": "ls --help",
+            "isCode": true
+          },
+          {
+            "text": "type --help ls",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Chương trình `ls` tuân theo chuẩn `--help` để in ra bảng tóm tắt cú pháp và cờ lệnh."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Phân giải loại câu lệnh với lệnh type",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sử dụng lệnh `type` để kiểm tra xem Bash hiểu câu lệnh đó là builtin, alias, shell function, keyword hay một tệp nhị phân thực thi nằm trên ổ đĩa:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ type cd\ncd is a shell builtin\n$ type ls\nls is /usr/bin/ls",
+            "runnableCommand": "type cd; type ls"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Dùng `type -a <tên_lệnh>` để hiển thị tất cả các vị trí phân giải mà Bash biết thay vì chỉ vị trí ưu tiên đầu tiên."
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "identify-command-resolution",
+        "question": "Bạn chưa biết liệu `deploy` là alias, shell function, builtin hay tệp thực thi bên ngoài. Lệnh Bash nào giúp kiểm tra cách tên này được phân giải?",
+        "options": [
+          {
+            "text": "type deploy",
+            "isCode": true
+          },
+          {
+            "text": "help deploy",
+            "isCode": true
+          },
+          {
+            "text": "deploy --help",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `type` báo cáo chính xác cách Bash hiểu và phân giải tên câu lệnh trong môi trường hiện tại."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Lựa chọn mức độ chi tiết tài liệu",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "Dùng `help COMMAND`: Dành cho các lệnh tích hợp sẵn (shell builtin).",
+            "Dùng `COMMAND --help`: Xem tóm tắt nhanh cho các chương trình bên ngoài.",
+            "Dùng `man COMMAND`: Xem sổ tay hướng dẫn chi tiết đầy đủ (manual page).",
+            "Dùng `whatis COMMAND`: Xem mô tả tóm gọn một dòng về mục đích của lệnh."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "choose-detailed-manual",
+        "question": "Bạn cần tài liệu hướng dẫn chi tiết và đầy đủ cho chương trình `ls`, chứ không chỉ là tóm tắt nhanh. Bạn nên dùng lệnh nào?",
+        "options": [
+          {
+            "text": "man ls",
+            "isCode": true
+          },
+          {
+            "text": "whatis ls",
+            "isCode": true
+          },
+          {
+            "text": "type ls",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `man ls` mở sổ tay tham khảo chi tiết (man page) với đầy đủ mô tả, cú pháp và các tùy chọn."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh help trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-help",
+          "title": "1. Thực hành tra cứu trợ giúp và phân giải câu lệnh",
+          "description": "Thực hành tra cứu trợ giúp builtin cho cd và pwd, xem tóm tắt của ls và dùng type để kiểm tra.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "help-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Xem thông tin trợ giúp lệnh built-in cd",
+              "description": "Tra cứu hướng dẫn sử dụng shell builtin cd bằng help cd.",
+              "runnableCommand": "help cd",
+              "buttonLabel": "Chạy help cd"
+            },
+            {
+              "id": "help-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Xem trợ giúp lệnh built-in pwd",
+              "description": "Xem tài liệu hướng dẫn cho lệnh pwd với help pwd.",
+              "runnableCommand": "help pwd",
+              "buttonLabel": "Chạy help pwd"
+            },
+            {
+              "id": "help-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Xem tóm tắt cách dùng của ls với --help",
+              "description": "In bảng tóm tắt cú pháp của chương trình ls.",
+              "runnableCommand": "ls --help",
+              "buttonLabel": "Chạy ls --help"
+            },
+            {
+              "id": "help-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Kiểm tra bản chất câu lệnh với type",
+              "description": "Dùng type để kiểm tra xem cd và ls là builtin hay chương trình ngoài.",
+              "runnableCommand": "type cd\ntype ls",
+              "buttonLabel": "Chạy type cd & ls"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh help",
+      "takeaways": [
+        {
+          "text": "Dùng `help` cho các lệnh tích hợp sẵn (Bash builtins)."
+        },
+        {
+          "text": "Thử tùy chọn `--help` để xem tóm tắt nhanh của chương trình bên ngoài."
+        },
+        {
+          "text": "Kiểm tra cách Bash phân giải câu lệnh bằng `type`."
+        },
+        {
+          "text": "Mở tài liệu sổ tay hướng dẫn chuyên sâu với `man`."
+        }
+      ]
+    }
+  ]
+}

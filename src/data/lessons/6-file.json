@@ -1,0 +1,313 @@
+{
+  "id": 6,
+  "slug": "file",
+  "category": "Command Line",
+  "lessonNumber": 6,
+  "title": "file (Xác định định dạng tệp tin)",
+  "subtitle": "Tìm hiểu cách xác định loại nội dung thực tế của một tệp tin mà không phụ thuộc vào tên hoặc phần mở rộng.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu lệnh file",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong bài học trước, bạn đã sử dụng lệnh `touch` để tạo tệp tin mà không cần thêm phần mở rộng (extension). Trong Linux, tên tệp tin không bắt buộc phải phản ánh nội dung bên trong: một tệp có tên `funny.gif` chưa chắc đã là ảnh GIF thật."
+        },
+        {
+          "type": "paragraph",
+          "text": "Sử dụng lệnh `file` để kiểm tra và nhận diện định dạng nội dung thực tế của tệp tin:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ file banana.jpg\nbanana.jpg: JPEG image data",
+            "runnableCommand": "file /bin/ls"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Tại sao phần mở rộng là chưa đủ?",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Các công cụ trên Linux thường không phụ thuộc vào đuôi mở rộng để xác định loại tệp. Một shell script có thể đặt tên là `backup`, tệp văn bản có thể tên là `README`, hoặc một tệp nhị phân có thể mang đuôi mở rộng gây hiểu nhầm. Lệnh `file` kiểm tra siêu dữ liệu hệ thống (metadata) và chữ ký byte nhận dạng (magic numbers) ở đầu tệp tin."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ file README\nREADME: ASCII text\n$ file /bin/ls\n/bin/ls: ELF 64-bit LSB executable",
+            "runnableCommand": "file /etc/passwd"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Kết quả trả về của lệnh `file` là một phân loại nhận dạng, không phải lời cam kết tuyệt đối. Một tệp tin đặc biệt, bị hỏng hoặc chưa hoàn chỉnh có thể nhận mô tả chung chung là `data` thay vì kiểu chính xác."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "identify-misleading-extension",
+        "question": "Một tệp tin có tên `report.jpg` chưa chắc đã chứa hình ảnh. Câu lệnh nào kiểm tra loại nội dung thực tế của tệp?",
+        "options": [
+          {
+            "text": "ls report.jpg",
+            "isCode": true
+          },
+          {
+            "text": "file report.jpg",
+            "isCode": true
+          },
+          {
+            "text": "touch report.jpg",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `file` kiểm tra cấu trúc nội dung bên trong tệp tin để xác định định dạng thực tế, không phụ thuộc vào đuôi `.jpg`."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Kiểm tra nhiều tệp tin cùng lúc",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể kiểm tra nhiều tệp cùng lúc bằng cách liệt kê danh sách các đường dẫn:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ file notes.txt image.png archive.tar.gz\nnotes.txt: ASCII text\nimage.png: PNG image data\narchive.tar.gz: gzip compressed data",
+            "runnableCommand": "file /etc/passwd /bin/bash /etc"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn cũng có thể sử dụng ký tự đại diện của shell (wildcard). Shell sẽ mở rộng dấu `*` thành các tệp tin phù hợp trước khi truyền cho `file` kiểm tra:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ file *",
+            "runnableCommand": "file *"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "inspect-multiple-files",
+        "question": "Câu lệnh nào yêu cầu `file` kiểm tra tất cả các đối tượng không ẩn được khớp bởi ký tự đại diện `*` trong thư mục hiện tại?",
+        "options": [
+          {
+            "text": "file *",
+            "isCode": true
+          },
+          {
+            "text": "file .",
+            "isCode": true
+          },
+          {
+            "text": "file -b",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Shell mở rộng `*` thành danh sách tất cả các tệp và thư mục không ẩn, sau đó lệnh `file` kiểm tra từng mục."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Hiển thị thông tin chuẩn MIME",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Tùy chọn `-i` in ra thông tin theo chuẩn MIME (Multipurpose Internet Mail Extensions), bao gồm kiểu media và bảng mã ký tự (charset) nếu có. Định dạng này rất hữu ích cho các ứng dụng web và script tự động hóa:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ file -i index.html\nindex.html: text/html; charset=us-ascii",
+            "runnableCommand": "file -i /etc/passwd"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "show-mime-information",
+        "question": "Câu lệnh nào hiển thị thông tin định dạng theo chuẩn MIME cho tệp `index.html`?",
+        "options": [
+          {
+            "text": "file -b index.html",
+            "isCode": true
+          },
+          {
+            "text": "file -i index.html",
+            "isCode": true
+          },
+          {
+            "text": "file -L index.html",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Cờ `-i` yêu cầu `file` xuất thông tin kiểu MIME (ví dụ `text/html; charset=us-ascii`)."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Các tùy chọn hữu ích của lệnh file",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Một số tùy chọn phổ biến khi làm việc với `file`:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`-i`: Hiển thị thông tin định dạng chuẩn MIME.",
+            "`-b`: Chế độ ngắn gọn (brief mode), ẩn tên tệp tin khỏi kết quả đầu ra.",
+            "`-L`: Đi theo liên kết tượng trưng (symlink) và nhận diện tệp đích thực tế.",
+            "`-z`: Kiểm tra nội dung bên trong các tệp nén."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Ví dụ chế độ ngắn gọn với `-b`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ file -b notes.txt\nASCII text",
+            "runnableCommand": "file -b /etc/os-release"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "omit-filename-from-output",
+        "question": "Câu lệnh nào phân loại tệp `notes.txt` nhưng ẩn tên tệp tin khỏi kết quả đầu ra?",
+        "options": [
+          {
+            "text": "file -i notes.txt",
+            "isCode": true
+          },
+          {
+            "text": "file -z notes.txt",
+            "isCode": true
+          },
+          {
+            "text": "file -b notes.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Cờ `-b` (brief mode) in ra kết quả phân loại định dạng mà không hiển thị tiền tố tên tệp tin."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh file trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-file",
+          "title": "1. Khám phá các định dạng tệp tin hệ thống",
+          "description": "Thực hành nhận diện tệp văn bản ASCII, tệp nhị phân thực thi ELF và phân loại thư mục.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "file-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Kiểm tra tệp văn bản hệ thống /etc/passwd",
+              "description": "Dùng lệnh file để kiểm tra định dạng tệp cấu hình tài khoản hệ thống.",
+              "runnableCommand": "file /etc/passwd",
+              "buttonLabel": "Chạy file /etc/passwd"
+            },
+            {
+              "id": "file-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Kiểm tra tệp thực thi ELF /bin/bash",
+              "description": "Xác nhận Bash là một tệp nhị phân thực thi 64-bit ELF.",
+              "runnableCommand": "file /bin/bash",
+              "buttonLabel": "Chạy file /bin/bash"
+            },
+            {
+              "id": "file-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Phân loại thư mục /etc",
+              "description": "Xem cách lệnh file nhận diện một đối tượng thư mục trong Linux.",
+              "runnableCommand": "file /etc",
+              "buttonLabel": "Chạy file /etc"
+            },
+            {
+              "id": "file-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Kiểm tra định dạng MIME với cờ -i",
+              "description": "Xuất kiểu MIME và bảng mã charset của tệp /etc/os-release.",
+              "runnableCommand": "file -i /etc/os-release",
+              "buttonLabel": "Chạy file -i"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh file",
+      "takeaways": [
+        {
+          "text": "Phân loại tệp tin chính xác mà không tin cậy hoàn toàn vào phần mở rộng."
+        },
+        {
+          "text": "Kiểm tra nhiều tệp cùng lúc hoặc dùng ký tự đại diện `*`."
+        },
+        {
+          "text": "Sử dụng cờ `-i` để xuất thông tin chuẩn MIME."
+        },
+        {
+          "text": "Tùy biến kết quả hiển thị với `-b` (ngắn gọn), `-L` (symlink) và `-z` (tệp nén)."
+        }
+      ]
+    }
+  ]
+}

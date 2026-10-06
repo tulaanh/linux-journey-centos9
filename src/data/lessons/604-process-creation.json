@@ -1,0 +1,239 @@
+{
+  "id": 604,
+  "slug": "process-creation",
+  "category": "Processes",
+  "lessonNumber": 4,
+  "title": "Process Creation (Khởi tạo tiến trình: fork & exec)",
+  "subtitle": "Tìm hiểu cách các lệnh gọi hệ thống fork, execve, PID và quan hệ cha-con hoạt động trong việc tạo tiến trình Linux.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Tạo tiến trình con với lệnh gọi hệ thống fork()",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong Linux, một tiến trình mới gần như luôn được sinh ra từ một tiến trình hiện có thông qua lệnh gọi hệ thống `fork()`."
+        },
+        {
+          "type": "paragraph",
+          "text": "Khi `fork()` được thực thi thành công, một tiến trình con (child process) được tạo ra như một bản sao gần như giống hệt tiến trình cha (parent process): sao chép các bộ mô tả tệp mở, biến môi trường và bộ nhớ. Tiến trình con nhận một **PID hoàn toàn mới**, và có `PPID` trỏ về PID của tiến trình cha."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-creation-fork-result",
+        "question": "Một lời gọi hệ thống fork() thành công sẽ tạo ra kết quả gì?",
+        "options": [
+          {
+            "text": "Thay thế tiến trình hiện tại bằng một chương trình mới từ đĩa."
+          },
+          {
+            "text": "Tạo ra một tiến trình con mới là bản sao ngữ cảnh của tiến trình cha với một PID mới."
+          },
+          {
+            "text": "Xóa toàn bộ các tệp mô tả mở của tiến trình cha."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! `fork()` tạo một tiến trình con mới nhân bản từ tiến trình cha và được cấp phát một PID mới."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Nạp chương trình mới với lệnh gọi execve()",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sau khi `fork()`, tiến trình con thường muốn chạy một chương trình khác (ví dụ: shell chạy lệnh `ls`). Nó sẽ gọi lệnh gọi hệ thống thuộc họ `exec`, tiêu biểu là `execve()`."
+        },
+        {
+          "type": "paragraph",
+          "text": "Lệnh `execve()` nạp một tệp thực thi mới từ đĩa và thay thế toàn bộ mã lệnh, ngăn xếp (stack) và dữ liệu cũ của tiến trình. **Điều đặc biệt là PID vẫn được giữ nguyên!** Tiến trình không bị sinh mới hay chết đi, mà chỉ được \"thay ruột\" bằng chương trình mới."
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-creation-exec-pid",
+        "question": "Điều gì xảy ra với số PID của một tiến trình sau khi gọi thành công execve()?",
+        "options": [
+          {
+            "text": "PID của tiến trình được giữ nguyên không đổi."
+          },
+          {
+            "text": "Hệ thống cấp phát một PID hoàn toàn mới ngẫu nhiên."
+          },
+          {
+            "text": "PID bị đặt lại về 0."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `execve()` thay thế mã chương trình đang chạy bên trong không gian nhớ nhưng giữ nguyên PID của tiến trình."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Kiểm tra quan hệ cha con qua PID và PPID",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Dùng lệnh `ps -ef` hoặc `ps -f` để quan sát rõ mối quan hệ thứ bậc gia phả tiến trình:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps -f\nUID        PID  PPID  C STIME TTY          TIME CMD\nroot     18420 18410  0 08:30 pts/0    00:00:00 bash\nroot     19105 18420  0 08:45 pts/0    00:00:00 ps -f",
+            "runnableCommand": "ps -f"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Ở ví dụ trên, lệnh `ps -f` có PID là 19105 và PPID là 18420 — chính là PID của tiến trình `bash`. Shell chính là cha trực tiếp sinh ra câu lệnh `ps`!"
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-creation-ppid",
+        "question": "Cột PPID trong bảng danh sách tiến trình đại diện cho điều gì?",
+        "options": [
+          {
+            "text": "Mã ưu tiên của tiến trình trên bộ vi xử lý."
+          },
+          {
+            "text": "Mã định danh của tiến trình cha (Parent Process ID) đã khởi tạo ra tiến trình này."
+          },
+          {
+            "text": "Thời gian tiến trình đã chờ trong hàng đợi."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! PPID là Parent Process ID, chỉ rõ tiến trình cha nào đã tạo ra tiến trình hiện tại."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Tiến trình gốc PID 1 (systemd) và cơ chế nhận nuôi",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi Linux khởi động xong hạt nhân (kernel), tiến trình người dùng đầu tiên được khởi chạy là **PID 1** (trên CentOS Stream 9 là `systemd`)."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps -p 1 -o pid,ppid,comm\n  PID  PPID COMMAND\n    1     0 systemd",
+            "runnableCommand": "ps -p 1 -o pid,ppid,comm"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "PID 1 là tổ tiên trực tiếp hoặc gián tiếp của mọi tiến trình trên hệ thống. Khi một tiến trình cha chết trước tiến trình con, tiến trình con sẽ trở thành **mồ côi** (orphan). Nhân Linux sẽ tự động chuyển quyền làm cha (**reparenting**) cho PID 1 hoặc một subreaper để đảm bảo tiến trình luôn có cha chăm sóc và thu dọn."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-creation-pid-one",
+        "question": "Phát biểu nào sau đây về tiến trình PID 1 trong Linux là chính xác?",
+        "options": [
+          {
+            "text": "Nó là tiến trình con của shell terminal hiện tại."
+          },
+          {
+            "text": "Nó là tiến trình đầu tiên trong không gian người dùng và nhận nuôi các tiến trình mồ côi."
+          },
+          {
+            "text": "Nó tự động bị kernel dừng lại sau khi hệ thống hoàn tất khởi động."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! PID 1 (init/systemd) là tiến trình gốc của không gian người dùng và nhận nuôi (reparent) các tiến trình mồ côi."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "hands_on",
+      "title": "Thực hành tương tác tạo tiến trình trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-creation",
+          "title": "1. Khám phá gia phả tiến trình và PID 1",
+          "description": "Thực hành kiểm tra tiến trình gốc PID 1, xem cấu trúc gia phả PPID của lệnh vừa gõ.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "creation-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Kiểm tra tiến trình gốc PID 1",
+              "description": "Dùng ps để xem thông tin chi tiết của tiến trình systemd (PID 1).",
+              "runnableCommand": "ps -p 1 -o pid,ppid,user,cmd",
+              "buttonLabel": "Xem PID 1"
+            },
+            {
+              "id": "creation-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Xem mối quan hệ cha con của lệnh hiện tại",
+              "description": "Chạy ps -f để thấy rõ PID của lệnh ps và PPID trỏ tới bash.",
+              "runnableCommand": "ps -f",
+              "buttonLabel": "Chạy ps -f"
+            },
+            {
+              "id": "creation-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Liệt kê các tiến trình con của PID 1",
+              "description": "Xem các tiến trình dịch vụ trực thuộc PID 1 bằng tùy chọn --ppid 1.",
+              "runnableCommand": "ps --ppid 1 -o pid,user,cmd | head -n 10",
+              "buttonLabel": "Xem con của PID 1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học Process Creation",
+      "takeaways": [
+        {
+          "text": "Hiểu cách lệnh gọi `fork()` nhân bản một tiến trình con mới."
+        },
+        {
+          "text": "Nắm vững cơ chế `execve()` nạp mã chương trình mới mà vẫn giữ nguyên PID."
+        },
+        {
+          "text": "Kiểm tra và đối chiếu mối quan hệ gia phả tiến trình qua cột `PPID`."
+        },
+        {
+          "text": "Hiểu vai trò của tiến trình gốc PID 1 (`systemd`) và cơ chế nhận nuôi (reparenting)."
+        }
+      ]
+    }
+  ]
+}

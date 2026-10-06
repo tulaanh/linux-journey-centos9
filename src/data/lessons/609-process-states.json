@@ -1,0 +1,260 @@
+{
+  "id": 609,
+  "slug": "process-states",
+  "category": "Processes",
+  "lessonNumber": 9,
+  "title": "Process States (Các trạng thái của tiến trình)",
+  "subtitle": "Tìm hiểu cách đọc và diễn giải các mã trạng thái tiến trình R, S, D, T, Z trong cột STAT của lệnh ps.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Vòng đời và trạng thái tiến trình trong Linux",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Một tác vụ trong Linux di chuyển qua nhiều trạng thái thực thi khác nhau trong suốt vòng đời của nó: khi nó đang chạy trên CPU, khi nó chờ đợi tài nguyên, khi nó tạm dừng hoặc khi nó thoát."
+        },
+        {
+          "type": "paragraph",
+          "text": "Cột `STAT` trong lệnh `ps` phản ánh trạng thái của tiến trình tại đúng khoảnh khắc chụp ảnh nhanh:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps -o pid,ppid,stat,wchan:24,cmd",
+            "runnableCommand": "ps -o pid,ppid,stat,cmd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Ký tự đầu tiên trong trường `STAT` biểu thị **trạng thái chính** (primary state). Các ký tự phụ theo sau là các bổ ngữ (modifiers), ví dụ: `s` (session leader), `+` (foreground process group), `<` (high priority) hoặc `N` (low priority)."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Trạng thái R (Running/Runnable) và S (Interruptible Sleep)",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "**`R` (Running / Runnable)**: Tác vụ đang trực tiếp thực thi lệnh trên một lõi CPU hoặc đang nằm trong hàng đợi sẵn sàng (run queue) chờ được cấp phát thời gian CPU.",
+            "**`S` (Interruptible Sleep)**: Tác vụ đang ngủ có thể ngắt được. Nó đang chờ một sự kiện (dữ liệu nhập từ bàn phím, dữ liệu mạng, bộ hẹn giờ timer) và có thể được đánh thức bởi một tín hiệu hoặc sự kiện."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Trạng thái ngủ là trạng thái hoàn toàn bình thường và chiếm phần lớn trên hệ thống. Các chương trình tương tác và các dịch vụ nền dành hầu hết thời gian để chờ sự kiện thay vì liên tục chiếm dụng CPU."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-states-runnable-code",
+        "question": "Trạng thái chính `R` trong cột STAT có ý nghĩa gì?",
+        "options": [
+          {
+            "text": "Đang chạy trên CPU hoặc đã sẵn sàng trong hàng đợi để chạy."
+          },
+          {
+            "text": "Đã được dọn dẹp hoàn toàn sau khi tiến trình cha thu thập trạng thái."
+          },
+          {
+            "text": "Đang ngủ ở trạng thái không thể bị ngắt (uninterruptible sleep)."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `R` (Running/Runnable) chỉ định các tác vụ đang thực thi hoặc sẵn sàng chờ tới lượt nhận CPU."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-states-interruptible-code",
+        "question": "Ký tự trạng thái chính nào đại diện cho trạng thái ngủ có thể bị ngắt (interruptible sleep)?",
+        "options": [
+          {
+            "text": "D",
+            "isCode": true
+          },
+          {
+            "text": "Z",
+            "isCode": true
+          },
+          {
+            "text": "S",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! `S` là mã trạng thái tiêu chuẩn trong `ps` biểu thị tác vụ đang ngủ và có thể thức giấc khi nhận tín hiệu."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Trạng thái D: Ngủ không thể ngắt (Uninterruptible Sleep)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "**`D` (Uninterruptible Sleep)** chỉ định tác vụ đang ngủ không thể bị ngắt. Điều này thường xảy ra khi tiến trình đang chờ một thao tác phần cứng cấp thấp trong nhân, phổ biến nhất là I/O đĩa cứng hoặc hệ thống tệp mạng (NFS)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tiến trình ở trạng thái `D` sẽ **không phản hồi với bất kỳ tín hiệu nào** (kể cả `SIGKILL`) cho đến khi thao tác I/O trong kernel hoàn tất; tín hiệu gửi đến sẽ tạm thời nằm ở hàng đợi pending."
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "Một trạng thái `D` diễn ra trong tích tắc là hoàn toàn bình thường. Tuy nhiên, nếu nhiều tiến trình bị kẹt ở trạng thái `D` trong thời gian dài, đó thường là dấu hiệu của ổ đĩa bị lỗi, kết nối mạng lưu trữ bị ngắt hoặc hệ thống tệp bị treo."
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-states-uninterruptible-code",
+        "question": "Ký tự trạng thái chính nào biểu thị trạng thái ngủ không thể ngắt (uninterruptible sleep)?",
+        "options": [
+          {
+            "text": "T",
+            "isCode": true
+          },
+          {
+            "text": "D",
+            "isCode": true
+          },
+          {
+            "text": "R",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! `D` được sử dụng cho tác vụ đang chờ đợi thao tác I/O trong kernel và không thể bị ngắt bởi tín hiệu thông thường."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Trạng thái T (Stopped) và Z (Zombie)",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "**`T` (Stopped)**: Tiến trình bị tạm dừng do tác vụ điều khiển (job control, như bấm tổ hợp `Ctrl-Z` sinh ra `SIGTSTP`) hoặc do nhận tín hiệu `SIGSTOP`. Tiến trình dừng có thể được tiếp tục thực thi lại bằng cách gửi tín hiệu `SIGCONT`.",
+            "**`Z` (Zombie)**: Tiến trình thây ma. Tiến trình đã kết thúc việc thực thi mã lệnh, nhưng tiến trình cha của nó chưa gọi hàm `wait()` để thu thập mã kết thúc và dọn dẹp bản ghi trong bảng tiến trình."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Một tiến trình Zombie **không thể bị tiêu diệt bằng lệnh kill hay SIGKILL** vì bản thân nó đã chết và không còn chạy bất kỳ dòng mã nào. Để dọn Zombie, cần khiến tiến trình cha gọi hàm gặt (reap) hoặc khởi động lại/kết thúc tiến trình cha để init/systemd nhận nuôi và dọn dẹp."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-states-zombie-code",
+        "question": "Trạng thái chính `Z` biểu thị điều gì đối với tiến trình?",
+        "options": [
+          {
+            "text": "Một tiến trình đã thoát nhưng bản ghi kết thúc của nó đang chờ tiến trình cha thu thập (reaping)."
+          },
+          {
+            "text": "Một tiến trình bị tạm dừng do tín hiệu dừng từ terminal."
+          },
+          {
+            "text": "Một tiến trình đang sử dụng 100% tài nguyên của một lõi CPU."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Zombie (`Z`) là tiến trình đã kết thúc nhưng vẫn lưu bản ghi tối thiểu trong bảng tiến trình cho đến khi tiến trình cha đọc exit status."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "hands_on",
+      "title": "Thực hành quan sát các trạng thái tiến trình trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-process-states",
+          "title": "1. Khám phá và chuyển đổi trạng thái tiến trình",
+          "description": "Thực hành quan sát cột STAT của các tiến trình, đưa tiến trình vào trạng thái Stopped (T) và khôi phục về trạng thái chạy.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "state-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Quan sát trạng thái các tiến trình hiện tại",
+              "description": "Liệt kê tiến trình kèm cột STAT và lệnh thực thi.",
+              "runnableCommand": "ps -o pid,stat,cmd",
+              "buttonLabel": "Xem bảng STAT"
+            },
+            {
+              "id": "state-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Khởi chạy tiến trình sleep và xem trạng thái S",
+              "description": "Chạy sleep trong nền và kiểm tra trạng thái ngủ có thể ngắt S.",
+              "runnableCommand": "sleep 400 & ps -o pid,stat,cmd -p $(pgrep -n sleep)",
+              "buttonLabel": "Chạy và xem trạng thái S"
+            },
+            {
+              "id": "state-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Gửi SIGSTOP để chuyển tiến trình sang trạng thái T",
+              "description": "Gửi tín hiệu STOP tới sleep và quan sát cột STAT đổi sang T.",
+              "runnableCommand": "kill -STOP $(pgrep -n sleep) && ps -o pid,stat,cmd -p $(pgrep -n sleep)",
+              "buttonLabel": "Chuyển sang trạng thái T"
+            },
+            {
+              "id": "state-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Gửi SIGCONT để đánh thức và kết thúc",
+              "description": "Đưa tiến trình tiếp tục chạy bằng CONT rồi kết thúc an toàn.",
+              "runnableCommand": "kill -CONT $(pgrep -n sleep) && kill $(pgrep -n sleep)",
+              "buttonLabel": "Khôi phục và dọn dẹp"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học Process States",
+      "takeaways": [
+        {
+          "text": "Nắm vững ý nghĩa các ký tự trạng thái chính: `R` (Running), `S` (Interruptible Sleep), `D` (Uninterruptible Sleep), `T` (Stopped), `Z` (Zombie)."
+        },
+        {
+          "text": "Hiểu rằng trạng thái `S` là trạng thái thông thường chiếm đa số trên máy chủ."
+        },
+        {
+          "text": "Cảnh giác với trạng thái `D` kéo dài liên quan đến nghẽn mạng I/O hoặc lỗi ổ cứng."
+        },
+        {
+          "text": "Nhớ rằng Zombie (`Z`) không thể giết bằng `kill` vì bản thân tiến trình đã chấm dứt."
+        }
+      ]
+    }
+  ]
+}

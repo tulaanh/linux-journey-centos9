@@ -1,0 +1,352 @@
+{
+  "id": 611,
+  "slug": "job-control",
+  "category": "Processes",
+  "lessonNumber": 11,
+  "title": "Job Control (Quản lý tác vụ Shell jobs, bg, fg)",
+  "subtitle": "Tìm hiểu cách shell tương tác điều phối các tác vụ chạy nền (background), tiền cảnh (foreground) và tạm dừng với các lệnh jobs, bg, fg.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Cơ chế quản lý tác vụ (Job Control) trong Shell",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Các shell tương tác (interactive shells như Bash) sử dụng cơ chế **Job Control** để điều phối các dòng lệnh hoặc đường ống (pipeline) trong cùng một phiên làm việc terminal. Một tác vụ (job) có thể bao gồm một tiến trình hoặc toàn bộ đường ống nhiều lệnh ghép nối, thường được gom vào một nhóm tiến trình (process group) để terminal và shell có thể tác động lên nó như một đơn vị thống nhất."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Khởi chạy tác vụ chạy nền với dấu &",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Thêm ký tự `&` vào cuối câu lệnh để khởi chạy một tác vụ bất đồng bộ trong nền (background):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ sleep 1000 &\n[1] 18420",
+            "runnableCommand": "sleep 1000 &"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Shell sẽ trả lại dấu nhắc lệnh ngay lập tức mà không cần chờ tác vụ hoàn thành. Con số trong ngoặc vuông `[1]` là **Job ID** của shell, còn số phía sau là **PID** của tiến trình."
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "**Lưu ý**: Việc thêm `&` chỉ chạy nền trong phiên shell hiện tại. Nó không tự động chuyển hướng đầu ra (nếu có in ra màn hình nó vẫn xuất hiện trên terminal), không tách khỏi terminal điều khiển và không giúp tác vụ sống sót nếu bạn đóng terminal (logout). Với tác vụ dài hạn, hãy dùng `nohup`, `tmux`, hoặc dịch vụ systemd."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "job-control-ampersand-effect",
+        "question": "Ký tự `&` đặt ở cuối câu lệnh yêu cầu shell tương tác thực hiện điều gì?",
+        "options": [
+          {
+            "text": "Đảm bảo tác vụ sẽ sống sót sau khi đăng xuất và khởi động lại máy."
+          },
+          {
+            "text": "Chạy đường ống lệnh dưới dạng tác vụ nền mà không bắt shell phải chờ trước khi hiển thị prompt tiếp theo."
+          },
+          {
+            "text": "Hủy bỏ toàn bộ đầu ra tiêu chuẩn (stdout) và thông báo lỗi (stderr) của tác vụ."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Dấu `&` khởi chạy câu lệnh dưới dạng background job bất đồng bộ, giải phóng dấu nhắc lệnh để bạn tiếp tục gõ lệnh khác."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Liệt kê các tác vụ hiện có với lệnh jobs",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh nội tích hợp `jobs` hiển thị danh sách tất cả các tác vụ đang được phiên shell hiện tại theo dõi:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ jobs\n[1]    Running    sleep 1000 &\n[2]-   Running    sleep 1001 &\n[3]+   Stopped    sleep 1002",
+            "runnableCommand": "jobs"
+          }
+        },
+        {
+          "type": "list",
+          "items": [
+            "Con số trong ngoặc vuông là **Job ID** của shell (không phải PID).",
+            "Ký hiệu `+` chỉ định tác vụ hiện tại (current job), sẽ được mặc định chọn nếu lệnh không truyền tham số.",
+            "Ký hiệu `-` chỉ định tác vụ liền kề trước đó (previous job)."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Vì bảng tác vụ này thuộc quyền sở hữu riêng của từng phiên shell, các phiên terminal khác sẽ không thể xem hoặc điều khiển các tác vụ này bằng `jobs`, `fg` hay `bg`."
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "job-control-jobs-scope",
+        "question": "Lệnh nội vi `jobs` liệt kê những tác vụ nào?",
+        "options": [
+          {
+            "text": "Các tác vụ được theo dõi bởi phiên shell hiện tại."
+          },
+          {
+            "text": "Toàn bộ mọi tiến trình đang hiển thị trong toàn bộ hệ thống."
+          },
+          {
+            "text": "Chỉ các dịch vụ được khởi động trong quá trình boot hệ điều hành."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Bảng quản lý Job ID và trạng thái chỉ thuộc về phiên shell tương tác đã khởi chạy hoặc nhận nuôi các tác vụ đó."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Tạm dừng tác vụ với Ctrl-Z và tiếp tục chạy nền với bg",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi một tác vụ đang chạy ở tiền cảnh (foreground), nhấn tổ hợp phím `Ctrl-Z` sẽ khiến terminal gửi tín hiệu `SIGTSTP` tới nhóm tiến trình đó. Tác vụ sẽ bị tạm dừng (Stopped) và quyền điều khiển quay trở lại dấu nhắc shell:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ sleep 1002\n^Z\n[3]+  Stopped    sleep 1002",
+            "runnableCommand": "jobs"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Để tiếp tục cho tác vụ bị dừng chạy tiếp nhưng ở chế độ nền (background), sử dụng lệnh `bg`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ bg %3\n# Hoặc gõ 'bg' để chọn tác vụ mặc định mang dấu +:\n$ bg",
+            "runnableCommand": "bg"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Lệnh `bg` gửi tín hiệu `SIGCONT` để khôi phục tác vụ và giữ nó chạy trong nền ngoài tiền cảnh của terminal."
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "job-control-bg-purpose",
+        "question": "Lệnh `bg %3` có tác dụng gì đối với tác vụ số 3 đang bị tạm dừng (stopped)?",
+        "options": [
+          {
+            "text": "Di chuyển các tệp của tác vụ vào thư mục có tên là `bg`."
+          },
+          {
+            "text": "Tiếp tục cho tác vụ chạy ở chế độ nền (background job)."
+          },
+          {
+            "text": "Chấm dứt tác vụ vĩnh viễn bằng tín hiệu `SIGKILL`."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Lệnh `bg` khôi phục thực thi tác vụ đã dừng và chuyển nó sang chạy ngầm phía dưới mà không chiếm quyền điều khiển terminal."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Đưa tác vụ lên tiền cảnh với fg",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sử dụng lệnh `fg` (foreground) kết hợp với định danh tác vụ để đưa một tác vụ chạy nền lên làm nhóm tiến trình tiền cảnh của terminal:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ fg %1",
+            "runnableCommand": "fg %1"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Nếu không có tham số, `fg` sẽ chọn tác vụ hiện tại mang dấu `+`. Nếu tác vụ đó đang bị tạm dừng (stopped), lệnh `fg` sẽ tự động gửi tín hiệu tiếp tục khi đưa nó lên tiền cảnh để bạn có thể tiếp tục tương tác bằng bàn phím."
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "job-control-fg-effect",
+        "question": "Lệnh `fg %1` thực hiện thao tác gì?",
+        "options": [
+          {
+            "text": "Gán tác vụ 1 lên tiền cảnh của terminal và đợi cho nó thực thi."
+          },
+          {
+            "text": "Chuyển tác vụ 1 thành tiến trình PID 1 của hệ thống."
+          },
+          {
+            "text": "Tạo một bản sao thứ hai của tác vụ 1 và chạy nó trong nền."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Shell đưa tác vụ đã chọn lên tiền cảnh (foreground) để tương tác trực tiếp với terminal và tạm dừng shell cho đến khi tác vụ kết thúc hoặc bị dừng lại."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "content",
+      "title": "Gửi tín hiệu tới tác vụ bằng Job Specification (%)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `kill` trong shell cho phép nhận tham số là một định danh tác vụ có dấu `%` phía trước:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ kill -TERM %1\n$ kill %1",
+            "runnableCommand": "kill %1"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Cú pháp này sẽ gửi tín hiệu tới toàn bộ nhóm tiến trình (process group) của tác vụ thay vì chỉ một câu lệnh đơn lẻ trong đường ống. Hãy chú ý phân biệt: `1` là số PID 1 của hệ thống (systemd), còn `%1` mới là Job ID 1 của phiên shell!"
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "quiz",
+      "quiz": {
+        "id": "job-control-job-specification",
+        "question": "Đối số nào sau đây dùng để chỉ tác vụ số 1 (Job 1) của shell thay vì tiến trình PID 1 của kernel?",
+        "options": [
+          {
+            "text": "1",
+            "isCode": true
+          },
+          {
+            "text": "#1",
+            "isCode": true
+          },
+          {
+            "text": "%1",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Tiền tố dấu phần trăm `%` là cú pháp xác định tác vụ trong shell (job specification)."
+      }
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "hands_on",
+      "title": "Thực hành điều khiển tác vụ (Job Control) trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-job-control",
+          "title": "1. Khởi chạy, liệt kê và điều phối các tác vụ shell",
+          "description": "Thực hành chạy tiến trình nền với &, liệt kê với jobs và gửi tín hiệu kết thúc qua Job ID.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "job-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Khởi chạy tác vụ nền với dấu &",
+              "description": "Khởi chạy một câu lệnh sleep 500 trong nền.",
+              "runnableCommand": "sleep 500 &",
+              "buttonLabel": "Chạy sleep 500 &"
+            },
+            {
+              "id": "job-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Liệt kê các tác vụ đang được shell quản lý",
+              "description": "Dùng lệnh jobs để quan sát Job ID và trạng thái Running.",
+              "runnableCommand": "jobs",
+              "buttonLabel": "Chạy jobs"
+            },
+            {
+              "id": "job-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Gửi tín hiệu kết thúc tới Job 1 bằng %1",
+              "description": "Dùng kill kết hợp %1 để kết thúc tác vụ nền.",
+              "runnableCommand": "kill %1",
+              "buttonLabel": "Chạy kill %1"
+            },
+            {
+              "id": "job-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Kiểm tra lại danh sách tác vụ sau khi dọn dẹp",
+              "description": "Chạy jobs một lần nữa để xác nhận tác vụ đã kết thúc.",
+              "runnableCommand": "jobs",
+              "buttonLabel": "Xác nhận với jobs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-12",
+      "stepIndex": 12,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học Job Control",
+      "takeaways": [
+        {
+          "text": "Khởi chạy tiến trình nền nhanh chóng bằng cách thêm ký tự `&` ở cuối dòng lệnh."
+        },
+        {
+          "text": "Tra cứu các tác vụ trong phiên hiện tại bằng lệnh nội tích hợp `jobs`."
+        },
+        {
+          "text": "Tạm dừng tác vụ bằng `Ctrl-Z` và khôi phục chạy nền bằng `bg`."
+        },
+        {
+          "text": "Đưa tác vụ trở lại tiền cảnh bằng `fg` để tương tác trực tiếp."
+        },
+        {
+          "text": "Phân biệt rõ ràng giữa Job ID (`%1`) trong shell và PID (`1`) của nhân hệ điều hành."
+        }
+      ]
+    }
+  ]
+}

@@ -2180,67 +2180,1146 @@ export const PERMISSIONS_LABS: LabDefinition[] = [
 ];
 
 export const PROCESSES_LABS: LabDefinition[] = [
+  // 601. ps (Monitor Processes)
   {
     id: 601,
-    slug: 'ps-and-kill',
-    title: 'Tracking & Terminating Processes (ps, kill)',
+    slug: 'monitor-processes-ps-command',
+    title: 'ps (Giám sát tiến trình với ps & top)',
     category: 'Processes',
-    difficulty: 'Trung bình',
-    estimatedTime: '7 phút',
-    summary: 'Monitor running processes with ps aux and manage signals using kill.',
-    scenario: 'Mỗi chương trình đang chạy trên Linux là một tiến trình có PID riêng. Bạn có thể liệt kê toàn bộ tiến trình bằng `ps aux` và kiểm tra tài nguyên bằng `free -h` hoặc `uptime`.',
+    difficulty: 'Cơ bản',
+    estimatedTime: '6 phút',
+    summary: 'Giám sát và kiểm tra tiến trình đang chạy trong Linux bằng các lệnh ps và top.',
+    scenario: 'Mỗi chương trình chạy trong Linux là một tiến trình có PID riêng. Lệnh ps chụp ảnh nhanh tức thời của các tiến trình, trong khi top cung cấp màn hình theo dõi tài nguyên động theo thời gian thực.',
     tasks: [
-      'Liệt kê toàn bộ tiến trình đang chạy trên hệ thống bằng lệnh `ps aux`.',
-      'Kiểm tra thời gian hoạt động và tải hệ thống bằng lệnh `uptime`.',
+      'Kiểm tra các tiến trình thuộc terminal hiện tại bằng lệnh ps cơ bản.',
+      'Liệt kê chi tiết toàn bộ tiến trình hệ thống bằng cú pháp BSD: ps aux (hoặc chuẩn POSIX: ps -ef).',
+      'Kiểm tra tải CPU/RAM hệ thống bằng lệnh top (hoặc uptime, free).',
     ],
     hints: [
-      'Chạy `ps aux` để xem danh sách PID, USER, COMMAND.',
-      'Chạy `uptime` để xem thời gian máy chủ đã chạy.',
+      'Chạy ps để xem các tiến trình trong phiên terminal.',
+      'Chạy ps aux để xem các cột USER, PID, %CPU, %MEM, COMMAND.',
+      'Chạy top hoặc uptime để xem thông số tải máy chủ.',
     ],
     usefulCommands: [
-      'ps aux - Liệt kê tất cả tiến trình đang chạy',
-      'kill <PID> - Gửi tín hiệu dừng tiến trình theo PID',
-      'uptime - Xem thời gian hoạt động và load average',
+      'ps - Liệt kê tiến trình trong terminal hiện tại',
+      'ps aux - Liệt kê tất cả tiến trình theo phong cách BSD',
+      'ps -ef - Liệt kê tiến trình theo chuẩn POSIX/UNIX',
+      'top - Giám sát tiến trình và tài nguyên theo thời gian thực',
     ],
     checks: [
       {
-        id: 'proc-1',
-        title: 'Liệt kê tiến trình với ps aux',
-        description: 'Đã chạy lệnh ps aux',
-        points: 50,
+        id: 'ps-1',
+        title: 'Liệt kê tiến trình với ps',
+        description: 'Đã chạy lệnh ps trong phiên terminal hiện tại',
+        points: 35,
+        hint: 'Chạy: ps',
+      },
+      {
+        id: 'ps-2',
+        title: 'Liệt kê toàn bộ tiến trình hệ thống',
+        description: 'Đã chạy lệnh ps aux hoặc ps -ef để xem toàn bộ tiến trình',
+        points: 35,
         hint: 'Chạy: ps aux',
       },
       {
-        id: 'proc-2',
-        title: 'Kiểm tra tải hệ thống với uptime',
-        description: 'Đã chạy lệnh uptime',
-        points: 50,
-        hint: 'Chạy: uptime',
+        id: 'ps-3',
+        title: 'Kiểm tra tài nguyên với top hoặc uptime',
+        description: 'Đã chạy lệnh top, uptime hoặc free để theo dõi tải hệ thống',
+        points: 30,
+        hint: 'Chạy: top hoặc uptime',
       },
     ],
     setupState: (_kernel: CentOSKernel) => {},
     evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
       const hist = kernel.history.map((h) => h.trim().toLowerCase());
-      const p1 = hist.some((h) => h.startsWith('ps'));
-      const p2 = hist.some((h) => h.startsWith('uptime') || h.startsWith('top') || h.startsWith('free'));
+      const p1 = hist.some((h) => h === 'ps' || h.startsWith('ps '));
+      const p2 = hist.some(
+        (h) => h.includes('ps aux') || h.includes('ps -ef') || h.includes('ps -e') || h.includes('ps ax')
+      );
+      const p3 = hist.some((h) => h.startsWith('top') || h.startsWith('uptime') || h.startsWith('free'));
       return [
         {
-          id: 'proc-1',
-          title: 'Liệt kê tiến trình với ps aux',
+          id: 'ps-1',
+          title: 'Liệt kê tiến trình với ps',
           passed: p1,
-          pointsEarned: p1 ? 50 : 0,
-          maxPoints: 50,
-          message: p1 ? 'Đã liệt kê danh sách tiến trình.' : 'Chưa chạy lệnh ps aux.',
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã chạy lệnh ps thành công.' : 'Chưa chạy lệnh ps.',
+          hint: 'Chạy: ps',
+        },
+        {
+          id: 'ps-2',
+          title: 'Liệt kê toàn bộ tiến trình hệ thống',
+          passed: p2,
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã liệt kê toàn bộ tiến trình bằng ps aux/ps -ef.' : 'Chưa chạy lệnh ps aux hoặc ps -ef.',
           hint: 'Chạy: ps aux',
         },
         {
-          id: 'proc-2',
-          title: 'Kiểm tra tải hệ thống với uptime',
+          id: 'ps-3',
+          title: 'Kiểm tra tài nguyên với top hoặc uptime',
+          passed: p3,
+          pointsEarned: p3 ? 30 : 0,
+          maxPoints: 30,
+          message: p3 ? 'Đã theo dõi tài nguyên máy chủ.' : 'Chưa chạy top hoặc uptime.',
+          hint: 'Chạy: top hoặc uptime',
+        },
+      ];
+    },
+  },
+
+  // 602. controlling-terminal
+  {
+    id: 602,
+    slug: 'controlling-terminal',
+    title: 'Controlling Terminal (Thiết bị đầu cuối điều khiển)',
+    category: 'Processes',
+    difficulty: 'Cơ bản',
+    estimatedTime: '5 phút',
+    summary: 'Xác định thiết bị terminal điều khiển (TTY/PTS) và nhận diện các tiến trình daemon không gắn terminal.',
+    scenario: 'Khi bạn mở một terminal, hệ thống cấp phát một thiết bị ảo như /dev/pts/0 làm controlling terminal. Các dịch vụ hệ thống (daemons) chạy nền thường không gắn với terminal nào và hiển thị dấu hỏi (?) trong cột TTY.',
+    tasks: [
+      'Kiểm tra tên thiết bị terminal hiện tại bằng lệnh tty.',
+      'Chạy ps để quan sát cột TTY của các tiến trình trong phiên làm việc.',
+      'Liệt kê các tiến trình daemon không có terminal điều khiển bằng ps -x hoặc ps aux.',
+    ],
+    hints: [
+      'Chạy lệnh tty để in ra tên thiết bị (ví dụ /dev/pts/0).',
+      'Chạy ps để xem cột TTY hiển thị pts/0.',
+      'Chạy ps -x hoặc ps aux để thấy nhiều tiến trình hệ thống có cột TTY là ?.',
+    ],
+    usefulCommands: [
+      'tty - In tên tệp của thiết bị terminal hiện tại',
+      'ps -o pid,tty,cmd - Xem cụ thể cột TTY của tiến trình',
+      'ps -x - Liệt kê cả các tiến trình không gắn controlling terminal',
+    ],
+    checks: [
+      {
+        id: 'tty-1',
+        title: 'Kiểm tra thiết bị với tty',
+        description: 'Đã chạy lệnh tty để xác định thiết bị đầu cuối điều khiển',
+        points: 35,
+        hint: 'Chạy: tty',
+      },
+      {
+        id: 'tty-2',
+        title: 'Xem cột TTY với ps',
+        description: 'Đã chạy ps để kiểm tra cột TTY của các tiến trình',
+        points: 35,
+        hint: 'Chạy: ps hoặc ps -o pid,tty,cmd',
+      },
+      {
+        id: 'tty-3',
+        title: 'Nhận diện tiến trình daemon không gắn TTY',
+        description: 'Đã chạy ps -x hoặc ps aux để quan sát tiến trình mang ký hiệu ?',
+        points: 30,
+        hint: 'Chạy: ps -x hoặc ps aux',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h === 'tty' || h.startsWith('tty '));
+      const p2 = hist.some((h) => h === 'ps' || h.startsWith('ps '));
+      const p3 = hist.some(
+        (h) => h.includes('ps -x') || h.includes('ps aux') || h.includes('ps -ef') || h.includes('grep ?')
+      );
+      return [
+        {
+          id: 'tty-1',
+          title: 'Kiểm tra thiết bị với tty',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã xác định thiết bị terminal thành công.' : 'Chưa chạy lệnh tty.',
+          hint: 'Chạy: tty',
+        },
+        {
+          id: 'tty-2',
+          title: 'Xem cột TTY với ps',
           passed: p2,
-          pointsEarned: p2 ? 50 : 0,
-          maxPoints: 50,
-          message: p2 ? 'Đã kiểm tra trạng thái hệ thống.' : 'Chưa chạy lệnh uptime.',
-          hint: 'Chạy: uptime',
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã quan sát cột TTY trong bảng tiến trình.' : 'Chưa chạy lệnh ps.',
+          hint: 'Chạy: ps',
+        },
+        {
+          id: 'tty-3',
+          title: 'Nhận diện tiến trình daemon không gắn TTY',
+          passed: p3,
+          pointsEarned: p3 ? 30 : 0,
+          maxPoints: 30,
+          message: p3 ? 'Đã nhận diện các tiến trình nền daemon (TTY = ?).' : 'Chưa chạy ps -x hoặc ps aux.',
+          hint: 'Chạy: ps -x hoặc ps aux',
+        },
+      ];
+    },
+  },
+
+  // 603. process-details
+  {
+    id: 603,
+    slug: 'process-details',
+    title: 'Process Details (Cấu trúc và chi tiết tiến trình)',
+    category: 'Processes',
+    difficulty: 'Cơ bản',
+    estimatedTime: '6 phút',
+    summary: 'Khám phá quan hệ cha-con (PID và PPID), quyền thực thi và cấu trúc cây phân cấp tiến trình.',
+    scenario: 'Mọi tiến trình trong Linux (ngoại trừ PID 1) đều được sinh ra bởi một tiến trình cha (Parent Process ID - PPID). Việc nắm vững quan hệ cha-con và quyền hạn chạy tiến trình là cốt lõi trong quản trị hệ thống.',
+    tasks: [
+      'Hiển thị danh sách tiến trình kèm cột PPID bằng ps -ef hoặc ps -o pid,ppid,cmd.',
+      'Xem PID của chính phiên shell hiện tại bằng biến đặc biệt echo $$.',
+      'Xem cây phân cấp tiến trình trực quan bằng lệnh pstree (hoặc ps axjf).',
+    ],
+    hints: [
+      'Chạy ps -ef để xem cột PPID cạnh PID.',
+      'Chạy echo $$ để lấy PID của shell đang chạy.',
+      'Chạy pstree để thấy nhánh quan hệ từ systemd đến bash.',
+    ],
+    usefulCommands: [
+      'echo $$ - In PID của shell hiện tại',
+      'ps -ef - Liệt kê tiến trình đầy đủ bao gồm cột PPID',
+      'ps -o pid,ppid,user,cmd - Tùy chỉnh cột hiển thị của ps',
+      'pstree - Hiển thị cây phân cấp tiến trình trực quan',
+    ],
+    checks: [
+      {
+        id: 'detail-1',
+        title: 'Xem quan hệ PID và PPID',
+        description: 'Đã chạy ps -ef hoặc ps kèm cột PPID để quan sát tiến trình cha',
+        points: 35,
+        hint: 'Chạy: ps -ef',
+      },
+      {
+        id: 'detail-2',
+        title: 'Kiểm tra PID của shell với $$',
+        description: 'Đã in ra PID của shell hiện tại bằng echo $$',
+        points: 35,
+        hint: 'Chạy: echo $$',
+      },
+      {
+        id: 'detail-3',
+        title: 'Xem cây tiến trình với pstree',
+        description: 'Đã hiển thị cây phân cấp tiến trình với pstree hoặc ps axjf',
+        points: 30,
+        hint: 'Chạy: pstree',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('ppid') || h.includes('ps -ef') || h.includes('ps -f'));
+      const p2 = hist.some((h) => h.includes('$$') || h.includes('echo $') || h.includes('ps -p $$'));
+      const p3 = hist.some(
+        (h) => h.startsWith('pstree') || h.includes('ps axjf') || h.includes('ps -ejh') || h.includes('pstree')
+      );
+      return [
+        {
+          id: 'detail-1',
+          title: 'Xem quan hệ PID và PPID',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã quan sát quan hệ PID và PPID thành công.' : 'Chưa chạy ps -ef.',
+          hint: 'Chạy: ps -ef',
+        },
+        {
+          id: 'detail-2',
+          title: 'Kiểm tra PID của shell với $$',
+          passed: p2,
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã kiểm tra PID của shell hiện tại ($$).' : 'Chưa chạy echo $$.',
+          hint: 'Chạy: echo $$',
+        },
+        {
+          id: 'detail-3',
+          title: 'Xem cây tiến trình với pstree',
+          passed: p3,
+          pointsEarned: p3 ? 30 : 0,
+          maxPoints: 30,
+          message: p3 ? 'Đã xem cây tiến trình hệ thống.' : 'Chưa chạy lệnh pstree.',
+          hint: 'Chạy: pstree',
+        },
+      ];
+    },
+  },
+
+  // 604. process-creation
+  {
+    id: 604,
+    slug: 'process-creation',
+    title: 'Process Creation (Khởi tạo tiến trình: fork & exec)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '7 phút',
+    summary: 'Tìm hiểu cơ chế sinh tiến trình qua fork & exec, vai trò của PID 1 (systemd) và khởi chạy tiến trình con.',
+    scenario: 'Linux tạo tiến trình mới bằng cơ chế gọi hệ thống fork() để nhân bản và exec() để nạp chương trình mới. PID 1 (systemd) là cội nguồn của toàn bộ không gian người dùng.',
+    tasks: [
+      'Kiểm tra tiến trình đầu tiên PID 1 của hệ thống bằng lệnh ps -p 1 -o pid,ppid,comm,cmd.',
+      'Khởi chạy một tiến trình con chạy nền bằng sleep 300 &.',
+      'Tìm kiếm PID của tiến trình con vừa tạo bằng công cụ pgrep sleep.',
+    ],
+    hints: [
+      'Chạy ps -p 1 -o pid,ppid,comm,cmd để xem thông tin của systemd.',
+      'Chạy sleep 300 & để tạo tiến trình con chạy ngầm.',
+      'Chạy pgrep sleep hoặc pgrep -l sleep để lấy PID của tiến trình con.',
+    ],
+    usefulCommands: [
+      'ps -p 1 -o pid,ppid,cmd - Xem tiến trình gốc PID 1',
+      'sleep 300 & - Chạy lệnh sleep 300 giây trong nền',
+      'pgrep sleep - Tìm PID của tiến trình theo tên lệnh',
+    ],
+    checks: [
+      {
+        id: 'create-1',
+        title: 'Kiểm tra tiến trình PID 1',
+        description: 'Đã kiểm tra thông tin của tiến trình init/systemd (PID 1)',
+        points: 35,
+        hint: 'Chạy: ps -p 1 -o pid,ppid,cmd',
+      },
+      {
+        id: 'create-2',
+        title: 'Khởi chạy tiến trình con trong nền',
+        description: 'Đã khởi chạy tiến trình sleep 300 & trong nền',
+        points: 35,
+        hint: 'Chạy: sleep 300 &',
+      },
+      {
+        id: 'create-3',
+        title: 'Tìm PID tiến trình con với pgrep',
+        description: 'Đã sử dụng lệnh pgrep để định vị PID của sleep',
+        points: 30,
+        hint: 'Chạy: pgrep sleep',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some(
+        (h) => h.includes('-p 1') || h.includes('ps 1') || (h.includes('pid,ppid') && h.includes('1'))
+      );
+      const p2 = hist.some((h) => h.includes('sleep') && h.includes('&'));
+      const p3 = hist.some(
+        (h) => h.startsWith('pgrep') || h.includes('pgrep sleep') || h.includes('pidof sleep')
+      );
+      return [
+        {
+          id: 'create-1',
+          title: 'Kiểm tra tiến trình PID 1',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã kiểm tra tiến trình PID 1 thành công.' : 'Chưa chạy ps kiểm tra PID 1.',
+          hint: 'Chạy: ps -p 1 -o pid,ppid,cmd',
+        },
+        {
+          id: 'create-2',
+          title: 'Khởi chạy tiến trình con trong nền',
+          passed: p2,
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã khởi chạy tiến trình con thành công.' : 'Chưa chạy lệnh sleep 300 &.',
+          hint: 'Chạy: sleep 300 &',
+        },
+        {
+          id: 'create-3',
+          title: 'Tìm PID tiến trình con với pgrep',
+          passed: p3,
+          pointsEarned: p3 ? 30 : 0,
+          maxPoints: 30,
+          message: p3 ? 'Đã tìm thấy PID với lệnh pgrep.' : 'Chưa chạy pgrep sleep.',
+          hint: 'Chạy: pgrep sleep',
+        },
+      ];
+    },
+  },
+
+  // 605. process-termination
+  {
+    id: 605,
+    slug: 'process-termination',
+    title: 'Process Termination (Kết thúc tiến trình, Zombie & Orphan)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '7 phút',
+    summary: 'Kiểm tra mã trạng thái thoát ($?), hiểu hiện tượng Zombie, Orphan và cơ chế thu dọn của init.',
+    scenario: 'Khi tiến trình gọi exit(), nó trả về một mã trạng thái (exit status 0-255). Nếu tiến trình cha không gọi wait() để đọc trạng thái, tiến trình con sẽ trở thành Zombie (Z). Nếu tiến trình cha chết trước, tiến trình con mồ côi (Orphan) sẽ được PID 1 nhận nuôi.',
+    tasks: [
+      'Chạy một câu lệnh thành công (như true hoặc ls) và kiểm tra mã thoát bằng echo $?.',
+      'Cố tình chạy một câu lệnh thất bại (như ls /nonexistent_dir) và kiểm tra mã lỗi $? khác 0.',
+      'Kiểm tra các tiến trình zombie trên hệ thống bằng lệnh ps -eo pid,stat,cmd.',
+    ],
+    hints: [
+      'Chạy ls /root && echo $? để xem mã 0 (thành công).',
+      'Chạy ls /thu_muc_khong_ton_tai rồi gõ echo $? để xem mã khác 0 (lỗi).',
+      'Chạy ps -eo pid,stat,cmd để tìm kiếm các cờ trạng thái tiến trình.',
+    ],
+    usefulCommands: [
+      'echo $? - In mã trạng thái kết thúc của câu lệnh liền trước',
+      'true - Lệnh luôn trả về mã thoát 0',
+      'false - Lệnh luôn trả về mã thoát 1',
+      'ps -eo pid,stat,cmd - Xem trạng thái tất cả tiến trình',
+    ],
+    checks: [
+      {
+        id: 'term-1',
+        title: 'Kiểm tra mã thoát thành công echo $?',
+        description: 'Đã kiểm tra mã thoát thành công ($? = 0)',
+        points: 35,
+        hint: 'Chạy: true && echo $?',
+      },
+      {
+        id: 'term-2',
+        title: 'Kiểm tra mã thoát lỗi của lệnh thất bại',
+        description: 'Đã kiểm tra mã thoát khi câu lệnh gặp lỗi ($? > 0)',
+        points: 35,
+        hint: 'Chạy: ls /nonexistent && echo $?',
+      },
+      {
+        id: 'term-3',
+        title: 'Truy vấn cờ trạng thái tiến trình với ps',
+        description: 'Đã chạy ps kèm cột stat để kiểm tra tiến trình',
+        points: 30,
+        hint: 'Chạy: ps -eo pid,stat,cmd',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('echo $?'));
+      const p2 = hist.some(
+        (h) =>
+          h.includes('false') ||
+          h.includes('nonexistent') ||
+          h.includes('khong') ||
+          (h.includes('echo $?') && kernel.lastExitCode !== 0)
+      );
+      const p3 = hist.some((h) => h.includes('stat') && h.includes('ps'));
+      return [
+        {
+          id: 'term-1',
+          title: 'Kiểm tra mã thoát thành công echo $?',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã kiểm tra biến $? thành công.' : 'Chưa chạy echo $?.',
+          hint: 'Chạy: true && echo $?',
+        },
+        {
+          id: 'term-2',
+          title: 'Kiểm tra mã thoát lỗi của lệnh thất bại',
+          passed: p2,
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã kiểm tra mã lỗi của câu lệnh thất bại.' : 'Chưa chạy lệnh gây lỗi và echo $?.',
+          hint: 'Chạy: ls /nonexistent && echo $?',
+        },
+        {
+          id: 'term-3',
+          title: 'Truy vấn cờ trạng thái tiến trình với ps',
+          passed: p3,
+          pointsEarned: p3 ? 30 : 0,
+          maxPoints: 30,
+          message: p3 ? 'Đã kiểm tra cột STAT của tiến trình.' : 'Chưa chạy ps -eo pid,stat,cmd.',
+          hint: 'Chạy: ps -eo pid,stat,cmd',
+        },
+      ];
+    },
+  },
+
+  // 606. process-signals
+  {
+    id: 606,
+    slug: 'process-signals',
+    title: 'Signals (Hệ thống tín hiệu trong Linux)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '6 phút',
+    summary: 'Khám phá danh sách tín hiệu trong Linux, hành vi mặc định và các tín hiệu bất khả kháng như SIGKILL, SIGSTOP.',
+    scenario: 'Tín hiệu (signals) là cơ chế IPC bất đồng bộ thông báo cho tiến trình về một sự kiện. Hầu hết các tín hiệu có thể được bắt (catch) hoặc bỏ qua (ignore), ngoại trừ SIGKILL (9) và SIGSTOP (19).',
+    tasks: [
+      'Liệt kê danh sách toàn bộ các tín hiệu được kernel hỗ trợ bằng kill -l.',
+      'Tra cứu mã số tương ứng của SIGTERM, SIGKILL và SIGINT bằng kill -l SIGTERM SIGKILL SIGINT.',
+      'Thực hiện kiểm tra thăm dò tín hiệu an toàn tới phiên shell bằng kill -0 $$.',
+    ],
+    hints: [
+      'Chạy kill -l để xem bảng 64 tín hiệu chuẩn và realtime.',
+      'Chạy kill -l SIGTERM SIGKILL SIGINT để xem các số hiệu 15, 9, 2.',
+      'Chạy kill -0 $$ để kiểm tra quyền và sự tồn tại của chính shell mà không gửi tín hiệu thật.',
+    ],
+    usefulCommands: [
+      'kill -l - Liệt kê tất cả tên tín hiệu',
+      'kill -l <SIGNAL> - Tra cứu mã số của tín hiệu',
+      'kill -0 <PID> - Kiểm tra quyền và sự tồn tại của tiến trình',
+    ],
+    checks: [
+      {
+        id: 'sig-1',
+        title: 'Liệt kê danh sách tín hiệu với kill -l',
+        description: 'Đã chạy lệnh kill -l để xem các tín hiệu hệ thống',
+        points: 35,
+        hint: 'Chạy: kill -l',
+      },
+      {
+        id: 'sig-2',
+        title: 'Tra cứu số hiệu tín hiệu cụ thể',
+        description: 'Đã tra cứu mã hiệu của SIGTERM hoặc SIGKILL qua kill -l',
+        points: 35,
+        hint: 'Chạy: kill -l SIGTERM SIGKILL',
+      },
+      {
+        id: 'sig-3',
+        title: 'Thử nghiệm tín hiệu kiểm tra kill -0',
+        description: 'Đã chạy kill -0 để thăm dò quyền gửi tín hiệu',
+        points: 30,
+        hint: 'Chạy: kill -0 $$',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h === 'kill -l' || h.startsWith('kill -l'));
+      const p2 = hist.some(
+        (h) => h.includes('kill -l sig') || h.includes('kill -l term') || h.includes('kill -l kill')
+      );
+      const p3 = hist.some((h) => h.includes('kill -0'));
+      return [
+        {
+          id: 'sig-1',
+          title: 'Liệt kê danh sách tín hiệu với kill -l',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã liệt kê danh sách tín hiệu kernel.' : 'Chưa chạy kill -l.',
+          hint: 'Chạy: kill -l',
+        },
+        {
+          id: 'sig-2',
+          title: 'Tra cứu số hiệu tín hiệu cụ thể',
+          passed: p2,
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã tra cứu mã số tín hiệu thành công.' : 'Chưa chạy kill -l SIGTERM.',
+          hint: 'Chạy: kill -l SIGTERM SIGKILL',
+        },
+        {
+          id: 'sig-3',
+          title: 'Thử nghiệm tín hiệu kiểm tra kill -0',
+          passed: p3,
+          pointsEarned: p3 ? 30 : 0,
+          maxPoints: 30,
+          message: p3 ? 'Đã thực hiện kiểm tra tín hiệu thăm dò với kill -0.' : 'Chưa chạy kill -0 $$.',
+          hint: 'Chạy: kill -0 $$',
+        },
+      ];
+    },
+  },
+
+  // 607. killing-processes
+  {
+    id: 607,
+    slug: 'killing-processes',
+    title: 'kill (Chấm dứt và gửi tín hiệu tới tiến trình)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '7 phút',
+    summary: 'Áp dụng quy trình leo thang tín hiệu an toàn (SIGTERM -> SIGKILL) để chấm dứt tiến trình.',
+    scenario: 'Khi cần dừng một tiến trình, nguyên tắc vàng là bắt đầu với SIGTERM để cho phép ứng dụng dọn dẹp tài nguyên. Chỉ khi tiến trình bị treo không phản hồi sau một khoảng thời gian hợp lý mới leo thang sang SIGKILL.',
+    tasks: [
+      'Khởi chạy tiến trình sleep 600 & trong nền.',
+      'Tìm PID của tiến trình sleep và kiểm tra quyền gửi tín hiệu bằng kill -0 <PID>.',
+      'Gửi tín hiệu kết thúc an toàn bằng kill -TERM <PID> (hoặc kill <PID>).',
+      'Kiểm tra lại danh sách tiến trình bằng ps để đảm bảo tiến trình đã được kết thúc sạch sẽ.',
+    ],
+    hints: [
+      'Chạy sleep 600 & để tạo tiến trình kiểm thử.',
+      'Chạy pgrep sleep để lấy PID, sau đó chạy kill -0 <PID>.',
+      'Chạy kill -TERM <PID> hoặc kill <PID> để yêu cầu kết thúc.',
+      'Chạy ps aux | grep sleep để xác nhận tiến trình không còn chạy.',
+    ],
+    usefulCommands: [
+      'kill <PID> - Gửi tín hiệu SIGTERM (mặc định) tới PID',
+      'kill -TERM <PID> - Gửi tường minh tín hiệu SIGTERM',
+      'kill -KILL <PID> hoặc kill -9 <PID> - Cưỡng chế kết thúc ngay lập tức',
+      'pgrep sleep - Tìm PID của lệnh sleep',
+    ],
+    checks: [
+      {
+        id: 'k-1',
+        title: 'Khởi chạy tiến trình nền sleep',
+        description: 'Đã khởi chạy sleep 600 & trong nền',
+        points: 30,
+        hint: 'Chạy: sleep 600 &',
+      },
+      {
+        id: 'k-2',
+        title: 'Kiểm tra quyền hạn với kill -0',
+        description: 'Đã kiểm tra quyền hạn gửi tín hiệu bằng kill -0',
+        points: 35,
+        hint: 'Chạy: kill -0 $(pgrep sleep)',
+      },
+      {
+        id: 'k-3',
+        title: 'Gửi tín hiệu kết thúc có trật tự với kill',
+        description: 'Đã gửi tín hiệu kết thúc TERM tới tiến trình',
+        points: 35,
+        hint: 'Chạy: kill -TERM $(pgrep sleep) hoặc kill $(pgrep sleep)',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('sleep') && h.includes('&'));
+      const p2 = hist.some((h) => h.includes('kill -0'));
+      const p3 = hist.some(
+        (h) =>
+          h.includes('kill -term') ||
+          h.includes('kill -15') ||
+          (h.startsWith('kill ') && !h.includes('-l') && !h.includes('-0'))
+      );
+      return [
+        {
+          id: 'k-1',
+          title: 'Khởi chạy tiến trình nền sleep',
+          passed: p1,
+          pointsEarned: p1 ? 30 : 0,
+          maxPoints: 30,
+          message: p1 ? 'Đã khởi chạy sleep trong nền.' : 'Chưa chạy sleep 600 &.',
+          hint: 'Chạy: sleep 600 &',
+        },
+        {
+          id: 'k-2',
+          title: 'Kiểm tra quyền hạn với kill -0',
+          passed: p2,
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã kiểm tra quyền hạn với kill -0.' : 'Chưa chạy kill -0 <PID>.',
+          hint: 'Chạy: kill -0 $(pgrep sleep)',
+        },
+        {
+          id: 'k-3',
+          title: 'Gửi tín hiệu kết thúc có trật tự với kill',
+          passed: p3,
+          pointsEarned: p3 ? 35 : 0,
+          maxPoints: 35,
+          message: p3 ? 'Đã gửi tín hiệu dừng tiến trình thành công.' : 'Chưa gửi tín hiệu kết thúc kill.',
+          hint: 'Chạy: kill -TERM $(pgrep sleep)',
+        },
+      ];
+    },
+  },
+
+  // 608. process-niceness
+  {
+    id: 608,
+    slug: 'process-niceness',
+    title: 'Niceness (Độ ưu tiên lập lịch tiến trình với nice & renice)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '7 phút',
+    summary: 'Điều chỉnh trọng số lập lịch CPU bằng nice khi khởi chạy và renice khi tiến trình đang chạy.',
+    scenario: 'Niceness (-20 đến 19) quy định mức độ nhường nhịn CPU của tiến trình. Giá trị nice càng nhỏ thì tiến trình càng được ưu tiên nhận thời gian CPU. Dùng nice để khởi chạy và renice để điều chỉnh tiến trình sống.',
+    tasks: [
+      'Khởi chạy tiến trình sleep 300 với mức nice là 10 trong nền: nice -n 10 sleep 300 &.',
+      'Kiểm tra cột NI của tiến trình vừa chạy bằng lệnh ps -o pid,ni,pri,cmd.',
+      'Điều chỉnh lại độ ưu tiên của tiến trình lên mức 15 bằng lệnh renice -n 15 -p <PID>.',
+    ],
+    hints: [
+      'Chạy nice -n 10 sleep 300 &.',
+      'Chạy ps -o pid,ni,pri,cmd để xem cột NI có giá trị 10.',
+      'Dùng pgrep sleep để lấy PID, sau đó chạy renice -n 15 -p <PID>.',
+    ],
+    usefulCommands: [
+      'nice -n <VAL> <COMMAND> - Khởi chạy lệnh với nice value',
+      'renice -n <VAL> -p <PID> - Thay đổi nice value của tiến trình đang chạy',
+      'ps -o pid,ni,pri,cmd - Hiển thị cột nice và scheduler priority',
+    ],
+    checks: [
+      {
+        id: 'ni-1',
+        title: 'Khởi chạy lệnh với nice -n',
+        description: 'Đã khởi chạy tiến trình mới với nice điều chỉnh',
+        points: 35,
+        hint: 'Chạy: nice -n 10 sleep 300 &',
+      },
+      {
+        id: 'ni-2',
+        title: 'Kiểm tra cột NI với ps',
+        description: 'Đã kiểm tra cột NI của tiến trình bằng ps',
+        points: 30,
+        hint: 'Chạy: ps -o pid,ni,pri,cmd',
+      },
+      {
+        id: 'ni-3',
+        title: 'Điều chỉnh niceness bằng renice',
+        description: 'Đã thay đổi giá trị niceness của tiến trình đang chạy bằng renice',
+        points: 35,
+        hint: 'Chạy: renice -n 15 -p <PID>',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.startsWith('nice -n') || h.includes('nice -n'));
+      const p2 = hist.some((h) => (h.includes('ni') && h.includes('ps')) || h.includes('ps -l'));
+      const p3 = hist.some((h) => h.startsWith('renice') || h.includes('renice '));
+      return [
+        {
+          id: 'ni-1',
+          title: 'Khởi chạy lệnh với nice -n',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã khởi chạy tiến trình với nice tùy chỉnh.' : 'Chưa chạy nice -n.',
+          hint: 'Chạy: nice -n 10 sleep 300 &',
+        },
+        {
+          id: 'ni-2',
+          title: 'Kiểm tra cột NI với ps',
+          passed: p2,
+          pointsEarned: p2 ? 30 : 0,
+          maxPoints: 30,
+          message: p2 ? 'Đã kiểm tra cột NI thành công.' : 'Chưa chạy ps để xem cột NI.',
+          hint: 'Chạy: ps -o pid,ni,pri,cmd',
+        },
+        {
+          id: 'ni-3',
+          title: 'Điều chỉnh niceness bằng renice',
+          passed: p3,
+          pointsEarned: p3 ? 35 : 0,
+          maxPoints: 35,
+          message: p3 ? 'Đã điều chỉnh niceness bằng renice thành công.' : 'Chưa chạy renice.',
+          hint: 'Chạy: renice -n 15 -p <PID>',
+        },
+      ];
+    },
+  },
+
+  // 609. process-states
+  {
+    id: 609,
+    slug: 'process-states',
+    title: 'Process States (Các trạng thái của tiến trình)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '7 phút',
+    summary: 'Nhận diện và điều khiển các trạng thái tiến trình R, S, D, T, Z trong Linux.',
+    scenario: 'Trạng thái tiến trình được hiển thị ở cột STAT của ps: R (đang chạy), S (ngủ có thể ngắt), D (ngủ không thể ngắt vì I/O), T (bị dừng), Z (zombie). Hãy thực hành theo dõi và điều khiển sự chuyển đổi trạng thái này.',
+    tasks: [
+      'Liệt kê trạng thái các tiến trình hiện có kèm cột STAT: ps -o pid,stat,cmd.',
+      'Chạy tiến trình sleep 400 & và quan sát trạng thái S (Interruptible Sleep).',
+      'Gửi tín hiệu SIGSTOP để đưa tiến trình vào trạng thái T (Stopped): kill -STOP <PID>, sau đó khôi phục lại bằng kill -CONT <PID>.',
+    ],
+    hints: [
+      'Chạy ps -o pid,stat,cmd để quan sát các chữ cái trong cột STAT.',
+      'Khởi chạy sleep 400 & rồi dùng ps kiểm tra cờ S.',
+      'Chạy kill -STOP <PID>, kiểm tra thấy cờ T, rồi gửi kill -CONT <PID> để đánh thức.',
+    ],
+    usefulCommands: [
+      'ps -o pid,stat,cmd - Hiển thị cột trạng thái STAT',
+      'kill -STOP <PID> - Tạm dừng tiến trình (chuyển sang trạng thái T)',
+      'kill -CONT <PID> - Khôi phục tiến trình đang dừng',
+    ],
+    checks: [
+      {
+        id: 'st-1',
+        title: 'Xem cột STAT bằng ps',
+        description: 'Đã chạy ps kèm cột STAT để xem trạng thái',
+        points: 35,
+        hint: 'Chạy: ps -o pid,stat,cmd',
+      },
+      {
+        id: 'st-2',
+        title: 'Khởi chạy tiến trình ngủ ở trạng thái S',
+        description: 'Đã chạy sleep trong nền và quan sát trạng thái S',
+        points: 30,
+        hint: 'Chạy: sleep 400 &',
+      },
+      {
+        id: 'st-3',
+        title: 'Điều khiển dừng và tiếp tục với SIGSTOP / SIGCONT',
+        description: 'Đã gửi tín hiệu STOP hoặc CONT để thay đổi trạng thái tiến trình',
+        points: 35,
+        hint: 'Chạy: kill -STOP <PID> && kill -CONT <PID>',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => (h.includes('stat') && h.includes('ps')) || h.includes('ps aux'));
+      const p2 = hist.some((h) => h.includes('sleep') && h.includes('&'));
+      const p3 = hist.some(
+        (h) =>
+          h.includes('kill -stop') ||
+          h.includes('kill -cont') ||
+          h.includes('kill -19') ||
+          h.includes('kill -18')
+      );
+      return [
+        {
+          id: 'st-1',
+          title: 'Xem cột STAT bằng ps',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã xem cột STAT thành công.' : 'Chưa chạy ps -o pid,stat,cmd.',
+          hint: 'Chạy: ps -o pid,stat,cmd',
+        },
+        {
+          id: 'st-2',
+          title: 'Khởi chạy tiến trình ngủ ở trạng thái S',
+          passed: p2,
+          pointsEarned: p2 ? 30 : 0,
+          maxPoints: 30,
+          message: p2 ? 'Đã khởi chạy tiến trình ngủ.' : 'Chưa chạy sleep 400 &.',
+          hint: 'Chạy: sleep 400 &',
+        },
+        {
+          id: 'st-3',
+          title: 'Điều khiển dừng và tiếp tục với SIGSTOP / SIGCONT',
+          passed: p3,
+          pointsEarned: p3 ? 35 : 0,
+          maxPoints: 35,
+          message: p3 ? 'Đã thao tác tín hiệu dừng và khôi phục thành công.' : 'Chưa gửi kill -STOP hoặc kill -CONT.',
+          hint: 'Chạy: kill -STOP <PID>',
+        },
+      ];
+    },
+  },
+
+  // 610. proc-filesystem
+  {
+    id: 610,
+    slug: 'proc-filesystem',
+    title: '/proc Filesystem (Hệ thống tệp ảo /proc)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '6 phút',
+    summary: 'Khám phá hệ thống tệp ảo /proc để truy xuất thông tin tiến trình và tham số kernel theo thời gian thực.',
+    scenario: 'Thư mục /proc là mount point của procfs - một hệ thống tệp ảo trong bộ nhớ RAM. Nhân Linux phơi bày thông tin của từng tiến trình qua /proc/[PID]/ và số liệu thống kê toàn hệ thống qua các tệp như /proc/cpuinfo, /proc/meminfo, /proc/uptime.',
+    tasks: [
+      'Liệt kê các thư mục tiến trình trong /proc bằng ls -d /proc/[0-9]* hoặc ls /proc.',
+      'Đọc thông tin trạng thái của tiến trình PID 1 (systemd) bằng cat /proc/1/status.',
+      'Đọc thông số thời gian hoạt động hệ thống qua cat /proc/uptime hoặc mức tải qua cat /proc/loadavg.',
+    ],
+    hints: [
+      'Chạy ls -d /proc/[0-9]* | head -n 5 để xem các thư mục PID.',
+      'Chạy cat /proc/1/status | head -n 10 để xem Name, State, Pid.',
+      'Chạy cat /proc/uptime hoặc cat /proc/loadavg để xem thông số hạt nhân.',
+    ],
+    usefulCommands: [
+      'cat /proc/1/status - Xem trạng thái chi tiết của PID 1',
+      'cat /proc/1/cmdline - Xem dòng lệnh khởi chạy PID 1',
+      'cat /proc/uptime - Xem thời gian máy chủ đã chạy',
+      'cat /proc/loadavg - Xem tải trung bình 1, 5, 15 phút',
+    ],
+    checks: [
+      {
+        id: 'procfs-1',
+        title: 'Khám phá thư mục /proc',
+        description: 'Đã liệt kê các mục trong hệ thống tệp ảo /proc',
+        points: 35,
+        hint: 'Chạy: ls /proc hoặc ls -d /proc/[0-9]*',
+      },
+      {
+        id: 'procfs-2',
+        title: 'Đọc thông tin tiến trình qua /proc/1/status',
+        description: 'Đã đọc tệp trạng thái hoặc cmdline của PID 1',
+        points: 35,
+        hint: 'Chạy: cat /proc/1/status',
+      },
+      {
+        id: 'procfs-3',
+        title: 'Đọc tệp thống kê hệ thống toàn cục',
+        description: 'Đã đọc tệp /proc/uptime, /proc/loadavg hoặc /proc/meminfo',
+        points: 30,
+        hint: 'Chạy: cat /proc/uptime hoặc cat /proc/loadavg',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('/proc') && (h.startsWith('ls') || h.startsWith('findmnt')));
+      const p2 = hist.some(
+        (h) =>
+          h.includes('/proc/1/status') ||
+          h.includes('/proc/1/cmdline') ||
+          h.includes('/proc/1/comm')
+      );
+      const p3 = hist.some(
+        (h) =>
+          h.includes('/proc/uptime') ||
+          h.includes('/proc/loadavg') ||
+          h.includes('/proc/meminfo') ||
+          h.includes('/proc/cpuinfo')
+      );
+      return [
+        {
+          id: 'procfs-1',
+          title: 'Khám phá thư mục /proc',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã khám phá thư mục /proc thành công.' : 'Chưa chạy ls /proc.',
+          hint: 'Chạy: ls /proc',
+        },
+        {
+          id: 'procfs-2',
+          title: 'Đọc thông tin tiến trình qua /proc/1/status',
+          passed: p2,
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã đọc thông tin PID 1 từ procfs.' : 'Chưa đọc /proc/1/status.',
+          hint: 'Chạy: cat /proc/1/status',
+        },
+        {
+          id: 'procfs-3',
+          title: 'Đọc tệp thống kê hệ thống toàn cục',
+          passed: p3,
+          pointsEarned: p3 ? 30 : 0,
+          maxPoints: 30,
+          message: p3 ? 'Đã đọc tệp số liệu hệ thống từ /proc.' : 'Chưa đọc /proc/uptime hoặc /proc/loadavg.',
+          hint: 'Chạy: cat /proc/uptime',
+        },
+      ];
+    },
+  },
+
+  // 611. job-control
+  {
+    id: 611,
+    slug: 'job-control',
+    title: 'Job Control (Quản lý tác vụ Shell jobs, bg, fg)',
+    category: 'Processes',
+    difficulty: 'Trung bình',
+    estimatedTime: '7 phút',
+    summary: 'Quản lý tác vụ chạy nền (&, jobs), tạm dừng (Ctrl-Z), tiếp tục (bg) và đưa lên tiền cảnh (fg).',
+    scenario: 'Job Control cho phép bạn chạy nhiều tác vụ trong cùng một phiên shell. Bạn có thể đẩy tác vụ chạy ngầm với &, liệt kê danh sách tác vụ với jobs, đưa tác vụ trở lại màn hình với fg và điều khiển tác vụ bằng Job ID (%1).',
+    tasks: [
+      'Khởi chạy tác vụ nền với dấu &: sleep 500 &.',
+      'Liệt kê danh sách các tác vụ của phiên shell hiện tại bằng lệnh jobs.',
+      'Đưa tác vụ lên tiền cảnh bằng fg %1 (hoặc tiếp tục với bg, hoặc gửi tín hiệu dừng với kill %1).',
+    ],
+    hints: [
+      'Chạy sleep 500 & để đưa lệnh vào bảng jobs.',
+      'Chạy jobs để thấy số hiệu [1] và trạng thái Running.',
+      'Chạy fg %1 hoặc kill %1 để tác động lên tác vụ.',
+    ],
+    usefulCommands: [
+      'sleep 500 & - Khởi chạy tác vụ trong nền',
+      'jobs - Liệt kê các tác vụ đang quản lý',
+      'fg %1 - Đưa tác vụ số 1 lên tiền cảnh',
+      'bg %1 - Tiếp tục chạy tác vụ số 1 trong nền',
+      'kill %1 - Gửi tín hiệu dừng tới Job ID 1',
+    ],
+    checks: [
+      {
+        id: 'jc-1',
+        title: 'Khởi chạy tác vụ nền với dấu &',
+        description: 'Đã khởi chạy lệnh trong nền bằng ký tự &',
+        points: 35,
+        hint: 'Chạy: sleep 500 &',
+      },
+      {
+        id: 'jc-2',
+        title: 'Liệt kê tác vụ bằng lệnh jobs',
+        description: 'Đã chạy lệnh jobs để kiểm tra danh sách tác vụ',
+        points: 35,
+        hint: 'Chạy: jobs',
+      },
+      {
+        id: 'jc-3',
+        title: 'Điều khiển tác vụ với fg, bg hoặc kill %1',
+        description: 'Đã điều phối tác vụ bằng fg, bg hoặc gửi tín hiệu với %',
+        points: 30,
+        hint: 'Chạy: fg %1 hoặc kill %1',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('&'));
+      const p2 = hist.some((h) => h === 'jobs' || h.startsWith('jobs '));
+      const p3 = hist.some(
+        (h) => h.startsWith('fg') || h.startsWith('bg') || h.includes('%1') || h.includes('%')
+      );
+      return [
+        {
+          id: 'jc-1',
+          title: 'Khởi chạy tác vụ nền với dấu &',
+          passed: p1,
+          pointsEarned: p1 ? 35 : 0,
+          maxPoints: 35,
+          message: p1 ? 'Đã khởi chạy tác vụ nền với &.' : 'Chưa chạy sleep 500 &.',
+          hint: 'Chạy: sleep 500 &',
+        },
+        {
+          id: 'jc-2',
+          title: 'Liệt kê tác vụ bằng lệnh jobs',
+          passed: p2,
+          pointsEarned: p2 ? 35 : 0,
+          maxPoints: 35,
+          message: p2 ? 'Đã liệt kê các tác vụ bằng jobs.' : 'Chưa chạy lệnh jobs.',
+          hint: 'Chạy: jobs',
+        },
+        {
+          id: 'jc-3',
+          title: 'Điều khiển tác vụ với fg, bg hoặc kill %1',
+          passed: p3,
+          pointsEarned: p3 ? 30 : 0,
+          maxPoints: 30,
+          message: p3 ? 'Đã điều phối tác vụ shell thành công.' : 'Chưa dùng lệnh fg, bg hoặc kill %1.',
+          hint: 'Chạy: fg %1 hoặc kill %1',
+        },
+      ];
+    },
+  },
+
+  // 590864. CompTIA Linux+: Manage and Monitor Linux Processes
+  {
+    id: 590864,
+    slug: 'comptia-manage-and-monitor-linux-processes-590864',
+    title: 'Manage and Monitor Linux Processes (CompTIA Linux+ #590864)',
+    category: 'Processes',
+    difficulty: 'Cơ bản',
+    estimatedTime: '30 phút',
+    summary: 'Bài thực hành tổng hợp chuẩn CompTIA Linux+ và LabEx: &, jobs, ps, top, fg, bg, Ctrl-Z, renice và kill.',
+    scenario: 'Trong môi trường quản trị Linux, việc làm chủ toàn diện vòng đời tiến trình là kỹ năng tối quan trọng. Bài thực hành này hướng dẫn bạn thực hiện đủ 6 tác vụ: chạy nền với &, quản lý với jobs, chụp snapshot với ps, theo dõi tài nguyên với top, điều khiển trạng thái với fg/bg/Ctrl-Z, điều chỉnh mức ưu tiên với renice và kết thúc tiến trình an toàn với kill.',
+    tasks: [
+      'Task 1: Khởi chạy lệnh `sleep 300 &` trong nền và kiểm tra trạng thái bằng `jobs`.',
+      'Task 2: Chụp snapshot tiến trình với `ps`, lọc tiến trình `sleep` bằng `ps aux | grep sleep` và `ps -ef | grep sleep`.',
+      'Task 3: Giám sát tài nguyên CPU/RAM theo thời gian thực bằng công cụ tương tác `top`.',
+      'Task 4: Thực hành Job Control: đưa tác vụ lên tiền cảnh (`fg %1`), tạm dừng (`Ctrl-Z`), và tiếp tục chạy nền (`bg %1`).',
+      'Task 5: Tra cứu cột `NI` bằng `ps -o pid,ni,cmd` và đổi giá trị nice lên 10 bằng lệnh `renice -n 10 -p 23885`.',
+      'Task 6: Chấm dứt tiến trình an toàn bằng lệnh `kill %1` (hoặc `kill <PID>`) và xác nhận tiến trình đã bị hủy bằng `jobs`.',
+    ],
+    hints: [
+      'Chạy: sleep 300 & && jobs',
+      'Chạy: ps aux | grep sleep hoặc ps -ef | grep sleep',
+      'Chạy: top (nhấn q để thoát)',
+      'Chạy: fg %1 rồi bg %1 && jobs',
+      'Chạy: ps -o pid,ni,cmd -p 23885 && renice -n 10 -p 23885',
+      'Chạy: kill %1 && jobs',
+    ],
+    usefulCommands: [
+      'sleep 300 & - Khởi chạy tác vụ nền giải phóng dấu nhắc lệnh',
+      'jobs - Liệt kê các tác vụ nền trong phiên shell hiện tại',
+      'ps aux | grep sleep - Lọc chi tiết tiến trình theo phong cách BSD',
+      'ps -ef | grep sleep - Lọc tiến trình hiển thị PPID theo chuẩn POSIX',
+      'top - Theo dõi tài nguyên CPU/RAM thời gian thực (phím M, P, q)',
+      'fg %1 / bg %1 - Chuyển đổi trạng thái giữa Foreground và Background',
+      'renice -n 10 -p <PID> - Điều chỉnh độ ưu tiên lập lịch CPU (Niceness)',
+      'kill %1 - Gửi tín hiệu SIGTERM kết thúc tác vụ an toàn',
+    ],
+    checks: [
+      {
+        id: 'comptia-1',
+        title: 'Khởi chạy tác vụ nền sleep với & và kiểm tra jobs',
+        description: 'Đã chạy sleep 300 trong nền và dùng jobs kiểm tra',
+        points: 15,
+        hint: 'Chạy: sleep 300 & && jobs',
+      },
+      {
+        id: 'comptia-2',
+        title: 'Chụp snapshot tiến trình với ps kết hợp grep',
+        description: 'Đã lọc thông tin tiến trình sleep bằng ps aux hoặc ps -ef',
+        points: 20,
+        hint: 'Chạy: ps aux | grep sleep',
+      },
+      {
+        id: 'comptia-3',
+        title: 'Giám sát hệ thống thời gian thực với top',
+        description: 'Đã chạy tiện ích top để theo dõi tải CPU và RAM',
+        points: 15,
+        hint: 'Chạy: top',
+      },
+      {
+        id: 'comptia-4',
+        title: 'Thực hành điều khiển tác vụ Job Control (fg / bg)',
+        description: 'Đã sử dụng lệnh fg hoặc bg để điều phối trạng thái tác vụ',
+        points: 15,
+        hint: 'Chạy: bg %1 hoặc fg %1',
+      },
+      {
+        id: 'comptia-5',
+        title: 'Điều chỉnh độ ưu tiên niceness với renice',
+        description: 'Đã nâng giá trị nice lên 10 bằng lệnh renice',
+        points: 20,
+        hint: 'Chạy: renice -n 10 -p 23885',
+      },
+      {
+        id: 'comptia-6',
+        title: 'Chấm dứt tiến trình an toàn với kill',
+        description: 'Đã kết thúc tiến trình sleep bằng kill %1 hoặc kill <PID>',
+        points: 15,
+        hint: 'Chạy: kill %1 && jobs',
+      },
+    ],
+    setupState: (_kernel: CentOSKernel) => {},
+    evaluate: (kernel: CentOSKernel): LabCheckResult[] => {
+      const hist = kernel.history.map((h) => h.trim().toLowerCase());
+      const p1 = hist.some((h) => h.includes('sleep') && h.includes('&')) && hist.some((h) => h.includes('jobs'));
+      const p2 = hist.some((h) => h.includes('ps') && h.includes('grep') && h.includes('sleep'));
+      const p3 = hist.some((h) => h.startsWith('top') || h === 'top');
+      const p4 = hist.some((h) => h.startsWith('bg') || h.startsWith('fg') || h.includes('%1'));
+      const p5 = hist.some((h) => h.includes('renice') && (h.includes('10') || h.includes('-n')));
+      const p6 = hist.some((h) => h.includes('kill') && (h.includes('%1') || h.includes('23885') || h.includes('sleep')));
+      return [
+        {
+          id: 'comptia-1',
+          title: 'Khởi chạy tác vụ nền sleep với & và kiểm tra jobs',
+          passed: p1,
+          pointsEarned: p1 ? 15 : 0,
+          maxPoints: 15,
+          message: p1 ? 'Đã khởi chạy tác vụ nền và kiểm tra jobs thành công.' : 'Chưa chạy sleep 300 & và jobs.',
+          hint: 'Chạy: sleep 300 & && jobs',
+        },
+        {
+          id: 'comptia-2',
+          title: 'Chụp snapshot tiến trình với ps kết hợp grep',
+          passed: p2,
+          pointsEarned: p2 ? 20 : 0,
+          maxPoints: 20,
+          message: p2 ? 'Đã lọc tiến trình với ps aux | grep sleep.' : 'Chưa chạy ps aux | grep sleep.',
+          hint: 'Chạy: ps aux | grep sleep',
+        },
+        {
+          id: 'comptia-3',
+          title: 'Giám sát hệ thống thời gian thực với top',
+          passed: p3,
+          pointsEarned: p3 ? 15 : 0,
+          maxPoints: 15,
+          message: p3 ? 'Đã mở màn hình theo dõi top.' : 'Chưa chạy lệnh top.',
+          hint: 'Chạy: top',
+        },
+        {
+          id: 'comptia-4',
+          title: 'Thực hành điều khiển tác vụ Job Control (fg / bg)',
+          passed: p4,
+          pointsEarned: p4 ? 15 : 0,
+          maxPoints: 15,
+          message: p4 ? 'Đã thực hiện điều phối tác vụ với fg/bg.' : 'Chưa dùng fg %1 hoặc bg %1.',
+          hint: 'Chạy: bg %1 hoặc fg %1',
+        },
+        {
+          id: 'comptia-5',
+          title: 'Điều chỉnh độ ưu tiên niceness với renice',
+          passed: p5,
+          pointsEarned: p5 ? 20 : 0,
+          maxPoints: 20,
+          message: p5 ? 'Đã điều chỉnh nice value bằng renice.' : 'Chưa chạy renice -n 10 -p 23885.',
+          hint: 'Chạy: renice -n 10 -p 23885',
+        },
+        {
+          id: 'comptia-6',
+          title: 'Chấm dứt tiến trình an toàn với kill',
+          passed: p6,
+          pointsEarned: p6 ? 15 : 0,
+          maxPoints: 15,
+          message: p6 ? 'Đã gửi tín hiệu kết thúc tiến trình.' : 'Chưa chạy kill %1 hoặc kill <PID>.',
+          hint: 'Chạy: kill %1 && jobs',
         },
       ];
     },

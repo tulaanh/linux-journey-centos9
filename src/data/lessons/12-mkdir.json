@@ -1,0 +1,299 @@
+{
+  "id": 12,
+  "slug": "mkdir",
+  "category": "Command Line",
+  "lessonNumber": 12,
+  "title": "mkdir (Tạo thư mục mới)",
+  "subtitle": "Tìm hiểu cách tạo thư mục đơn lẻ, tạo nhiều thư mục cùng lúc và tạo cây thư mục lồng nhau với lệnh mkdir.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Giới thiệu lệnh mkdir",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `mkdir` (viết tắt của make directory) dùng để tạo ra các thư mục mới trên hệ thống để tổ chức, sắp xếp tệp tin và các thư mục khác."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "syntax",
+            "code": "mkdir [OPTIONS] DIRECTORY..."
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Tạo một thư mục đơn",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Truyền một tên đường dẫn để tạo một thư mục mới. Ví dụ tạo thư mục `documents` trong thư mục làm việc hiện tại:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mkdir documents",
+            "runnableCommand": "mkdir /tmp/lab_workspace"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Nếu thư mục `documents` đã tồn tại từ trước, `mkdir` sẽ báo lỗi chứ không ghi đè hay thay thế nó. Dùng `ls -ld documents` để kiểm tra thông tin thư mục đã có."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "create-one-directory",
+        "question": "Câu lệnh nào tạo một thư mục mới có tên `documents` trong thư mục làm việc hiện tại?",
+        "options": [
+          {
+            "text": "mkdir documents",
+            "isCode": true
+          },
+          {
+            "text": "touch documents",
+            "isCode": true
+          },
+          {
+            "text": "cd documents",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `mkdir documents` tạo một thư mục mới với đường dẫn tương đối."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Tạo nhiều thư mục cùng lúc",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể liệt kê nhiều tên thư mục cách nhau bởi khoảng trắng để tạo hàng loạt trong một lệnh duy nhất:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mkdir books paintings",
+            "runnableCommand": "mkdir /tmp/dir_a /tmp/dir_b"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "create-separate-directories",
+        "question": "Câu lệnh nào tạo đồng thời hai thư mục ngang hàng có tên là `books` và `paintings`?",
+        "options": [
+          {
+            "text": "mkdir books/paintings",
+            "isCode": true
+          },
+          {
+            "text": "mkdir \"books paintings\"",
+            "isCode": true
+          },
+          {
+            "text": "mkdir books paintings",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Liệt kê các đối số tách biệt nhau bởi khoảng trắng giúp `mkdir` tạo hai thư mục riêng biệt."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Tạo cây thư mục lồng nhau với cờ -p",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu bạn gõ `mkdir books/hemingway/favorites` mà thư mục `books` hoặc `hemingway` chưa tồn tại, lệnh sẽ báo lỗi. Thêm tùy chọn `-p` (parents) để tự động tạo tất cả các thư mục cha còn thiếu trên đường dẫn:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mkdir -p books/hemingway/favorites",
+            "runnableCommand": "mkdir -p /tmp/lab_workspace/project/src/components"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Tùy chọn `-p` cũng không báo lỗi nếu thư mục đích cuối cùng đã tồn tại sẵn, rất tiện lợi cho các kịch bản shell script."
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "create-nested-path",
+        "question": "Chưa có bất kỳ thư mục nào trong đường dẫn `projects/app/src` tồn tại. Câu lệnh nào tạo toàn bộ cây thư mục đó?",
+        "options": [
+          {
+            "text": "mkdir -p projects/app/src",
+            "isCode": true
+          },
+          {
+            "text": "mkdir projects/app/src",
+            "isCode": true
+          },
+          {
+            "text": "mkdir -m projects/app/src",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Cờ `-p` (parents) tự động tạo các thư mục trung gian còn thiếu trên toàn bộ đường dẫn."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Thiết lập quyền truy cập ban đầu và chế độ hiển thị chi tiết",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sử dụng `-m MODE` để thiết lập quyền truy cập ngay khi tạo thư mục mới (ví dụ mode 755 hoặc 700):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mkdir -m 755 public",
+            "runnableCommand": "mkdir -m 700 /tmp/secure_dir"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Kết hợp với `-v` (verbose) để in thông báo xác nhận cho từng thư mục được tạo thành công:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ mkdir -pv projects/app/src\nmkdir: created directory 'projects'\nmkdir: created directory 'projects/app'\nmkdir: created directory 'projects/app/src'",
+            "runnableCommand": "mkdir -pv /tmp/app/demo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "set-directory-mode",
+        "question": "Câu lệnh nào tạo thư mục `public` với chế độ quyền truy cập `755`?",
+        "options": [
+          {
+            "text": "mkdir -p 755 public",
+            "isCode": true
+          },
+          {
+            "text": "mkdir -v 755 public",
+            "isCode": true
+          },
+          {
+            "text": "mkdir -m 755 public",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Tùy chọn `-m` (mode) gán quyền truy cập chỉ định (755) cho thư mục vừa tạo."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh mkdir trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-mkdir",
+          "title": "1. Thực hành tạo thư mục đơn và cây thư mục lồng nhau",
+          "description": "Thực hành tạo thư mục đơn, tạo cây thư mục sâu với cờ -p và thiết lập quyền truy cập.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "mkdir-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Tạo thư mục đơn /tmp/lab_workspace",
+              "description": "Dùng mkdir để tạo không gian làm việc thử nghiệm trong /tmp.",
+              "runnableCommand": "mkdir /tmp/lab_workspace",
+              "buttonLabel": "Tạo /tmp/lab_workspace"
+            },
+            {
+              "id": "mkdir-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tạo cây thư mục lồng nhau với cờ -p",
+              "description": "Tạo toàn bộ cấu trúc dự án /tmp/lab_workspace/project/src/components chỉ với một lệnh duy nhất.",
+              "runnableCommand": "mkdir -p /tmp/lab_workspace/project/src/components",
+              "buttonLabel": "Chạy mkdir -p"
+            },
+            {
+              "id": "mkdir-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Tạo thư mục bảo mật với quyền 700",
+              "description": "Tạo thư mục /tmp/secure_dir với cờ -m 700 chỉ cho phép chủ sở hữu truy cập.",
+              "runnableCommand": "mkdir -m 700 /tmp/secure_dir",
+              "buttonLabel": "Tạo thư mục mode 700"
+            },
+            {
+              "id": "mkdir-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Kiểm tra chi tiết thư mục bằng ls -ld",
+              "description": "Dùng ls -ld để xem quyền truy cập của thư mục vừa tạo.",
+              "runnableCommand": "ls -ld /tmp/secure_dir",
+              "buttonLabel": "Kiểm tra ls -ld"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh mkdir",
+      "takeaways": [
+        {
+          "text": "Tạo một hoặc nhiều thư mục trong một câu lệnh."
+        },
+        {
+          "text": "Xây dựng toàn bộ cây thư mục cha-con còn thiếu bằng cờ `-p`."
+        },
+        {
+          "text": "Thiết lập quyền truy cập ban đầu cho thư mục với tùy chọn `-m`."
+        },
+        {
+          "text": "Theo dõi tiến trình tạo thư mục với cờ chi tiết `-v`."
+        }
+      ]
+    }
+  ]
+}

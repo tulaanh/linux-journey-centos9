@@ -1,0 +1,289 @@
+{
+  "id": 8,
+  "slug": "less",
+  "category": "Command Line",
+  "lessonNumber": 8,
+  "title": "less (Xem tệp văn bản tương tác)",
+  "subtitle": "Tìm hiểu cách điều hướng, tìm kiếm và theo dõi các tệp văn bản dài với trình phân trang less.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Mở tệp tin với less",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi một tệp văn bản quá dài so với một trang màn hình, `less` giúp bạn đọc nội dung theo từng trang mà không làm chữ cuộn ào ạt qua terminal. Tên gọi của nó xuất phát từ câu đùa nổi tiếng trong giới Unix: \"less is more\", bởi vì `more` là một trình phân trang đời trước."
+        },
+        {
+          "type": "paragraph",
+          "text": "Khởi động trình phân trang bằng cách truyền tên tệp tin:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ less /home/pete/Documents/text1",
+            "runnableCommand": "less /etc/passwd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Trong khi `less` đang mở, các phím bấm bạn gõ sẽ dùng để điều khiển trình xem chứ không phải các câu lệnh shell thông thường. Bạn sẽ quay lại shell khi thoát khỏi trình xem."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "open-long-file",
+        "question": "Câu lệnh nào mở tệp `/var/log/syslog` trong một trình phân trang tương tác?",
+        "options": [
+          {
+            "text": "less /var/log/syslog",
+            "isCode": true
+          },
+          {
+            "text": "cat /var/log/syslog",
+            "isCode": true
+          },
+          {
+            "text": "file /var/log/syslog",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `less` mở tệp trong trình xem tương tác, cho phép cuộn trang, tìm kiếm và thoát an toàn."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Điều hướng trong less",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sử dụng các phím tắt sau khi đang mở `less`:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Các phím mũi tên `Up`, `Down`, `Page Up`, và `Page Down`: Di chuyển theo từng dòng hoặc từng trang màn hình.",
+            "Phím `g`: Nhảy về đầu tệp tin.",
+            "Phím `G`: Nhảy xuống cuối tệp tin.",
+            "Phím `u`: Cuộn lên nửa trang; phím `d`: Cuộn xuống nửa trang.",
+            "Phím `h`: Mở màn hình trợ giúp phím tắt tích hợp."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "jump-to-file-end",
+        "question": "Phím tắt nào giúp bạn nhảy thẳng xuống cuối tệp tin trong `less`?",
+        "options": [
+          {
+            "text": "g",
+            "isCode": true
+          },
+          {
+            "text": "G",
+            "isCode": true
+          },
+          {
+            "text": "h",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Phím `G` (viết hoa) nhảy xuống cuối tệp tin. Phím `g` (viết thường) nhảy về đầu tệp."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Tìm kiếm nội dung trong less",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Gõ `/` kèm từ khóa tìm kiếm và nhấn `Enter` để tìm kiếm xuôi về phía trước. Bắt đầu bằng `?` để tìm kiếm ngược về phía trước:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`/search_term`: Tìm kiếm xuôi từ vị trí hiện tại xuống dưới.",
+            "`?search_term`: Tìm kiếm ngược từ vị trí hiện tại lên trên.",
+            "`n`: Nhảy đến kết quả tiếp theo cùng hướng tìm kiếm.",
+            "`N`: Nhảy đến kết quả tiếp theo ngược hướng tìm kiếm."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "repeat-search-direction",
+        "question": "Sau khi tìm kiếm xuôi từ khóa `error`, phím nào giúp nhảy đến kết quả kế tiếp cùng hướng?",
+        "options": [
+          {
+            "text": "n",
+            "isCode": true
+          },
+          {
+            "text": "N",
+            "isCode": true
+          },
+          {
+            "text": "g",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Phím `n` (thường) lặp lại thao tác tìm kiếm theo hướng ban đầu."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Thoát khỏi less và các tùy chọn khởi động",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nhấn phím `q` để thoát khỏi `less` và trở về dấu nhắc lệnh shell."
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn có thể chỉ định các tùy chọn khởi động ngay trên dòng lệnh:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`-N`: Hiển thị số thứ tự dòng bên trái.",
+            "`+G`: Mở tệp và tự động nhảy ngay xuống dòng cuối cùng.",
+            "`+F`: Chế độ theo dõi nội dung tệp theo thời gian thực (tương tự `tail -f`), hữu ích khi xem log đang ghi."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ less -N file.txt\n$ less +G file.txt\n$ less +F /var/log/syslog",
+            "runnableCommand": "less -N /etc/hosts"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Bạn cũng có thể chuyển hướng kết quả của các lệnh khác qua ống dẫn (pipe) vào `less`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ dmesg | less",
+            "runnableCommand": "cat /etc/services | less"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "follow-growing-log",
+        "question": "Câu lệnh nào mở tệp `/var/log/syslog` và tự động cập nhật nội dung mới ghi vào theo thời gian thực?",
+        "options": [
+          {
+            "text": "less +F /var/log/syslog",
+            "isCode": true
+          },
+          {
+            "text": "less +G /var/log/syslog",
+            "isCode": true
+          },
+          {
+            "text": "less -N /var/log/syslog",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lựa chọn `+F` đưa `less` vào chế độ theo dõi (follow mode) khi tệp log có dữ liệu mới ghi thêm."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh less trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-less",
+          "title": "1. Thực hành điều hướng và xem tệp với less",
+          "description": "Thực hành mở các tệp cấu hình hệ thống CentOS 9 bằng lệnh less, bật đánh số dòng và kết hợp qua đường ống pipe.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "less-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Mở xem file cấu hình tài khoản /etc/passwd",
+              "description": "Mở tệp /etc/passwd bằng less để xem nội dung phân trang.",
+              "runnableCommand": "less /etc/passwd",
+              "buttonLabel": "Chạy less /etc/passwd"
+            },
+            {
+              "id": "less-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Xem file mạng /etc/hosts kèm số dòng",
+              "description": "Khởi động less với tùy chọn -N để đánh số thứ tự từng dòng.",
+              "runnableCommand": "less -N /etc/hosts",
+              "buttonLabel": "Chạy less -N /etc/hosts"
+            },
+            {
+              "id": "less-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Xem kết quả của lệnh qua ống dẫn pipe",
+              "description": "Kết hợp dmesg hoặc cat qua pipe đến less để xem tiện lợi.",
+              "runnableCommand": "cat /etc/os-release | less",
+              "buttonLabel": "Chạy pipe sang less"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh less",
+      "takeaways": [
+        {
+          "text": "Mở tệp hoặc kết quả lệnh từ pipe trong trình phân trang tiện lợi."
+        },
+        {
+          "text": "Điều hướng mượt mà bằng phím mũi tên, `g` (đầu trang) và `G` (cuối trang)."
+        },
+        {
+          "text": "Tìm kiếm văn bản với `/` (xuôi), `?` (ngược) và duyệt kết quả bằng `n`/`N`."
+        },
+        {
+          "text": "Bật số dòng với `-N` và theo dõi cập nhật log với `+F`."
+        },
+        {
+          "text": "Thoát an toàn trở về shell bằng phím `q`."
+        }
+      ]
+    }
+  ]
+}

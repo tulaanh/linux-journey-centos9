@@ -1,0 +1,302 @@
+{
+  "id": 607,
+  "slug": "killing-processes",
+  "category": "Processes",
+  "lessonNumber": 7,
+  "title": "kill (Chấm dứt và gửi tín hiệu tới tiến trình)",
+  "subtitle": "Tìm hiểu cách xác thực tiến trình đích, kiểm tra quyền hạn và gửi tín hiệu an toàn theo quy trình leo thang chuẩn (SIGTERM -> SIGKILL).",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Lệnh kill và cơ chế gửi tín hiệu trong Linux",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `kill` được sử dụng để gửi một tín hiệu (signal) tới một tiến trình hoặc nhóm tiến trình. Tên gọi `kill` mang tính lịch sử: thực tế tín hiệu được yêu cầu có thể là chấm dứt, tạm dừng, tiếp tục thực thi hoặc kích hoạt một hành động tùy biến do chương trình định nghĩa."
+        },
+        {
+          "type": "paragraph",
+          "text": "Trước khi gửi bất kỳ tín hiệu nào, bạn phải luôn luôn **xác nhận chính xác tiến trình đích** và nắm rõ hành vi xử lý tín hiệu được tài liệu hóa của chương trình đó."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "content",
+      "title": "Yêu cầu kết thúc có trật tự với SIGTERM",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi chỉ truyền mã PID mà không chỉ định thêm cờ tín hiệu nào, lệnh `kill` sẽ mặc định gửi tín hiệu `SIGTERM` (tín hiệu số 15):"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ kill 12445",
+            "runnableCommand": "kill 12445"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Khuyến nghị sử dụng tên ký hiệu (symbolic name) khi chỉ định tín hiệu một cách tường minh để tránh nhầm lẫn giữa các kiến trúc CPU:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ kill -TERM 12445",
+            "runnableCommand": "kill -TERM 12445"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "`SIGTERM` có hành động mặc định là chấm dứt tiến trình, nhưng chương trình hoàn toàn có thể bắt (catch) hoặc bỏ qua (ignore) nó. Một dịch vụ được thiết kế bài bản sẽ dùng signal handler để ngừng tiếp nhận công việc mới, ghi trạng thái ra đĩa và giải phóng tài nguyên. Đó là một cơ hội dọn dẹp, không phải là sự đảm bảo chắc chắn rằng việc dọn dẹp sẽ thành công hoặc diễn ra ngay lập tức."
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "quiz",
+      "quiz": {
+        "id": "killing-processes-default-signal",
+        "question": "Lệnh `kill PID` gửi tín hiệu nào tới tiến trình theo mặc định?",
+        "options": [
+          {
+            "text": "SIGKILL",
+            "isCode": true
+          },
+          {
+            "text": "SIGTERM",
+            "isCode": true
+          },
+          {
+            "text": "SIGSTOP",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Nếu không có đối số tín hiệu nào khác, `kill` gửi yêu cầu kết thúc tiêu chuẩn `SIGTERM` (tín hiệu 15)."
+      }
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "content",
+      "title": "Xác minh tiến trình đích và vấn đề tái sử dụng PID",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trong Linux, số `PID` có thể được tái sử dụng (PID reuse). Khi một tiến trình cũ kết thúc, kernel sẽ giải phóng số PID đó và có thể cấp phát lại cho một tiến trình hoàn toàn mới sau đó. Do đó, một PID ghi nhớ trong quá khứ có thể đang trỏ vào một dịch vụ khác!"
+        },
+        {
+          "type": "paragraph",
+          "text": "Luôn kiểm tra tiến trình đang chạy ngay trước khi thực hiện gửi tín hiệu:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps -p 12445 -o pid,ppid,user,lstart,stat,cmd",
+            "runnableCommand": "ps -p 12445 -o pid,ppid,user,lstart,stat,cmd"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Kiểm tra chủ sở hữu (user), thời gian bắt đầu (start time), lệnh thực thi (cmd), tiến trình cha (parent) và dịch vụ quản lý nó. Nếu tiến trình thuộc về một service manager (như systemd), hãy ưu tiên dùng lệnh dừng của quản lý dịch vụ (`systemctl stop`) để duy trì đúng trạng thái và tránh việc service manager tự động hồi sinh tiến trình con."
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "quiz",
+      "quiz": {
+        "id": "killing-processes-pid-reuse",
+        "question": "Tại sao bạn nên kiểm tra kỹ một PID ngay trước khi gửi tín hiệu tới nó?",
+        "options": [
+          {
+            "text": "PID thay đổi mỗi khi tiến trình đọc một tệp."
+          },
+          {
+            "text": "Kernel có thể tái sử dụng PID sau khi tiến trình trước đó đã kết thúc."
+          },
+          {
+            "text": "Lệnh `kill` chỉ chấp nhận tên lệnh chứ không chấp nhận mã số định danh."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Do hiện tượng tái sử dụng PID (PID reuse), một mã số PID cũ có thể đã được kernel bàn giao cho một tiến trình khác đang chạy."
+      }
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "content",
+      "title": "Kiểm tra quyền hạn gửi tín hiệu với Signal 0",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Tín hiệu số 0 (`kill -0`) là một kỹ thuật đặc biệt trong Unix/Linux: nó thực hiện kiểm tra lỗi mà không thực sự gửi bất kỳ tín hiệu nào tới tiến trình đích:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ kill -0 12445",
+            "runnableCommand": "kill -0 12445"
+          }
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Thành công (mã thoát 0)**: Có nghĩa là tiến trình với PID đó đang tồn tại và người gọi có đủ thẩm quyền gửi tín hiệu tới nó tại thời điểm kiểm tra.",
+            "**Thất bại (mã thoát khác 0)**: Có thể do tiến trình không tồn tại (`ESRCH`), hoặc người gọi không có đủ quyền (`EPERM`). Hãy kiểm tra thông báo lỗi thay vì mặc định quy kết là tiến trình không chạy."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "quiz",
+      "quiz": {
+        "id": "killing-processes-signal-zero",
+        "question": "Kết quả thực thi thành công của `kill -0 PID` xác nhận điều gì tại thời điểm đó?",
+        "options": [
+          {
+            "text": "Tiến trình đã hoàn thành tất cả việc dọn dẹp và đã thoát."
+          },
+          {
+            "text": "Tiến trình sẽ giữ nguyên số PID đó vĩnh viễn."
+          },
+          {
+            "text": "Tiến trình đang tồn tại và người gọi có quyền gửi tín hiệu tới nó."
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Signal 0 kiểm tra sự tồn tại của mục tiêu và quyền hạn người gọi mà không làm gián đoạn hay gửi tín hiệu thật tới tiến trình."
+      }
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "content",
+      "title": "Chỉ leo thang (Escalation) sang SIGKILL khi thực sự cần thiết",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Nếu một tiến trình hợp lệ không phản hồi và không kết thúc sau khi nhận `SIGTERM`, hãy chờ đợi một khoảng thời gian thích hợp cho khối lượng công việc, điều tra nguyên nhân. Chỉ khi việc cưỡng chế kết thúc là hoàn toàn có cơ sở, mới tiến hành gửi `SIGKILL`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ kill -KILL 12445\n# Hoặc dùng mã số tương đương:\n$ kill -9 12445",
+            "runnableCommand": "kill -KILL 12445"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "**Đánh đổi khi dùng SIGKILL**: `SIGKILL` không thể bị bắt, bỏ qua hay chặn. Tiến trình sẽ bị kernel triệt tiêu ngay lập tức mà không có cơ hội thực hiện bất kỳ thao tác dọn dẹp cấp ứng dụng nào. Điều này có thể để lại giao dịch dang dở (incomplete transactions), tệp khóa hỏng (lock files) hoặc trạng thái tạm thời chưa dọn."
+        }
+      ]
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "quiz",
+      "quiz": {
+        "id": "killing-processes-kill-tradeoff",
+        "question": "Nhược điểm lớn nhất trong vận hành của tín hiệu `SIGKILL` là gì?",
+        "options": [
+          {
+            "text": "Nó chỉ có thể được xử lý bởi chủ sở hữu của tiến trình."
+          },
+          {
+            "text": "Nó chỉ tạm dừng tiến trình chứ không bao giờ chấm dứt tiến trình."
+          },
+          {
+            "text": "Nó không cho chương trình cơ hội thực hiện dọn dẹp cấp ứng dụng."
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Nhân hệ điều hành cưỡng chế chấm dứt ngay mà không gọi hàm xử lý tín hiệu trong không gian người dùng, khiến ứng dụng không kịp lưu trạng thái hay đóng kết nối."
+      }
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "hands_on",
+      "title": "Thực hành quy trình gửi tín hiệu an toàn với kill",
+      "handsOn": [
+        {
+          "id": "lab-kill-practice",
+          "title": "1. Khởi chạy và kết thúc tiến trình an toàn",
+          "description": "Thực hành khởi chạy một tiến trình giả lập trong nền, kiểm tra sự tồn tại với kill -0 và kết thúc có trật tự với kill -TERM.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "kill-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Khởi chạy tiến trình sleep trong nền",
+              "description": "Khởi chạy lệnh sleep 600 trong nền (&) và lưu lại PID.",
+              "runnableCommand": "sleep 600 &",
+              "buttonLabel": "Chạy sleep 600 &"
+            },
+            {
+              "id": "kill-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tìm PID và xác thực thông tin tiến trình",
+              "description": "Dùng pgrep hoặc ps để tra cứu PID của sleep vừa khởi chạy.",
+              "runnableCommand": "pgrep -l sleep",
+              "buttonLabel": "Tìm PID của sleep"
+            },
+            {
+              "id": "kill-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Kiểm tra quyền hạn và sự tồn tại bằng kill -0",
+              "description": "Dùng kill -0 kết hợp với PID tìm được để kiểm tra tín hiệu thăm dò.",
+              "runnableCommand": "kill -0 $(pgrep -n sleep)",
+              "buttonLabel": "Chạy kill -0"
+            },
+            {
+              "id": "kill-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Gửi yêu cầu kết thúc có trật tự với SIGTERM",
+              "description": "Gửi tín hiệu TERM kết thúc tiến trình sleep.",
+              "runnableCommand": "kill -TERM $(pgrep -n sleep)",
+              "buttonLabel": "Gửi kill -TERM"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học về kill",
+      "takeaways": [
+        {
+          "text": "Xác nhận chính xác tiến trình đích và người giám sát dịch vụ trước khi ra tay."
+        },
+        {
+          "text": "Luôn dùng `SIGTERM` làm lựa chọn mặc định để ứng dụng giải phóng tài nguyên an toàn."
+        },
+        {
+          "text": "Tận dụng tín hiệu 0 (`kill -0`) để kiểm tra quyền hạn và sự tồn tại tức thời của PID."
+        },
+        {
+          "text": "Chỉ leo thang sang `SIGKILL` khi có lý do chính đáng sau khi đã điều tra nguyên nhân."
+        }
+      ]
+    }
+  ]
+}

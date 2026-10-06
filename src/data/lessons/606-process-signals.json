@@ -1,0 +1,246 @@
+{
+  "id": 606,
+  "slug": "process-signals",
+  "category": "Processes",
+  "lessonNumber": 6,
+  "title": "Signals (Hệ thống tín hiệu trong Linux)",
+  "subtitle": "Tìm hiểu cách Linux tạo, chặn, truyền và xử lý tín hiệu (signals) để điều khiển tiến trình và thông báo sự kiện.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Tín hiệu (Signal) trong Linux là gì?",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "**Tín hiệu** (Signal) là một thông báo bất đồng bộ do kernel chuyển tới một tiến trình hoặc luồng để thông báo một sự kiện đặc biệt hoặc yêu cầu tiến trình thực hiện một hành động tức thời."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tín hiệu có thể bắt nguồn từ nhiều nơi:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Bàn phím terminal**: `Ctrl-C` sinh ra `SIGINT` (ngắt), `Ctrl-Z` sinh ra `SIGTSTP` (tạm dừng).",
+            "**Nhân hệ điều hành**: Tự động phát sinh khi có lỗi phần cứng/bộ nhớ, ví dụ `SIGSEGV` (lỗi truy cập bộ nhớ segmentation fault).",
+            "**Tiến trình khác**: Gửi tín hiệu thông qua lệnh `kill` (ví dụ `kill -15 <PID>`).",
+            "**Bộ đếm thời gian hoặc hệ thống**: Hết hạn hẹn giờ (`SIGALRM`), thay đổi kích thước cửa sổ (`SIGWINCH`), hoặc đóng kết nối terminal (`SIGHUP`)."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-signals-ctrl-c",
+        "question": "Khi người dùng nhấn tổ hợp phím Ctrl + C trên terminal, thiết bị đầu cuối thông thường sẽ sinh ra tín hiệu nào?",
+        "options": [
+          {
+            "text": "SIGTSTP",
+            "isCode": true
+          },
+          {
+            "text": "SIGCONT",
+            "isCode": true
+          },
+          {
+            "text": "SIGINT",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Phím tắt `Ctrl-C` gửi tín hiệu ngắt `SIGINT` (Signal Interrupt) tới nhóm tiến trình tiền cảnh."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Hành vi mặc định và Thiết lập xử lý tín hiệu (Disposition)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Mỗi tín hiệu đều có một hành vi xử lý mặc định (Default Action), có thể là: kết thúc tiến trình (Terminate), kết thúc và ghi dump bộ nhớ (Core dump), tạm dừng (Stop), tiếp tục (Continue), hoặc bỏ qua (Ignore)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Các chương trình có thể đăng ký một hàm xử lý tùy chỉnh (**signal handler**) để bắt tín hiệu. Ví dụ, bắt `SIGTERM` cho phép dịch vụ web hoàn tất các yêu cầu khách hàng đang dở dang, xả dữ liệu xuống đĩa và đóng kết nối trước khi thoát có trật tự."
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ kill -l\n 1) SIGHUP       2) SIGINT       3) SIGQUIT      4) SIGILL\n 9) SIGKILL     15) SIGTERM     18) SIGCONT     19) SIGSTOP",
+            "runnableCommand": "kill -l"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-signals-term-behavior",
+        "question": "Tại sao một tiến trình có thể phản hồi một cách có trật tự và dọn dẹp tài nguyên êm đẹp khi nhận SIGTERM?",
+        "options": [
+          {
+            "text": "Vì tiến trình có thể đăng ký một hàm xử lý (handler) riêng để đón bắt tín hiệu này."
+          },
+          {
+            "text": "Vì kernel tự động lưu lại toàn bộ tài liệu của mọi ứng dụng mà không cần chương trình can thiệp."
+          },
+          {
+            "text": "Vì SIGTERM không bao giờ có thể làm dừng tiến trình."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Trái với SIGKILL, `SIGTERM` có thể được bắt (caught) bằng signal handler để thực hiện quy trình dọn dẹp trước khi thoát."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Chặn tín hiệu (Blocking) và Tín hiệu đang chờ (Pending)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Một luồng xử lý có thể sử dụng mặt nạ tín hiệu (signal mask) để tạm thời **chặn** (block) một số tín hiệu nhất định trong khi đang thực thi đoạn mã nhạy cảm."
+        },
+        {
+          "type": "paragraph",
+          "text": "Nếu một tín hiệu bị chặn được gửi tới, nó sẽ không bị hủy bỏ mà được giữ ở trạng thái **đang chờ** (pending). Ngay khi luồng gỡ bỏ chặn (unblock), tín hiệu pending sẽ lập tức được chuyển giao và xử lý."
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-signals-blocked-state",
+        "question": "Điều gì thông thường sẽ xảy ra khi một tín hiệu được gửi tới một tiến trình đang tạm thời chặn tín hiệu đó?",
+        "options": [
+          {
+            "text": "Nó vẫn nằm ở trạng thái đang chờ (pending) cho đến khi được gỡ chặn để chuyển giao."
+          },
+          {
+            "text": "Nó tự động bị chuyển đổi thành tín hiệu cưỡng chế SIGKILL."
+          },
+          {
+            "text": "Nó làm thay đổi UID của tiến trình đích."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Việc chặn (blocking) chỉ trì hoãn việc giao tín hiệu; tín hiệu sẽ trở thành pending và được xử lý khi được unblock."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Hai tín hiệu bất khả kháng: SIGKILL và SIGSTOP",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Hầu hết các tín hiệu đều có thể bị chặn hoặc bắt bằng hàm xử lý tùy chỉnh. Tuy nhiên, nhân Linux duy trì hai ngoại lệ tuyệt đối không thể can thiệp:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`SIGKILL` (Tín hiệu số 9): Buộc tiến trình phải chấm dứt ngay lập tức bởi kernel.",
+            "`SIGSTOP` (Tín hiệu số 19): Buộc tiến trình phải tạm dừng thực thi ngay lập tức."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "**`SIGKILL` và `SIGSTOP` KHÔNG THỂ BỊ BẮT, BỎ QUA HOẶC CHẶN!** Điều này đảm bảo quản trị viên và kernel luôn có quyền kiểm soát tối thượng để cưỡng chế dừng một tiến trình bị treo hoặc lỗi vòng lặp vô tận."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "process-signals-uncatchable-pair",
+        "question": "Cặp tín hiệu nào sau đây trong Linux TUYỆT ĐỐI không thể bị bắt (catch), không thể bị bỏ qua (ignore) và không thể bị chặn (block)?",
+        "options": [
+          {
+            "text": "SIGKILL và SIGSTOP",
+            "isCode": true
+          },
+          {
+            "text": "SIGINT và SIGTERM",
+            "isCode": true
+          },
+          {
+            "text": "SIGHUP và SIGCONT",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! `SIGKILL` và `SIGSTOP` là hai tín hiệu đặc quyền tối thượng của kernel, không một tiến trình nào có thể can thiệp hay chặn lại."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "hands_on",
+      "title": "Thực hành tương tác tín hiệu Linux trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-signals",
+          "title": "1. Khám phá bảng mã tín hiệu hệ thống",
+          "description": "Thực hành tra cứu danh sách tín hiệu bằng kill -l và nhận biết các mã tín hiệu quan trọng.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "sig-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Liệt kê toàn bộ các tín hiệu được kernel hỗ trợ",
+              "description": "Dùng lệnh kill -l để xem danh sách 64 tín hiệu chuẩn và real-time.",
+              "runnableCommand": "kill -l",
+              "buttonLabel": "Chạy kill -l"
+            },
+            {
+              "id": "sig-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tra cứu số hiệu của tín hiệu SIGTERM",
+              "description": "Xem số hiệu chuẩn của SIGTERM (thường là 15) và SIGKILL (9).",
+              "runnableCommand": "kill -l SIGTERM SIGKILL SIGINT",
+              "buttonLabel": "Kiểm tra mã hiệu tín hiệu"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học Signals",
+      "takeaways": [
+        {
+          "text": "Hiểu tín hiệu là cơ chế thông báo bất đồng bộ giữa kernel và tiến trình."
+        },
+        {
+          "text": "Phân biệt các hành vi xử lý tín hiệu: mặc định, bỏ qua và cài đặt hàm handler."
+        },
+        {
+          "text": "Nắm vững cơ chế trì hoãn tín hiệu pending khi bị chặn (blocking)."
+        },
+        {
+          "text": "Ghi nhớ `SIGKILL` và `SIGSTOP` là hai tín hiệu bất khả kháng không thể can thiệp."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,250 @@
+{
+  "id": 602,
+  "slug": "controlling-terminal",
+  "category": "Processes",
+  "lessonNumber": 2,
+  "title": "Controlling Terminal (Thiết bị đầu cuối điều khiển)",
+  "subtitle": "Tìm hiểu cách thiết bị đầu cuối điều khiển kết nối phiên làm việc với dữ liệu tương tác, tín hiệu và quản lý job shell.",
+  "defaultCwd": "/root",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Thiết bị đầu cuối ảo và thiết bị giả lập (PTS)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Trên Linux, các phiên đăng nhập tương tác được gắn kết với một thiết bị đầu cuối (terminal). Trong lịch sử Unix, đây từng là các thiết bị phần cứng thực thụ. Ngày nay, chúng là:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Virtual Terminals (tty1 - tty6)**: Các bảng điều khiển trực tiếp trên màn hình máy chủ console.",
+            "**Pseudo-Terminals (pts/0, pts/1...)**: Các thiết bị giả lập đầu cuối do các ứng dụng giao diện đồ họa (như GNOME Terminal, xterm) hoặc kết nối mạng từ xa (SSH) tạo ra."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ tty\n/dev/pts/0",
+            "runnableCommand": "tty"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "controlling-terminal-pts-meaning",
+        "question": "Một tên thiết bị như pts/3 trong Linux thường đại diện cho điều gì?",
+        "options": [
+          {
+            "text": "Một thiết bị cổng nối tiếp vật lý cắm ở bo mạch chủ."
+          },
+          {
+            "text": "Một thiết bị đầu cuối giả lập (pseudo-terminal) do SSH hoặc cửa sổ terminal đồ họa tạo ra."
+          },
+          {
+            "text": "Một tiến trình nhân kernel không có giao diện người dùng."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! `pts` (pseudo-terminal slave) đại diện cho các phiên terminal giả lập trong môi trường đồ họa hoặc kết nối SSH."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Phiên làm việc, Nhóm tiến trình và Tín hiệu bàn phím",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Một phiên làm việc (Session) tập hợp các nhóm tiến trình (Process Groups). Thiết bị đầu cuối điều khiển (controlling terminal) sẽ phân biệt giữa:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Foreground Process Group (Nhóm tiến trình tiền cảnh)**: Nhóm duy nhất có quyền đọc dữ liệu trực tiếp từ bàn phím và nhận các tín hiệu phát sinh từ phím tắt bàn phím.",
+            "**Background Process Groups (Nhóm tiến trình chạy nền)**: Không nhận dữ liệu bàn phím trực tiếp. Nếu cố tình đọc từ terminal, chúng sẽ bị tạm dừng bởi tín hiệu `SIGTTIN`."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "Khi bạn nhấn `Ctrl + C` hoặc `Ctrl + Z`, terminal không gửi tín hiệu cho toàn bộ máy tính mà chỉ gửi tín hiệu ngắt (`SIGINT`) hoặc tạm dừng (`SIGTSTP`) đến nhóm tiến trình tiền cảnh hiện thời."
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "controlling-terminal-ctrl-c-target",
+        "question": "Khi bạn nhấn Ctrl + C trên bàn phím, thiết bị đầu cuối điều khiển gửi tín hiệu ngắt SIGINT tới đối tượng nào?",
+        "options": [
+          {
+            "text": "Tất cả mọi tiến trình đang chạy trên toàn bộ hệ điều hành."
+          },
+          {
+            "text": "Nhóm tiến trình đang chạy ở chế độ tiền cảnh (foreground process group) của terminal đó."
+          },
+          {
+            "text": "Chỉ duy nhất tiến trình PID 1 của hệ thống."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Tín hiệu phát sinh từ phím tắt terminal chỉ được chuyển tiếp đến nhóm tiến trình đang chiếm quyền tiền cảnh."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Đọc cột TTY và ký hiệu dấu hỏi chấm (?)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi kiểm tra bằng lệnh `ps`, cột `TTY` cho biết tiến trình đó đang gắn với thiết bị đầu cuối nào:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ ps -ef | head -n 8\nUID        PID  PPID  C STIME TTY          TIME CMD\nroot         1     0  0 08:12 ?        00:00:01 /usr/lib/systemd/systemd\nroot       840     1  0 08:12 ?        00:00:00 /usr/sbin/sshd -D\nroot     18420 18410  0 08:30 pts/0    00:00:00 bash",
+            "runnableCommand": "ps -ef | grep pts"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Ký hiệu `?` (dấu hỏi chấm) trong cột `TTY` biểu thị rằng tiến trình đó **không gắn với bất kỳ thiết bị đầu cuối điều khiển nào**. Đây là đặc điểm điển hình của các daemon, dịch vụ nền do hệ thống khởi chạy."
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "controlling-terminal-question-mark",
+        "question": "Ký hiệu dấu chấm hỏi ? xuất hiện trong cột TTY của lệnh ps mang ý nghĩa gì?",
+        "options": [
+          {
+            "text": "Tiến trình đang bị lỗi và hệ điều hành không xác định được trạng thái."
+          },
+          {
+            "text": "Tiến trình không gắn với thiết bị đầu cuối điều khiển nào (như các dịch vụ nền daemon)."
+          },
+          {
+            "text": "Tiến trình đang chiếm dụng 100% dung lượng bộ nhớ."
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Ký hiệu `?` cho biết tiến trình chạy độc lập trong nền, không phụ thuộc vào thiết bị terminal nào."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Đóng Terminal và Tín hiệu ngắt SIGHUP",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi bạn đóng cửa sổ terminal đồ họa hoặc ngắt kết nối SSH, thiết bị đầu cuối bị đóng và hệ thống sẽ gửi tín hiệu ngắt kết nối (`SIGHUP` - Hangup) đến các tiến trình trong phiên."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tuy nhiên, điều này không có nghĩa là 100% tiến trình đều bị dừng. Một chương trình có thể đăng ký bộ xử lý để bỏ qua `SIGHUP`, hoặc bạn có thể sử dụng các công cụ chuyên dụng như `nohup`, `tmux` hoặc `screen` để giữ tiến trình tiếp tục chạy ngay cả khi thoát terminal."
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "controlling-terminal-close-effect",
+        "question": "Tại sao việc đóng cửa sổ terminal không nhất thiết làm dừng tất cả các tiến trình bên trong?",
+        "options": [
+          {
+            "text": "Các tiến trình có thể cấu hình bỏ qua tín hiệu SIGHUP hoặc chạy qua công cụ như tmux/nohup."
+          },
+          {
+            "text": "Terminal trên Linux không bao giờ tạo ra bất kỳ tín hiệu nào khi đóng."
+          },
+          {
+            "text": "Chỉ có các tiến trình có PID lẻ mới bị dừng khi đóng terminal."
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Tiến trình có thể bẫy tín hiệu SIGHUP hoặc chạy tách biệt với công cụ như `nohup`/`tmux` để tiếp tục sống sót."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "hands_on",
+      "title": "Thực hành tương tác thiết bị đầu cuối trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-tty",
+          "title": "1. Khám phá thiết bị TTY và tiến trình",
+          "description": "Thực hành kiểm tra tên terminal hiện hành với tty và lọc các tiến trình gắn với terminal.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "tty-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: Kiểm tra tên thiết bị terminal hiện tại",
+              "description": "Chạy lệnh tty để xem đường dẫn thiết bị giả lập đầu cuối bạn đang dùng.",
+              "runnableCommand": "tty",
+              "buttonLabel": "Chạy tty"
+            },
+            {
+              "id": "tty-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Xem các tiến trình thuộc terminal hiện tại",
+              "description": "Dùng ps để xem các tiến trình gắn liền với thiết bị pts/0.",
+              "runnableCommand": "ps",
+              "buttonLabel": "Chạy ps"
+            },
+            {
+              "id": "tty-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Xem các tiến trình daemon không gắn TTY",
+              "description": "Lọc các tiến trình có TTY là dấu hỏi chấm bằng lệnh ps aux.",
+              "runnableCommand": "ps aux | grep \"?\"",
+              "buttonLabel": "Tìm tiến trình TTY=?"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học Controlling Terminal",
+      "takeaways": [
+        {
+          "text": "Phân biệt Virtual Terminal (`tty1`) và Pseudo-Terminal (`pts/0`)."
+        },
+        {
+          "text": "Hiểu cơ chế nhóm tiến trình tiền cảnh nhận tín hiệu từ bàn phím (`Ctrl-C`, `Ctrl-Z`)."
+        },
+        {
+          "text": "Nhận biết ý nghĩa của dấu `?` trong cột `TTY` của lệnh `ps`."
+        },
+        {
+          "text": "Biết cách duy trì tiến trình sống sót sau khi đóng terminal với `nohup` hoặc `tmux`."
+        }
+      ]
+    }
+  ]
+}

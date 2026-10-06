@@ -1,0 +1,357 @@
+{
+  "id": 7,
+  "slug": "cat",
+  "category": "Command Line",
+  "lessonNumber": 7,
+  "title": "cat (Xem và nối tệp tin)",
+  "subtitle": "Tìm hiểu cách hiển thị, nối và chuyển hướng nội dung tệp tin một cách an toàn với lệnh cat.",
+  "defaultCwd": "/home/pete",
+  "steps": [
+    {
+      "id": "step-0",
+      "stepIndex": 0,
+      "type": "content",
+      "title": "Xem nội dung tệp tin với cat",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sau khi học cách nhận diện tệp tin, bước tiếp theo là đọc nội dung của chúng. Lệnh `cat` hiển thị tệp tin và ghép nối nội dung; tên gọi này bắt nguồn từ chữ \"concatenate\" (nối chuỗi)."
+        },
+        {
+          "type": "paragraph",
+          "text": "Cách sử dụng đơn giản nhất là in toàn bộ nội dung tệp trực tiếp ra màn hình terminal:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cat myfile.txt",
+            "runnableCommand": "cat /etc/os-release"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Lệnh `cat` ghi toàn bộ tệp ra đầu ra tiêu chuẩn (standard output). Điều này rất tiện lợi cho các đoạn văn bản ngắn, nhưng với tệp quá dài, chữ sẽ cuộn qua màn hình quá nhanh."
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "stepIndex": 1,
+      "type": "quiz",
+      "quiz": {
+        "id": "display-short-file",
+        "question": "Câu lệnh nào hiển thị toàn bộ nội dung của tệp `myfile.txt` ra màn hình terminal?",
+        "options": [
+          {
+            "text": "file myfile.txt",
+            "isCode": true
+          },
+          {
+            "text": "touch myfile.txt",
+            "isCode": true
+          },
+          {
+            "text": "cat myfile.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 2,
+        "explanation": "Chính xác! Lệnh `cat` đọc nội dung `myfile.txt` và in ra đầu ra tiêu chuẩn (terminal)."
+      }
+    },
+    {
+      "id": "step-2",
+      "stepIndex": 2,
+      "type": "content",
+      "title": "Ghép nối nhiều tệp tin (Concatenating Files)",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi bạn truyền nhiều tệp tin cho `cat`, nó sẽ đọc từng tệp theo thứ tự được liệt kê và nối chúng lại với nhau:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cat dogfile birdfile",
+            "runnableCommand": "cat /etc/hostname /etc/issue"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Lệnh trên sẽ in `dogfile` trước và `birdfile` sau. Để lưu nội dung đã ghép nối vào một tệp mới, hãy dùng toán tử chuyển hướng `>`:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cat dogfile birdfile > animals",
+            "runnableCommand": "cat /etc/hostname /etc/issue > /tmp/combined.txt"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "text": "Shell sẽ tạo mới hoặc làm rỗng tệp đích `animals` trước khi `cat` chạy. Tuyệt đối không dùng chính một trong các tệp đầu vào làm tệp đích, vì tệp đó có thể bị xóa rỗng trước khi `cat` kịp đọc!"
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "stepIndex": 3,
+      "type": "quiz",
+      "quiz": {
+        "id": "combine-files-in-order",
+        "question": "Câu lệnh nào ghi nội dung `part1` tiếp theo sau là `part2` vào một tệp mới (hoặc ghi đè) có tên `whole`?",
+        "options": [
+          {
+            "text": "cat whole > part1 part2",
+            "isCode": true
+          },
+          {
+            "text": "cat part1 part2 > whole",
+            "isCode": true
+          },
+          {
+            "text": "cat part2 part1 > whole",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! `cat part1 part2` đọc theo thứ tự đối số, và toán tử `>` chuyển hướng toàn bộ nội dung xuất vào tệp `whole`."
+      }
+    },
+    {
+      "id": "step-4",
+      "stepIndex": 4,
+      "type": "content",
+      "title": "Đọc dữ liệu từ bàn phím và ghi vào tệp",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Khi không có tệp đầu vào nào được chỉ định, `cat` sẽ đọc dữ liệu từ đầu vào tiêu chuẩn (standard input - bàn phím). Bạn có thể kết hợp với `>` để tạo nhanh tệp tin mới trực tiếp từ terminal:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cat > newfile.txt",
+            "runnableCommand": "cat > /tmp/notes.txt"
+          }
+        },
+        {
+          "type": "paragraph",
+          "text": "Sau khi gõ lệnh, hãy nhập nội dung bạn muốn. Nhấn `Ctrl + D` để gửi tín hiệu kết thúc tệp (EOF) và quay lại dấu nhắc lệnh shell."
+        },
+        {
+          "type": "paragraph",
+          "text": "Sử dụng `>>` để nối thêm (append) nội dung mới vào cuối tệp hiện có thay vì ghi đè làm mất dữ liệu cũ:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cat >> notes.txt",
+            "runnableCommand": "echo \"Another line\" >> /tmp/notes.txt"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "stepIndex": 5,
+      "type": "quiz",
+      "quiz": {
+        "id": "append-terminal-input",
+        "question": "Bạn muốn nhập thêm nội dung vào cuối tệp `notes.txt` hiện có mà không làm mất nội dung cũ. Câu lệnh nào thực hiện đúng thao tác này?",
+        "options": [
+          {
+            "text": "cat > notes.txt",
+            "isCode": true
+          },
+          {
+            "text": "cat >> notes.txt",
+            "isCode": true
+          },
+          {
+            "text": "cat notes.txt > notes.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 1,
+        "explanation": "Chính xác! Toán tử `>>` mở tệp đích ở chế độ append (nối tiếp), bảo toàn dữ liệu cũ trong khi ghi thêm dữ liệu mới."
+      }
+    },
+    {
+      "id": "step-6",
+      "stepIndex": 6,
+      "type": "content",
+      "title": "Định dạng hiển thị với các tùy chọn của cat",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Lệnh `cat` cung cấp một số cờ hữu ích để định dạng kết quả:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`-n`: Đánh số tất cả các dòng xuất ra, bắt đầu từ dòng 1.",
+            "`-b`: Chỉ đánh số các dòng có nội dung (bỏ qua dòng trống).",
+            "`-s`: Nén nhiều dòng trống liên tiếp thành một dòng trống duy nhất (squeeze blank lines).",
+            "`-A`: Hiển thị các ký tự không in được, ký tự Tab và ký hiệu kết thúc dòng."
+          ]
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ cat -n script.sh\n$ cat -b notes.txt\n$ cat -s messy.txt",
+            "runnableCommand": "cat -n /etc/hosts"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-7",
+      "stepIndex": 7,
+      "type": "quiz",
+      "quiz": {
+        "id": "number-nonempty-lines",
+        "question": "Câu lệnh nào chỉ đánh số các dòng không trống khi hiển thị tệp `notes.txt`?",
+        "options": [
+          {
+            "text": "cat -b notes.txt",
+            "isCode": true
+          },
+          {
+            "text": "cat -n notes.txt",
+            "isCode": true
+          },
+          {
+            "text": "cat -s notes.txt",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Tùy chọn `-b` chỉ đánh số các dòng có nội dung và bỏ qua các dòng trống hoàn toàn."
+      }
+    },
+    {
+      "id": "step-8",
+      "stepIndex": 8,
+      "type": "content",
+      "title": "Lựa chọn trình xem cho tệp tin dài",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sử dụng `cat` khi bạn muốn xuất toàn bộ nội dung cùng lúc (hoặc nối chuỗi). Đối với các tệp tin dài hàng trăm dòng, sử dụng trình phân trang `less` sẽ thuận tiện hơn nhiều vì cho phép cuộn trang, tìm kiếm và thoát ra mà không làm tràn màn hình terminal:"
+        },
+        {
+          "type": "code",
+          "codeBlock": {
+            "type": "command",
+            "code": "$ less /var/log/messages",
+            "runnableCommand": "less /etc/services"
+          }
+        }
+      ]
+    },
+    {
+      "id": "step-9",
+      "stepIndex": 9,
+      "type": "quiz",
+      "quiz": {
+        "id": "choose-viewer-for-long-file",
+        "question": "Câu lệnh nào phù hợp hơn để đọc một tệp log hệ thống dài một cách tương tác?",
+        "options": [
+          {
+            "text": "less /var/log/syslog",
+            "isCode": true
+          },
+          {
+            "text": "cat /var/log/syslog",
+            "isCode": true
+          },
+          {
+            "text": "touch /var/log/syslog",
+            "isCode": true
+          }
+        ],
+        "correctIndex": 0,
+        "explanation": "Chính xác! Lệnh `less` cho phép phân trang, cuộn lên xuống và tìm kiếm nội dung mà không in ào ạt ra màn hình như `cat`."
+      }
+    },
+    {
+      "id": "step-10",
+      "stepIndex": 10,
+      "type": "hands_on",
+      "title": "Thực hành tương tác lệnh cat trên CentOS 9",
+      "handsOn": [
+        {
+          "id": "lab-cat",
+          "title": "1. Thực hành đọc và nối tệp tin",
+          "description": "Thực hành hiển thị thông tin hệ thống, tạo tệp bằng toán tử chuyển hướng và đánh số dòng với cat.",
+          "isPrimary": true,
+          "tasks": [
+            {
+              "id": "cat-task-1",
+              "stepNumber": 1,
+              "title": "Bước 1: In thông tin bản phân phối CentOS Stream 9",
+              "description": "Dùng cat để đọc tệp /etc/os-release hiển thị phiên bản hệ điều hành.",
+              "runnableCommand": "cat /etc/os-release",
+              "buttonLabel": "Chạy cat /etc/os-release"
+            },
+            {
+              "id": "cat-task-2",
+              "stepNumber": 2,
+              "title": "Bước 2: Tạo tệp mới bằng chuyển hướng đầu ra",
+              "description": "Tạo tệp /tmp/welcome.txt chứa dòng chữ 'Hello CentOS Stream 9'.",
+              "runnableCommand": "echo \"Hello CentOS Stream 9\" > /tmp/welcome.txt",
+              "buttonLabel": "Tạo /tmp/welcome.txt"
+            },
+            {
+              "id": "cat-task-3",
+              "stepNumber": 3,
+              "title": "Bước 3: Hiển thị nội dung tệp vừa tạo",
+              "description": "Dùng lệnh cat để kiểm tra nội dung bên trong /tmp/welcome.txt.",
+              "runnableCommand": "cat /tmp/welcome.txt",
+              "buttonLabel": "Chạy cat /tmp/welcome.txt"
+            },
+            {
+              "id": "cat-task-4",
+              "stepNumber": 4,
+              "title": "Bước 4: Đánh số dòng với tùy chọn -n",
+              "description": "Hiển thị nội dung tệp cấu hình /etc/hosts kèm số thứ tự từng dòng.",
+              "runnableCommand": "cat -n /etc/hosts",
+              "buttonLabel": "Chạy cat -n /etc/hosts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-11",
+      "stepIndex": 11,
+      "type": "summary",
+      "title": "Bạn đã hoàn thành bài học lệnh cat",
+      "takeaways": [
+        {
+          "text": "Hiển thị toàn bộ nội dung tệp ngắn ra màn hình terminal."
+        },
+        {
+          "text": "Ghép nối nhiều tệp theo thứ tự mong muốn."
+        },
+        {
+          "text": "Phân biệt rõ ghi đè `>` và ghi nối tiếp `>>`."
+        },
+        {
+          "text": "Đánh số dòng xuất ra với `-n` hoặc `-b`."
+        },
+        {
+          "text": "Sử dụng `less` thay thế khi cần đọc các tệp tin quá dài."
+        }
+      ]
+    }
+  ]
+}
